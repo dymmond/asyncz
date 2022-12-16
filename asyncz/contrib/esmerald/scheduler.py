@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from pydantic.typing import AnyCallable
 
 
-class Scheduler:
+class EsmeraldScheduler:
     """
     Scheduler instance to be used by the Esmerald application instance.
 
@@ -52,7 +52,7 @@ class Scheduler:
                 "It cannot start the scheduler if there is no scheduler_class declared."
             )
 
-        for task, module in self.task.items():
+        for task, module in self.tasks.items():
             if not isinstance(task, str) or not isinstance(module, str):
                 raise ImproperlyConfigured("The dict of tasks must be Dict[str, str].")
 
@@ -73,7 +73,7 @@ class Scheduler:
         self.register_events(app=self.app)
         self.register_tasks(tasks=self.tasks)
 
-    def register_events(self, tasks: Dict[str, str]) -> None:
+    def register_tasks(self, tasks: Dict[str, str]) -> None:
         """
         Registers the tasks in the Scheduler
         """
@@ -126,9 +126,9 @@ class Scheduler:
             timezone = settings.timezone
 
         if not configurations:
-            return scheduler().configure(timezone=timezone)
+            return scheduler(timezone=timezone)
 
-        return scheduler().configure(configurations, timezone=timezone)
+        return scheduler(global_config=configurations, timezone=timezone)
 
 
 class Task:
@@ -194,7 +194,7 @@ class Task:
     def add_job(self, scheduler: "SchedulerType"):
         try:
             scheduler.add_job(
-                func=self.fn,
+                fn=self.fn,
                 trigger=self.trigger,
                 args=self.args,
                 kwargs=self.kwargs,
@@ -218,38 +218,3 @@ class Task:
         """
         self.fn = fn
         return self
-
-
-class scheduler(Task):
-    def __init__(
-        self,
-        *,
-        name: Optional[str] = None,
-        trigger: Optional[TriggerType] = None,
-        identifier: Optional[str] = None,
-        mistrigger_grace_time: Optional[int] = None,
-        coalesce: Optional[bool] = None,
-        max_intances: Optional[int] = None,
-        next_run_time: Optional[datetime] = None,
-        jobstore: Optional[str] = "default",
-        executor: Optional[str] = "default",
-        replace_existing: bool = True,
-        extra_args: Optional[Any] = None,
-        extra_kwargs: Optional[Dict[str, Any]] = None,
-        is_enabled: bool = True,
-    ) -> None:
-        super().__init__(
-            name=name,
-            trigger=trigger,
-            identifier=identifier,
-            mistrigger_grace_time=mistrigger_grace_time,
-            coalesce=coalesce,
-            max_intances=max_intances,
-            next_run_time=next_run_time,
-            jobstore=jobstore,
-            executor=executor,
-            replace_existing=replace_existing,
-            args=extra_args,
-            kwargs=extra_kwargs,
-            is_enabled=is_enabled,
-        )
