@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from importlib import import_module
 from threading import RLock
-from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 from asyncz._mapping import AsynczObjectMapping
 from asyncz.events.base import JobEvent, JobSubmissionEvent, SchedulerEvent
