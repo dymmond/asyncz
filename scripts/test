@@ -1,0 +1,16 @@
+#!/bin/sh
+
+export PREFIX=""
+if [ "$VIRTUAL_ENV" != '' ]; then
+    export PREFIX="$VIRTUAL_ENV/bin/"
+elif [ -d 'venv' ] ; then
+    export PREFIX="venv/bin/"
+fi
+
+set -ex
+
+# if [ -z $GITHUB_ACTIONS ]; then
+#     scripts/format
+# fi
+
+${PREFIX}pytest $@

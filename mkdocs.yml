@@ -1,0 +1,72 @@
+site_name: Asyncz
+site_description: The scheduler that simply works.
+site_url: https://asyncz.dymmond.com
+
+theme:
+  name: "material"
+  custom_dir: docs/overrides
+  language: en
+  palette:
+    - scheme: "default"
+      primary: "red"
+      accent: "orange"
+      media: "(prefers-color-scheme: light)"
+      toggle:
+        icon: "material/toggle-switch-variant"
+        name: "Switch to dark mode"
+    - scheme: "slate"
+      media: "(prefers-color-scheme: dark)"
+      primary: "red"
+      accent: "orange"
+      toggle:
+        icon: "material/toggle-switch-variant-off"
+        name: "Switch to light mode"
+  favicon: statics/images/favicon.ico
+  logo: statics/images/logo-white.svg
+  features:
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+
+repo_name: dymmond/asyncz
+repo_url: https://github.com/dymmond/asyncz
+edit_uri: ""
+plugins:
+  - search
+  - markdownextradata:
+      data: data
+
+nav:
+  - Asyncz: "index.md"
+markdown_extensions:
+  - toc:
+      permalink: true
+  - markdown.extensions.codehilite:
+      guess_lang: false
+  - mdx_include:
+      base_path: docs
+  - admonition
+  - codehilite
+  - extra
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format ""
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - md_in_html
+
+extra:
+  alternate:
+    - link: /
+      name: English
+      lang: en
+    # - link: /pt/
+    #   name: Portuguese (Portugal)
+    #   lang: en
+
+extra_css:
+  - statics/css/extra.css
+  - statics/css/custom.css
