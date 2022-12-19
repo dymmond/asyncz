@@ -147,7 +147,7 @@ class Task:
         coalesce: Optional[bool] = None,
         max_intances: Optional[int] = None,
         next_run_time: Optional[datetime] = None,
-        jobstore: Optional[str] = "default",
+        store: Optional[str] = "default",
         executor: Optional[str] = "default",
         replace_existing: bool = False,
         args: Optional[Any] = None,
@@ -183,7 +183,7 @@ class Task:
         self.coalesce = coalesce or undefined
         self.max_intances = max_intances or undefined
         self.next_run_time = next_run_time or undefined
-        self.jobstore = jobstore
+        self.store = store
         self.executor = executor
         self.replace_existing = replace_existing
         self.args = args
@@ -204,7 +204,7 @@ class Task:
                 coalesce=self.coalesce,
                 max_instances=self.max_intances,
                 next_run_time=self.next_run_time,
-                jobstore=self.jobstore,
+                store=self.store,
                 executor=self.executor,
                 replace_existing=self.replace_existing,
             )

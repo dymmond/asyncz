@@ -1,6 +1,4 @@
 import gc
-import os
-import signal
 import time
 from asyncio import CancelledError
 from datetime import datetime
@@ -12,7 +10,6 @@ from asyncz.events.constants import JOB_ERROR, JOB_EXECUTED, JOB_MISSED
 from asyncz.exceptions import MaximumInstancesError
 from asyncz.executors.asyncio import AsyncIOExecutor
 from asyncz.executors.base import run_coroutine_job, run_job
-from asyncz.executors.pool import ProcessPoolExecutor
 from asyncz.jobs import Job
 from asyncz.schedulers.asyncio import AsyncIOScheduler
 from asyncz.schedulers.base import BaseScheduler

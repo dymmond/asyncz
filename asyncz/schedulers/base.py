@@ -682,11 +682,13 @@ class BaseScheduler(BaseStateExtra, ABC):
 
         # Job options
         job_defaults = config.get("job_defaults", {})
-        self.job_defaults = JobDefaultStruct(
-            mistrigger_grace_time=to_int(job_defaults.get("mistrigger_grace_time")),
-            coalesce=to_bool(job_defaults.get("coalesce", True)),
-            max_instances=to_int(job_defaults.get("max_instances", 1)),
-        )
+        self.job_defaults = (
+            JobDefaultStruct(
+                mistrigger_grace_time=to_int(job_defaults.get("mistrigger_grace_time")),
+                coalesce=to_bool(job_defaults.get("coalesce", True)),
+                max_instances=to_int(job_defaults.get("max_instances", 1)),
+            )
+        ) or {}
 
         # Executors
         self.executors.clear()
