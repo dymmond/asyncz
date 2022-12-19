@@ -13,7 +13,12 @@ from asyncz.triggers import IntervalTrigger
 from asyncz.triggers.base import BaseTrigger
 from esmerald import Esmerald
 from loguru import logger
-from mock import MagicMock, Mock, patch
+from mock import MagicMock, Mock
+
+try:
+    from esmerald.exceptions import ImproperlyConfigured
+except ImportError:
+    raise ImportError("Esmerald is required to be installted to run the tests.")
 
 
 class DummyScheduler(BaseScheduler):
@@ -111,7 +116,7 @@ def test_esmerald_starts_scheduler():
 
 
 @pytest.fixture
-def scheduler(monkeypatch):
+def scheduler_class(monkeypatch):
     scheduler_class = AsyncIOScheduler
     scheduler_class._configure = MagicMock()
     monkeypatch.setattr("esmerald.applications.Scheduler", Mock(side_effect=EsmeraldScheduler))
@@ -156,9 +161,9 @@ def scheduler(monkeypatch):
     ],
     ids=["ini-style", "yaml-style"],
 )
-def test_esmerald_scheduler_configurations(scheduler, global_config):
+def test_esmerald_scheduler_configurations(scheduler_class, global_config):
     app = Esmerald(
-        scheduler_class=scheduler,
+        scheduler_class=scheduler_class,
         scheduler_tasks=scheduler_tasks(),
         scheduler_configurations=global_config,
         enable_scheduler=True,
@@ -182,3 +187,49 @@ def test_esmerald_scheduler_configurations(scheduler, global_config):
             },
         }
     )
+
+
+def test_raise_exception_on_tasks_key(scheduler_class):
+    """
+    Raises Esmerald ImproperlyConfigured if task passed has not a format Dict[str, str]
+    """
+    tasks = {
+        1: "tests.contrib.esmerald.test_esmerald",
+        2: "tests.contrib.esmerald.test_esmerald",
+    }
+
+    with pytest.raises(ImproperlyConfigured):
+        Esmerald(
+            scheduler_class=scheduler_class,
+            scheduler_tasks=tasks,
+            enable_scheduler=True,
+        )
+
+
+def test_raise_exception_on_tasks_value(scheduler_class):
+    """
+    Raises Esmerald ImproperlyConfigured if task passed has not a format Dict[str, str]
+    """
+    tasks = {
+        "task_one": 1,
+        "task_two": 2,
+    }
+
+    with pytest.raises(ImproperlyConfigured):
+        Esmerald(
+            scheduler_class=scheduler_class,
+            scheduler_tasks=tasks,
+            enable_scheduler=True,
+        )
+
+
+def test_raise_exception_on_missing_scheduler_class_and_enable_scheduler():
+    """
+    If Esmerald enable_scheduler is True and no scheduler_class, raises ImproperlyConfigured
+    """
+    with pytest.raises(ImproperlyConfigured):
+        Esmerald(
+            scheduler_class=None,
+            scheduler_tasks=scheduler_tasks(),
+            enable_scheduler=True,
+        )
