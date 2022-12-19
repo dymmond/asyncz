@@ -52,36 +52,12 @@ class SchedulerLookupError(BaseLookupError):
         super().__init__(detail=detail)
 
 
-class TaskLookupError(BaseLookupError):
-    detail = "No task with the id {task_id} has been found."
-
-    def __init__(self, task_id: str):
-        detail = self.detail.format(task_id=task_id)
-        super().__init__(detail=detail)
-
-
 class JobLookupError(BaseLookupError):
     detail = "No task with the id {job_id} has been found."
 
     def __init__(self, job_id: str):
         detail = self.detail.format(job_id=job_id)
         super().__init__(detail=detail)
-
-
-class ResultNotReady(AsynczException):
-    detail = "No job by the id of {id} was found"
-
-    def __init__(self, _id: UUID):
-        detail = self.detail.format(id=_id)
-        super().__init__(detail=detail)
-
-
-class CancelledException(AsynczException):
-    detail = "Cancelled."
-
-
-class DeadlineMissed(AsynczException):
-    detail = "Dealine missed."
 
 
 class ConflictError(KeyError):
@@ -98,22 +74,6 @@ class ConflictIdError(KeyError):
     def __init__(self, job_id: str):
         detail = self.detail.format(job_id=job_id)
         super().__init__(detail)
-
-
-class TransientJobError(ValueError):
-    detail = "Job ({job_id}) cannot be added to this job store because a reference to the callable could not be determined."
-
-    def __init__(self, job_id: str):
-        detail = self.detail.format(job_id=job_id)
-        super().__init__(detail)
-
-
-class SerializationError(AsynczException):
-    detail = "Serialization error."
-
-
-class DeserializationError(AsynczException):
-    detail = "Deserialization error."
 
 
 class MaxInterationsReached(AsynczException):
