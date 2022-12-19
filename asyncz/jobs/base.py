@@ -94,7 +94,7 @@ class Job(BaseStateExtra):
         """
         Unschedules this job and removes it from its associated store.
         """
-        self.scheduler.remove_job(self.id, self.store_alias)
+        self.scheduler.delete_job(self.id, self.store_alias)
 
     def get_run_times(self, now: datetime) -> List[datetime]:
         """

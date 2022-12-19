@@ -93,7 +93,7 @@ class DummyStore(BaseStore):
     def lookup_job(self, job_id: Union[str, int]) -> "JobType":
         ...
 
-    def remove_job(self, job_id: Union[str, int]):
+    def delete_job(self, job_id: Union[str, int]):
         ...
 
     def remove_all_jobs(self):
@@ -502,11 +502,11 @@ class TestBaseScheduler:
         returned_job = MagicMock(Job, id="foo", trigger=trigger)
         scheduler.lookup_job = MagicMock(return_value=(returned_job, "bar"))
         scheduler.update_job = MagicMock()
-        scheduler.remove_job = MagicMock()
+        scheduler.delete_job = MagicMock()
         scheduler.resume_job("foo")
 
         if dead_job:
-            scheduler.remove_job.assert_called_once_with("foo", "bar")
+            scheduler.delete_job.assert_called_once_with("foo", "bar")
         else:
             scheduler.update_job.assert_called_once_with(
                 "foo", "bar", next_run_time=next_trigger_time
@@ -553,17 +553,17 @@ class TestBaseScheduler:
 
         del scheduler_events[:]
         if store:
-            pytest.raises(JobLookupError, scheduler.remove_job, "job1", store)
+            pytest.raises(JobLookupError, scheduler.delete_job, "job1", store)
             assert len(scheduler.get_jobs()) == 1
             assert len(scheduler_events) == 0
         else:
-            scheduler.remove_job("job1", store)
+            scheduler.delete_job("job1", store)
             assert len(scheduler.get_jobs()) == 0
             assert len(scheduler_events) == 1
             assert scheduler_events[0].code == JOB_REMOVED
 
     def test_remove_nonexistent_job(self, scheduler):
-        pytest.raises(JobLookupError, scheduler.remove_job, "foo")
+        pytest.raises(JobLookupError, scheduler.delete_job, "foo")
 
     @pytest.mark.parametrize("start_scheduler", [True, False])
     @pytest.mark.parametrize("store", [None, "other"], ids=["all", "single store"])
@@ -810,7 +810,7 @@ class TestProcessJobs:
 
         assert scheduler.process_jobs() is None
 
-        store.remove_job.assert_called_once_with(999)
+        store.delete_job.assert_called_once_with(999)
 
         assert len(caplog.records) == 1
 

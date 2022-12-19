@@ -56,22 +56,6 @@ class CronTrigger(BaseTrigger):
     The first day of the week is always monday.
     """
 
-    year: Optional[Union[int, str]] = None
-    month: Optional[Union[int, str]] = None
-    day: Optional[Union[int, str]] = None
-    week: Optional[Union[int, str]] = None
-    day_of_week: Optional[Union[int, str]] = None
-    hour: Optional[Union[int, str]] = None
-    minute: Optional[Union[int, str]] = None
-    second: Optional[Union[int, str]] = None
-    start_at: Optional[Union[datetime, str]] = None
-    end_at: Optional[Union[datetime, str]] = None
-    timezone: Optional[Union[tzinfo, str]] = None
-    jitter: Optional[int] = None
-    fields: Optional[List[FieldType]] = None
-    field_names: Optional[Any]
-    fields_map: Optional["DictAny"]
-
     def __init__(
         self,
         year: Optional[Union[int, str]] = None,

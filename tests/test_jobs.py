@@ -58,7 +58,7 @@ def test_resume(job):
 
 def test_remove(job):
     job.delete()
-    job.scheduler.remove_job.assert_called_once_with(job.id, None)
+    job.scheduler.delete_job.assert_called_once_with(job.id, None)
 
 
 def test_weakref(create_job):

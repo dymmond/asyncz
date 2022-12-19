@@ -127,7 +127,7 @@ class MongoDBStore(BaseStore):
         if result and result.matched_count == 0:
             raise JobLookupError(job.id)
 
-    def remove_job(self, job_id: Union[str, int]):
+    def delete_job(self, job_id: Union[str, int]):
         result = self.collection.delete_one({"_id": job_id})
         if result and result.deleted_count == 0:
             raise JobLookupError(job_id)

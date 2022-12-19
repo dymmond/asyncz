@@ -69,7 +69,7 @@ class DummyStore(BaseStore):
     def lookup_job(self, job_id: Union[str, int]) -> "JobType":
         ...
 
-    def remove_job(self, job_id: Union[str, int]):
+    def delete_job(self, job_id: Union[str, int]):
         ...
 
     def remove_all_jobs(self):

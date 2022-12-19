@@ -571,7 +571,7 @@ class BaseScheduler(BaseStateExtra, ABC):
             if next_run_time:
                 return self.update_job(job_id, store, next_run_time=next_run_time)
             else:
-                self.remove_job(job.id, store)
+                self.delete_job(job.id, store)
 
     def get_jobs(self, store: Optional[str] = None) -> List["JobType"]:
         """
@@ -611,7 +611,7 @@ class BaseScheduler(BaseStateExtra, ABC):
             except JobLookupError:
                 return
 
-    def remove_job(self, job_id: str, store: Optional[str] = None) -> None:
+    def delete_job(self, job_id: str, store: Optional[str] = None) -> None:
         """
         Removes a job, preventing it from being run anymore.
 
@@ -632,7 +632,7 @@ class BaseScheduler(BaseStateExtra, ABC):
                 for alias, _store in self.stores.items():
                     if store in (None, alias):
                         try:
-                            _store.remove_job(job_id)
+                            _store.delete_job(job_id)
                             store_alias = alias
                             break
                         except JobLookupError:
@@ -971,7 +971,7 @@ class BaseScheduler(BaseStateExtra, ABC):
                         self.logger.error(
                             f"Executor lookup ('{job.executor}') failed for job '{job}'. Removing it from the store."
                         )
-                        self.remove_job(job.id, store_alias)
+                        self.delete_job(job.id, store_alias)
                         continue
 
                     run_times = job.get_run_times(now)
@@ -1010,7 +1010,7 @@ class BaseScheduler(BaseStateExtra, ABC):
                             job._update(next_run_time=next_run)
                             store.update_job(job)
                         else:
-                            self.remove_job(job.id, store_alias)
+                            self.delete_job(job.id, store_alias)
 
                 store_next_run_time = store.get_next_run_time()
                 if store_next_run_time and (

@@ -103,7 +103,7 @@ class BaseStore(BaseStateExtra, ABC):
         ...
 
     @abstractmethod
-    def remove_job(self, job_id: Union[str, int]):
+    def delete_job(self, job_id: Union[str, int]):
         """
         Removes the given job from this store.
         """

@@ -62,7 +62,7 @@ class MemoryStore(BaseStore):
             new_index = self.get_job_index(new_timestamp, job.id)
             self.jobs.insert(new_index, (job, new_timestamp))
 
-    def remove_job(self, job_id: Union[str, int]):
+    def delete_job(self, job_id: Union[str, int]):
         job, timestamp = self.jobs_index.get(job_id, (None, None))
         if job is None:
             raise JobLookupError(job_id)

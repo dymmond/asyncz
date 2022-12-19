@@ -131,7 +131,7 @@ class RedisStore(BaseStore):
 
             pipe.execute()
 
-    def remove_job(self, job_id: Union[str, int]):
+    def delete_job(self, job_id: Union[str, int]):
         if not self.redis.hexists(self.jobs_key, job_id):
             raise JobLookupError(job_id)
 

@@ -254,17 +254,17 @@ def test_remove_job(store, create_add_job):
     job1 = create_add_job(store, dummy_job, datetime(2022, 5, 3))
     job2 = create_add_job(store, dummy_job2, datetime(2020, 2, 26))
 
-    store.remove_job(job1.id)
+    store.delete_job(job1.id)
     jobs = store.get_all_jobs()
     assert jobs == [job2]
 
-    store.remove_job(job2.id)
+    store.delete_job(job2.id)
     jobs = store.get_all_jobs()
     assert jobs == []
 
 
 def test_remove_nonexistent_job(store):
-    pytest.raises(JobLookupError, store.remove_job, "blah")
+    pytest.raises(JobLookupError, store.delete_job, "blah")
 
 
 def test_remove_all_jobs(store, create_add_job):
