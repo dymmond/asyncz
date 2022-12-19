@@ -13,7 +13,7 @@ from asyncz.triggers import IntervalTrigger
 from asyncz.triggers.base import BaseTrigger
 from esmerald import Esmerald
 from loguru import logger
-from mock import MagicMock, patch
+from mock import MagicMock, Mock, patch
 
 
 class DummyScheduler(BaseScheduler):
@@ -110,6 +110,14 @@ def test_esmerald_starts_scheduler():
     assert app.scheduler_class == AsyncIOScheduler
 
 
+@pytest.fixture
+def scheduler(monkeypatch):
+    scheduler_class = AsyncIOScheduler
+    scheduler_class._configure = MagicMock()
+    monkeypatch.setattr("esmerald.applications.Scheduler", Mock(side_effect=EsmeraldScheduler))
+    return scheduler_class
+
+
 @pytest.mark.parametrize(
     "global_config",
     [
@@ -148,14 +156,9 @@ def test_esmerald_starts_scheduler():
     ],
     ids=["ini-style", "yaml-style"],
 )
-@patch("esmerald.applications.Scheduler")
-def test_esmerald_scheduler_configurations(mock_scheduler, global_config):
-    scheduler_class = AsyncIOScheduler
-    scheduler_class._configure = MagicMock()
-    mock_scheduler.side_effect = EsmeraldScheduler
-
+def test_esmerald_scheduler_configurations(scheduler, global_config):
     app = Esmerald(
-        scheduler_class=scheduler_class,
+        scheduler_class=scheduler,
         scheduler_tasks=scheduler_tasks(),
         scheduler_configurations=global_config,
         enable_scheduler=True,
