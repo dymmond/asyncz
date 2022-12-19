@@ -125,21 +125,21 @@ section you have the option of uilding your own stores, executors, triggers and 
 
 Due its simplificy, Asyncz provides some ways of configuring the scheduler for you.
 
-=== "In a nutshell"
+First way:
 
-    ```python
-    from asyncz.schedulers.asyncio import AsyncIOScheduler
+```python
+from asyncz.schedulers.asyncio import AsyncIOScheduler
 
-    scheduler = AsyncIOScheduler()
-    ```
+scheduler = AsyncIOScheduler()
+```
 
-=== "From the schedulers"
+Second way:
 
-    ```python
-    from asyncz.schedulers import AsyncIOScheduler
+```python
+from asyncz.schedulers import AsyncIOScheduler
 
-    scheduler = AsyncIOScheduler()
-    ```
+scheduler = AsyncIOScheduler()
+```
 
 Initialize the rest of the application after the `scheduler` initialisation.
 More [details](https://asyncz.tarsild.io/schedulers.md) can be found with more thorough explanations.
