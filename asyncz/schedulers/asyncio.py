@@ -20,7 +20,7 @@ class AsyncIOScheduler(BaseScheduler):
     """
 
     def __init__(
-        self, event_loop: Optional[Any] = None, timeout: Optional[Any] = None, **kwargs: "DictAny"
+        self, event_loop: Optional[Any] = None, timeout: Optional[int] = None, **kwargs: "DictAny"
     ) -> None:
         super().__init__(**kwargs)
         self.event_loop = event_loop

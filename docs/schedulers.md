@@ -16,6 +16,19 @@ In fact, Asyncz is used by [Esmerald](https://esmerald.dymmond.com) as internal 
 and uses the [supported scheduler](./contrib/esmerald/scheduler.md) from Asyncz to perform its
 tasks.
 
+## Parameters
+
+All schedulers contain at least:
+
+* **global_config** - A python dictionary containing configurations for the schedulers. See the
+examples of how to [configure a scheduler](#configuring-the-scheduler).
+
+    <sup>Default: `None`</sup>
+
+* **kwargs** - Any keyword parameters being passed to the scheduler up instantiation.
+
+    <sup>Default: `None`</sup>
+
 ## Configuring the scheduler
 
 Due its simplificy, Asyncz provides some ways of configuring the scheduler for you.
@@ -214,9 +227,69 @@ Same for the resume. You can resume a job directly from the instance.
 {!> ../docs_src/schedulers/resume.py !}
 ```
 
+!!! Check
+    [add_job](#add-jobs), [delete_job](#delete-job), [pause_job](#pause-job) and
+    [resume_job](#resume-job) expect a **mandatory job_id** parameter as well an optional
+    [store](./stores.md) name. Why the store name? Because you might want to store the jobs
+    in different places and this points it out the right place.
+
 ## BaseScheduler
+
+The base of all available schedulers provided by Asyncz and **it should be the base** of any
+[custom scheduler](#custom-scheduler).
+
+The [parameters](#parameters) are the same as the ones described before.
+
+```python
+from asyncz.schedulers.base import BaseScheduler
+```
 
 ## AsyncIOScheduler
 
+This scheduler is the only one (at least for now) supported by Asyncz and as mentioned before,
+it inherits from the [BaseScheduler](#basescheduler).
+
+```python
+from asyncz.schedulers import AsyncIOScheduler
+```
+
+This special scheduler besides the normal [parameters](#parameters) of the scheduler, also contains
+some additional ones.
+
+* **event_loop** - An optional. async event_loop to be used. If nothing is provided, it will use
+the `asyncio.get_event_loop()` (global).
+    
+    <sup>Default: `None`</sup>
+
+* **timeout** - A timeout used for start and stop the scheduler.
+
+    <sup>Default: `None`</sup>
 
 ## Custom Scheduler
+
+As mentioned before, Asyncz and the nature of its existence is to be more focused on ASGI and
+asyncio applications but it is not limited to it.
+
+You can create your own scheduler for any other use case, for example a blocking or background
+scheduler.
+
+Usually when creating a custom scheduler you must override at least 3 functions.
+
+* **start()** - Function used to start/wakeup the scheduler for the first time.
+* **shutdown()** - Function used to stop the scheduler and release the resources created up
+`start()`.
+* **wakeup()** - Manage the timer to notify the scheduler of the changes in the store.
+
+There are also some optional functionalities you can override if you want.
+
+* **create_default_executor** - Override this function if you want a different default executor.
+
+```python
+{!> ../docs_src/schedulers/custom_scheduler.py !}
+```
+
+## Final thoughts
+
+Asyncz since it is a revamp, simplified and rewritten version of APScheduler, you will find very
+common ground and similarities to it and that is intentional as you shouldn't be unfamiliar with
+a lot of concepts if you are already familiar with APScheduler.
