@@ -169,6 +169,51 @@ this method does not work, instead only the [delete job](#delete-job) will work.
 {!> ../docs_src/schedulers/delete.py !}
 ```
 
+## Pause and resume job
+
+As shown above, you can add and remove jobs but you can pause and resume jobs as well. When a job
+is paused, there is no next time to run since the action is no longer being validate. That can be
+again reactivated by resuming that same [Job](./jobs).
+
+Like the previous examples, there are also multiple ways of achieving that.
+
+* [pause_job](#pause-job)
+* [pause](#pause)
+* [resume_job](#resume-job)
+* [resume](#resume)
+
+### Pause job
+
+Like [delete_job](#delete-job), you can pause a job using the id.
+
+```python hl_lines="22 29 35-36"
+{!> ../docs_src/schedulers/pause_job.py !}
+```
+
+### Pause
+
+The same is applied to the simple pause where you can do it directly via job instance.
+
+```python hl_lines="23 29"
+{!> ../docs_src/schedulers/pause.py !}
+```
+
+### Resume job
+
+Resuming a job is as simple as again, passing a job id.
+
+```python hl_lines="22 29 35-36"
+{!> ../docs_src/schedulers/resume_job.py !}
+```
+
+### Resume
+
+Same for the resume. You can resume a job directly from the instance.
+
+```python hl_lines="23 29"
+{!> ../docs_src/schedulers/resume.py !}
+```
+
 ## BaseScheduler
 
 ## AsyncIOScheduler
