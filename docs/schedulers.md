@@ -233,6 +233,77 @@ Same for the resume. You can resume a job directly from the instance.
     [store](./stores.md) name. Why the store name? Because you might want to store the jobs
     in different places and this points it out the right place.
 
+## Update job
+
+As mentioned in the [jobs](./jobs.md#update-a-job) section, internally the scheduler updates the
+information given to the job and then executes it.
+
+You can update any [attribute of the job](./jobs.md#parameters) by calling:
+
+* [**asyncz.jobs.Job.update()**](./jobs.md#update-a-job) - The update method from a job instance.
+* **update_job** - The function from the scheduler.
+
+### From a job instance
+
+```python hl_lines="26-30"
+{!> ../docs_src/jobs/update_job.py !}
+```
+
+### From the scheduler
+
+```python hl_lines="38-39"
+{!> ../docs_src/schedulers/update_job.py !}
+```
+
+### Important note
+
+All attributes can be updated **but the id** as this is immutable.
+
+## Reschedule jobs
+
+You can also reschedule a job if you want/need but by change what it means is changing
+**only the trigger** by using:
+
+* [**asyncz.jobs.Job.reschedule()**](./jobs.md#reschedule-a-job) - The reschedule job from the Job
+instance. The trigger must be the [alias of the trigger object](./triggers.md#alias).
+* **reschedule_job** - The function from the scheduler instance to reschedule the job.
+
+### Reschedule the job instance
+
+```python hl_lines="26-30"
+{!> ../docs_src/jobs/reschedule_job.py !}
+```
+
+### Reschedule from the scheduler
+
+```python hl_lines="38-39"
+{!> ../docs_src/schedulers/reschedule_job.py !}
+```
+
+## Resume and pause the jobs
+
+Resuming and pausing job processing (all jobs) is also allowed with simple instructions.
+
+### Pausing all jobs
+
+```python hl_lines="35"
+{!> ../docs_src/schedulers/pausing_all_jobs.py !}
+```
+
+### Resuming all jobs
+
+```python hl_lines="38"
+{!> ../docs_src/schedulers/resuming_all_jobs.py !}
+```
+
+## Start the scheduler in the paused state
+
+Starting the scheduler without the paused state means without the first wakeup call.
+
+```python hl_lines="35"
+{!> ../docs_src/schedulers/start_with_paused.py !}
+```
+
 ## BaseScheduler
 
 The base of all available schedulers provided by Asyncz and **it should be the base** of any
@@ -286,6 +357,22 @@ There are also some optional functionalities you can override if you want.
 
 ```python
 {!> ../docs_src/schedulers/custom_scheduler.py !}
+```
+
+## Limit the number of currently executing instances
+
+By default, only one instance of each [Job](./jobs.md) is allowed to run at the same time.
+To change that when creating a job you can set the `max_instances` to the number you desire and
+this will let the scheduler know how many should run concurrently.
+
+## Events
+
+It is also possible to attach event listeners to the schedule/ The events are triggered on specific
+occasions and may carry some additional information with them regarding detauls of that specific
+event. Check the [events](./events.md) section to see the available events.
+
+```python hl_lines="18"
+{!> ../docs_src/schedulers/add_event.py !}
 ```
 
 ## Final thoughts
