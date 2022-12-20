@@ -16,6 +16,7 @@ class BaseTrigger(BaseStateExtra, ABC):
     """
     Base model defining the protocol for every trigger.
     """
+    alias: Optional[str] = None
 
     @abstractmethod
     def get_next_trigger_time(
@@ -54,8 +55,6 @@ class BaseCombinationTrigger(BaseTrigger):
         triggers: A list of triggers.
         jitter: he maximum number of second to add to the next_trigger_time.
     """
-
-    alias: Optional[str] = None
 
     def __init__(
         self,

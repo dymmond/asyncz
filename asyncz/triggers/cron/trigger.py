@@ -55,6 +55,8 @@ class CronTrigger(BaseTrigger):
     The first day of the week is always monday.
     """
 
+    alias: str = "cron"
+
     def __init__(
         self,
         year: Optional[Union[int, str]] = None,

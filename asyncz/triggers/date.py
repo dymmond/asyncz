@@ -13,9 +13,11 @@ class DateTrigger(BaseTrigger):
     Triggers once on the given datetime. If run_at is left empty then the current time is used.
 
     Args:
-        run_at - The date/time to run the job at.
+        run_at: The date/time to run the job at.
         timezone: The time zone for the run_at if it does not have one already.
     """
+
+    alias: str = "date"
 
     def __init__(
         self,
@@ -48,4 +50,7 @@ class DateTrigger(BaseTrigger):
         return "date[%s]" % datetime_repr(self.run_at)
 
     def __repr__(self) -> str:
-        return "<%s (run_at='%s')>" % (self.__class__.__name__, datetime_repr(self.run_at))
+        return "<%s (run_at='%s')>" % (
+            self.__class__.__name__,
+            datetime_repr(self.run_at),
+        )

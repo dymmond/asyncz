@@ -31,6 +31,8 @@ class IntervalTrigger(BaseTrigger):
         jitter: Delay the job execution by jitter seconds at most.
     """
 
+    alias: str = "interval"
+
     def __init__(
         self,
         weeks: Optional[int] = 0,
