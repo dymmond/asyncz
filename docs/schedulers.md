@@ -155,7 +155,7 @@ are also different ways of removing them.
 This is probably the most common way of removing jobs from the scheduler using the job id and the
 store alias.
 
-```python hl_lines="29 36 42 43"
+```python hl_lines="27 34 40 41"
 {!> ../docs_src/schedulers/delete_job.py !}
 ```
 
@@ -165,7 +165,7 @@ The `delete` function is probably more convenient but it requires that you store
 somewhere ocne the instance is received and for jobs scheduled by [scheduled job](#scheduled-jobs)
 this method does not work, instead only the [delete job](#delete-job) will work.
 
-```python hl_lines="27 33"
+```python hl_lines="23 29"
 {!> ../docs_src/schedulers/delete.py !}
 ```
 

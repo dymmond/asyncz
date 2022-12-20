@@ -1,9 +1,5 @@
-import sched
-
 import pytz
 from asyncz.schedulers.asyncio import AsyncIOScheduler
-from asyncz.triggers import CronTrigger, IntervalTrigger
-from httpx import delete
 
 # Create the scheduler
 scheduler = AsyncIOScheduler(timezone=pytz.utc)
@@ -19,7 +15,7 @@ def check_status():
     ...
 
 
-# Createthe jobs
+# Create the jobs
 # Run every Monday, Wednesday and Friday
 job = scheduler.add_job(send_email_newsletter, "cron", hour="0-23", minute="1")
 
