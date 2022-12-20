@@ -38,11 +38,12 @@ plugins:
 
 nav:
   - Asyncz: "index.md"
+  - Jobs: "jobs.md"
+  - Events: "events.md"
   - Executors: "executors.md"
   - Schedulers: "schedulers.md"
   - Stores: "stores.md"
   - Triggers: "triggers.md"
-  - Jobs: "jobs.md"
   - ASGI and Frameworks:
       - Esmerald:
           - Overview: "contrib/esmerald/index.md"

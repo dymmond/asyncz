@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, tzinfo
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 from asyncz.datastructures import CronState
 from asyncz.triggers.base import BaseTrigger
@@ -11,7 +11,6 @@ from asyncz.triggers.cron.fields import (
     MonthField,
     WeekField,
 )
-from asyncz.triggers.cron.types import FieldType
 from asyncz.typing import DictAny
 from asyncz.utils import (
     datetime_ceil,

@@ -16,6 +16,19 @@ In fact, Asyncz is used by [Esmerald](https://esmerald.dymmond.com) as internal 
 and uses the [supported scheduler](./contrib/esmerald/scheduler.md) from Asyncz to perform its
 tasks.
 
+## Parameters
+
+All schedulers contain at least:
+
+* **global_config** - A python dictionary containing configurations for the schedulers. See the
+examples of how to [configure a scheduler](#configuring-the-scheduler).
+
+    <sup>Default: `None`</sup>
+
+* **kwargs** - Any keyword parameters being passed to the scheduler up instantiation.
+
+    <sup>Default: `None`</sup>
+
 ## Configuring the scheduler
 
 Due its simplificy, Asyncz provides some ways of configuring the scheduler for you.
@@ -155,7 +168,7 @@ are also different ways of removing them.
 This is probably the most common way of removing jobs from the scheduler using the job id and the
 store alias.
 
-```python hl_lines="29 36 42 43"
+```python hl_lines="27 34 40 41"
 {!> ../docs_src/schedulers/delete_job.py !}
 ```
 
@@ -165,13 +178,205 @@ The `delete` function is probably more convenient but it requires that you store
 somewhere ocne the instance is received and for jobs scheduled by [scheduled job](#scheduled-jobs)
 this method does not work, instead only the [delete job](#delete-job) will work.
 
-```python hl_lines="27 33"
+```python hl_lines="23 29"
 {!> ../docs_src/schedulers/delete.py !}
+```
+
+## Pause and resume job
+
+As shown above, you can add and remove jobs but you can pause and resume jobs as well. When a job
+is paused, there is no next time to run since the action is no longer being validate. That can be
+again reactivated by resuming that same [Job](./jobs).
+
+Like the previous examples, there are also multiple ways of achieving that.
+
+* [pause_job](#pause-job)
+* [pause](#pause)
+* [resume_job](#resume-job)
+* [resume](#resume)
+
+### Pause job
+
+Like [delete_job](#delete-job), you can pause a job using the id.
+
+```python hl_lines="22 29 35-36"
+{!> ../docs_src/schedulers/pause_job.py !}
+```
+
+### Pause
+
+The same is applied to the simple pause where you can do it directly via job instance.
+
+```python hl_lines="23 29"
+{!> ../docs_src/schedulers/pause.py !}
+```
+
+### Resume job
+
+Resuming a job is as simple as again, passing a job id.
+
+```python hl_lines="22 29 35-36"
+{!> ../docs_src/schedulers/resume_job.py !}
+```
+
+### Resume
+
+Same for the resume. You can resume a job directly from the instance.
+
+```python hl_lines="23 29"
+{!> ../docs_src/schedulers/resume.py !}
+```
+
+!!! Check
+    [add_job](#add-jobs), [delete_job](#delete-job), [pause_job](#pause-job) and
+    [resume_job](#resume-job) expect a **mandatory job_id** parameter as well an optional
+    [store](./stores.md) name. Why the store name? Because you might want to store the jobs
+    in different places and this points it out the right place.
+
+## Update job
+
+As mentioned in the [jobs](./jobs.md#update-a-job) section, internally the scheduler updates the
+information given to the job and then executes it.
+
+You can update any [attribute of the job](./jobs.md#parameters) by calling:
+
+* [**asyncz.jobs.Job.update()**](./jobs.md#update-a-job) - The update method from a job instance.
+* **update_job** - The function from the scheduler.
+
+### From a job instance
+
+```python hl_lines="26-30"
+{!> ../docs_src/jobs/update_job.py !}
+```
+
+### From the scheduler
+
+```python hl_lines="38-39"
+{!> ../docs_src/schedulers/update_job.py !}
+```
+
+### Important note
+
+All attributes can be updated **but the id** as this is immutable.
+
+## Reschedule jobs
+
+You can also reschedule a job if you want/need but by change what it means is changing
+**only the trigger** by using:
+
+* [**asyncz.jobs.Job.reschedule()**](./jobs.md#reschedule-a-job) - The reschedule job from the Job
+instance. The trigger must be the [alias of the trigger object](./triggers.md#alias).
+* **reschedule_job** - The function from the scheduler instance to reschedule the job.
+
+### Reschedule the job instance
+
+```python hl_lines="26-30"
+{!> ../docs_src/jobs/reschedule_job.py !}
+```
+
+### Reschedule from the scheduler
+
+```python hl_lines="38-39"
+{!> ../docs_src/schedulers/reschedule_job.py !}
+```
+
+## Resume and pause the jobs
+
+Resuming and pausing job processing (all jobs) is also allowed with simple instructions.
+
+### Pausing all jobs
+
+```python hl_lines="35"
+{!> ../docs_src/schedulers/pausing_all_jobs.py !}
+```
+
+### Resuming all jobs
+
+```python hl_lines="38"
+{!> ../docs_src/schedulers/resuming_all_jobs.py !}
+```
+
+## Start the scheduler in the paused state
+
+Starting the scheduler without the paused state means without the first wakeup call.
+
+```python hl_lines="35"
+{!> ../docs_src/schedulers/start_with_paused.py !}
 ```
 
 ## BaseScheduler
 
+The base of all available schedulers provided by Asyncz and **it should be the base** of any
+[custom scheduler](#custom-scheduler).
+
+The [parameters](#parameters) are the same as the ones described before.
+
+```python
+from asyncz.schedulers.base import BaseScheduler
+```
+
 ## AsyncIOScheduler
 
+This scheduler is the only one (at least for now) supported by Asyncz and as mentioned before,
+it inherits from the [BaseScheduler](#basescheduler).
+
+```python
+from asyncz.schedulers import AsyncIOScheduler
+```
+
+This special scheduler besides the normal [parameters](#parameters) of the scheduler, also contains
+some additional ones.
+
+* **event_loop** - An optional. async event_loop to be used. If nothing is provided, it will use
+the `asyncio.get_event_loop()` (global).
+    
+    <sup>Default: `None`</sup>
+
+* **timeout** - A timeout used for start and stop the scheduler.
+
+    <sup>Default: `None`</sup>
 
 ## Custom Scheduler
+
+As mentioned before, Asyncz and the nature of its existence is to be more focused on ASGI and
+asyncio applications but it is not limited to it.
+
+You can create your own scheduler for any other use case, for example a blocking or background
+scheduler.
+
+Usually when creating a custom scheduler you must override at least 3 functions.
+
+* **start()** - Function used to start/wakeup the scheduler for the first time.
+* **shutdown()** - Function used to stop the scheduler and release the resources created up
+`start()`.
+* **wakeup()** - Manage the timer to notify the scheduler of the changes in the store.
+
+There are also some optional functionalities you can override if you want.
+
+* **create_default_executor** - Override this function if you want a different default executor.
+
+```python
+{!> ../docs_src/schedulers/custom_scheduler.py !}
+```
+
+## Limit the number of currently executing instances
+
+By default, only one instance of each [Job](./jobs.md) is allowed to run at the same time.
+To change that when creating a job you can set the `max_instances` to the number you desire and
+this will let the scheduler know how many should run concurrently.
+
+## Events
+
+It is also possible to attach event listeners to the schedule/ The events are triggered on specific
+occasions and may carry some additional information with them regarding detauls of that specific
+event. Check the [events](./events.md) section to see the available events.
+
+```python hl_lines="18"
+{!> ../docs_src/schedulers/add_event.py !}
+```
+
+## Final thoughts
+
+Asyncz since it is a revamp, simplified and rewritten version of APScheduler, you will find very
+common ground and similarities to it and that is intentional as you shouldn't be unfamiliar with
+a lot of concepts if you are already familiar with APScheduler.

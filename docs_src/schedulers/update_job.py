@@ -1,6 +1,6 @@
 import pytz
 from asyncz.schedulers.asyncio import AsyncIOScheduler
-from asyncz.triggers import CronTrigger
+from asyncz.triggers import CronTrigger, IntervalTrigger
 
 # Create the scheduler
 scheduler = AsyncIOScheduler(timezone=pytz.utc)
@@ -8,11 +8,6 @@ scheduler = AsyncIOScheduler(timezone=pytz.utc)
 
 def send_email_newsletter():
     # Add logic to send emails here
-    ...
-
-
-def collect_www_info():
-    # Add logic to collect information from the internet
     ...
 
 
@@ -24,18 +19,24 @@ def check_status():
 # Create the jobs
 # Run every Monday, Wednesday and Friday
 scheduler.add_job(
-    id="send_newsletter",
+    id="send_email_newsletter",
     fn=send_email_newsletter,
     trigger=CronTrigger(day_of_week="mon,wed,fri", hour="8", minute="1", second="5"),
 )
 
-# Run every hour and minute 1
+# Run every 10 minutes
 scheduler.add_job(
-    id="status",
+    id="check_status",
     fn=check_status,
-    trigger=CronTrigger(hour="0-23", minute="1"),
+    trigger=IntervalTrigger(minutes=10),
+    max_instances=1,
+    replace_existing=True,
+    coalesce=False,
 )
 
-# Remove the jobs by ID and store alias
-scheduler.delete_job("send_newsletter")
-scheduler.delete_job("status")
+# Update the job
+scheduler.update_job("send_email_newsletter", coalesce=False, max_instances=4)
+scheduler.update_job("check_status", coalesce=True, max_instances=3)
+
+# Start the scheduler
+scheduler.start()

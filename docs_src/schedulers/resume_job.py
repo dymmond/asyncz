@@ -11,11 +11,6 @@ def send_email_newsletter():
     ...
 
 
-def collect_www_info():
-    # Add logic to collect information from the internet
-    ...
-
-
 def check_status():
     # Logic to check a given status of whatever needed
     ...
@@ -36,6 +31,6 @@ scheduler.add_job(
     trigger=CronTrigger(hour="0-23", minute="1"),
 )
 
-# Remove the jobs by ID and store alias
-scheduler.delete_job("send_newsletter")
-scheduler.delete_job("status")
+# Resume the jobs by ID and store alias
+scheduler.resume_job("send_newsletter")
+scheduler.resume_job("status")

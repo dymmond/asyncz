@@ -21,7 +21,7 @@ def check_status():
     ...
 
 
-# Createthe jobs
+# Create the jobs
 # Run every Monday, Wednesday and Friday
 scheduler.add_job(
     fn=send_email_newsletter,
