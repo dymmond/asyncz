@@ -9,11 +9,8 @@ from asyncz.typing import DictAny
 
 class CustomStore(BaseStore):
     """
-    Custom store
+    A new custom store.
     """
-
-    def __init__(self, **kwargs: "DictAny") -> None:
-        super().__init__(**kwargs)
 
     def get_due_tasks(self, now: datetime) -> List["TaskType"]:
         ...
