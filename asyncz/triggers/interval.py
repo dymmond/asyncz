@@ -28,7 +28,7 @@ class IntervalTrigger(BaseTrigger):
         start_at: Starting point for the interval calculation.
         end_at: Latest possible date/time to trigger on.
         timezone: Time zone to use gor the date/time calculations.
-        jitter: Delay the job execution by jitter seconds at most.
+        jitter: Delay the task execution by jitter seconds at most.
     """
 
     alias: str = "interval"

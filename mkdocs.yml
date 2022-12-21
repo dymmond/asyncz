@@ -38,7 +38,7 @@ plugins:
 
 nav:
   - Asyncz: "index.md"
-  - Jobs: "jobs.md"
+  - Tasks: "tasks.md"
   - Events: "events.md"
   - Executors: "executors.md"
   - Schedulers: "schedulers.md"

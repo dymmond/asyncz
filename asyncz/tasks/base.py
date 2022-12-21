@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any, Iterable, List, Mapping, Optional
 from uuid import uuid4
 
-from asyncz.datastructures import JobState
+from asyncz.datastructures import TaskState
 from asyncz.state import BaseStateExtra
 from asyncz.triggers.base import BaseTrigger
 from asyncz.typing import DictAny
@@ -20,26 +20,26 @@ from asyncz.utils import (
 object_setattr = object.__setattr__
 
 
-class Job(BaseStateExtra):
+class Task(BaseStateExtra):
     """
     Contains the options given when scheduling callables and its current schedule and other state.
     This class should never be instantiated by the user.
 
     Args:
 
-        id: The unique identifier of this job.
-        name: The description of this job.
+        id: The unique identifier of this task.
+        name: The description of this task.
         fn: The callable to execute.
         args: Positional arguments to the callable.
         kwargs: Keyword arguments to the callable.
-        coalesce: Whether to only run the job once when several run times are due.
-        trigger: The trigger object that controls the schedule of this job.
-        executor: The name of the executor that will run this job.
-        mistrigger_grace_time: The time (in seconds) how much this job's execution is allowed to
-            be late (`None` means "allow the job to run no matter how late it is").
+        coalesce: Whether to only run the task once when several run times are due.
+        trigger: The trigger object that controls the schedule of this task.
+        executor: The name of the executor that will run this task.
+        mistrigger_grace_time: The time (in seconds) how much this task's execution is allowed to
+            be late (`None` means "allow the task to run no matter how late it is").
         max_instances: The maximum number of concurrently executing instances allowed for this
-            job.
-        next_run_time: The next scheduled run time of this job.
+            task.
+        next_run_time: The next scheduled run time of this task.
     """
 
     def __init__(
@@ -57,44 +57,44 @@ class Job(BaseStateExtra):
     @property
     def pending(self):
         """
-        Returns true if the referenced job is still waiting to be added to its designated job
+        Returns true if the referenced task is still waiting to be added to its designated task
         store.
         """
         return self.store_alias is None
 
-    def update(self, **updates: "DictAny") -> "Job":
+    def update(self, **updates: "DictAny") -> "Task":
         """
         Makes the given updates to this jon and save it in the associated store.
         Accepted keyword args are the same as the class variables.
         """
-        self.scheduler.update_job(self.id, self.store_alias, **updates)
+        self.scheduler.update_task(self.id, self.store_alias, **updates)
         return self
 
-    def reschedule(self, trigger, **trigger_args) -> "Job":
+    def reschedule(self, trigger, **trigger_args) -> "Task":
         """
-        Shortcut for switching the trigger on this job.
+        Shortcut for switching the trigger on this task.
         """
-        self.scheduler.reschedule_job(self.id, self.store_alias, trigger, **trigger_args)
+        self.scheduler.reschedule_task(self.id, self.store_alias, trigger, **trigger_args)
         return self
 
-    def pause(self) -> "Job":
+    def pause(self) -> "Task":
         """
-        Temporarily suspenses the execution of a given job.
+        Temporarily suspenses the execution of a given task.
         """
-        self.scheduler.pause_job(self.id, self.store_alias)
+        self.scheduler.pause_task(self.id, self.store_alias)
 
-    def resume(self) -> "Job":
+    def resume(self) -> "Task":
         """
-        Resume the schedule of this job if previously paused.
+        Resume the schedule of this task if previously paused.
         """
-        self.scheduler.resume_job(self.id, self.store_alias)
+        self.scheduler.resume_task(self.id, self.store_alias)
         return self
 
     def delete(self) -> None:
         """
-        Unschedules this job and removes it from its associated store.
+        Unschedules this task and removes it from its associated store.
         """
-        self.scheduler.delete_job(self.id, self.store_alias)
+        self.scheduler.delete_task(self.id, self.store_alias)
 
     def get_run_times(self, now: datetime) -> List[datetime]:
         """
@@ -110,7 +110,7 @@ class Job(BaseStateExtra):
 
     def _update(self, **updates: "DictAny") -> None:
         """
-        Validates the updates to the Job and makes the modifications if and only if all of them
+        Validates the updates to the Task and makes the modifications if and only if all of them
         validate.
         """
         approved = {}
@@ -119,7 +119,7 @@ class Job(BaseStateExtra):
             if not isinstance(_id, str):
                 raise TypeError("Id must be a non empty string.")
             if hasattr(self, "id") and getattr(self, "id", None):
-                raise ValueError("The job ID may not be changed.")
+                raise ValueError("The task ID may not be changed.")
             approved["id"] = _id
 
         if "fn" in updates or "args" in updates or "kwargs" in updates:
@@ -199,7 +199,7 @@ class Job(BaseStateExtra):
 
         if updates:
             raise AttributeError(
-                f"The following are not modifiable attributes of Job: {', '.join(updates)}."
+                f"The following are not modifiable attributes of Task: {', '.join(updates)}."
             )
 
         for key, value in approved.items():
@@ -219,10 +219,10 @@ class Job(BaseStateExtra):
             object_setattr(self, name, value)
         return self
 
-    def __getstate__(self) -> "JobState":
+    def __getstate__(self) -> "TaskState":
         if not self.fn_reference:
             raise ValueError(
-                "This Job cannot be serialized since the reference to its callable (%r) could not "
+                "This Task cannot be serialized since the reference to its callable (%r) could not "
                 "be determined. Consider giving a textual reference (module:function name) "
                 "instead." % (self.func,)
             )
@@ -237,7 +237,7 @@ class Job(BaseStateExtra):
         else:
             args = self.args
 
-        job_state = JobState(
+        task_state = TaskState(
             id=self.id,
             fn=self.fn_reference,
             trigger=self.trigger,
@@ -251,15 +251,15 @@ class Job(BaseStateExtra):
             next_run_time=self.next_run_time,
             fn_reference=self.fn_reference,
         )
-        return job_state
+        return task_state
 
     def __eq__(self, other):
-        if isinstance(other, Job):
+        if isinstance(other, Task):
             return self.id == other.id
         return NotImplemented
 
     def __repr__(self):
-        return f"<Job (id={repr_escape(self.id)} name={repr_escape(self.name)})>"
+        return f"<Task (id={repr_escape(self.id)} name={repr_escape(self.name)})>"
 
     def __str__(self):
         return repr_escape(self.__unicode__())

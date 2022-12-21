@@ -7,7 +7,7 @@ from types import ModuleType
 import pytest
 import pytz
 from asyncz.exceptions import AsynczException
-from asyncz.jobs import Job
+from asyncz.tasks import Task
 from asyncz.utils import (
     check_callable_args,
     datetime_ceil,
@@ -50,7 +50,7 @@ class DummyClass(object):
             ...
 
 
-class InheritedDummyClass(Job):
+class InheritedDummyClass(Task):
     ...
 
 
@@ -365,7 +365,7 @@ def test_repr_escape_py2(input, expected):
 class TestCheckCallableArgs(object):
     def test_invalid_callable_args(self):
         """
-        Tests that attempting to create a job with an invalid number of arguments raises an
+        Tests that attempting to create a task with an invalid number of arguments raises an
         exception.
 
         """
@@ -377,7 +377,7 @@ class TestCheckCallableArgs(object):
 
     def test_invalid_callable_kwargs(self):
         """
-        Tests that attempting to schedule a job with unmatched keyword arguments raises an
+        Tests that attempting to schedule a task with unmatched keyword arguments raises an
         exception.
 
         """
@@ -387,7 +387,7 @@ class TestCheckCallableArgs(object):
         )
 
     def test_missing_callable_args(self):
-        """Tests that attempting to schedule a job with missing arguments raises an exception."""
+        """Tests that attempting to schedule a task with missing arguments raises an exception."""
         exc = pytest.raises(ValueError, check_callable_args, lambda x, y, z: None, [1], {"y": 0})
         assert str(exc.value) == "The following arguments have not been supplied: z"
 
@@ -398,7 +398,7 @@ class TestCheckCallableArgs(object):
 
     def test_conflicting_callable_args(self):
         """
-        Tests that attempting to schedule a job where the combination of args and kwargs are in
+        Tests that attempting to schedule a task where the combination of args and kwargs are in
         conflict raises an exception.
 
         """
@@ -428,7 +428,7 @@ class TestCheckCallableArgs(object):
 
     def test_unfulfilled_kwargs(self):
         """
-        Tests that attempting to schedule a job where not all keyword-only arguments are fulfilled
+        Tests that attempting to schedule a task where not all keyword-only arguments are fulfilled
         raises an exception.
 
         """
@@ -441,7 +441,7 @@ class TestCheckCallableArgs(object):
     def test_wrapped_func(self):
         """
         Test that a wrapped function can be scheduled even if it cannot accept the arguments given
-        in add_job() if the wrapper can.
+        in add_task() if the wrapper can.
         """
 
         def func():

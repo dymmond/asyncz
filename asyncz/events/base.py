@@ -23,38 +23,38 @@ class SchedulerEvent(BaseModel):
         return f"<{self.__class__.__name__} (code={self.code})>"
 
 
-class JobEvent(SchedulerEvent):
+class TaskEvent(SchedulerEvent):
     """
-    The events for a specific job.
+    The events for a specific task.
 
     Args:
-        job_id: The identifier given to a job.
+        task_id: The identifier given to a task.
         store: The alias given to a store.
     """
 
-    job_id: Union[str, int]
+    task_id: Union[str, int]
     store: Union[str, Any]
 
 
-class JobSubmissionEvent(JobEvent):
+class TaskSubmissionEvent(TaskEvent):
     """
-    Event related to the submission of a job.
+    Event related to the submission of a task.
 
     Args:
-        scheduled_run_times: List of datetimes when the job is supposed to run.
+        scheduled_run_times: List of datetimes when the task is supposed to run.
     """
 
     scheduled_run_times: List[datetime]
 
 
-class JobExecutionEvent(JobEvent):
+class TaskExecutionEvent(TaskEvent):
     """
-    Event relared to the running of a job within the executor.
+    Event relared to the running of a task within the executor.
 
     Args:
-        scheduled_run_times: The time when the job was scheduled to be run.
-        return_value: The return value of the job successfully executed.
-        exception: The exception raised by the job.
+        scheduled_run_times: The time when the task was scheduled to be run.
+        return_value: The return value of the task successfully executed.
+        exception: The exception raised by the task.
         traceback: A formated traceback for the exception.
     """
 

@@ -36,9 +36,9 @@ class AsyncIOScheduler(BaseScheduler):
         super().shutdown(wait)
         self.stop_timer()
 
-    def _configure(self, config: "DictAny") -> None:
+    def _setup(self, config: "DictAny") -> None:
         self.event_loop = maybe_ref(config.pop("event_loop", None))
-        super()._configure(config)
+        super()._setup(config)
 
     def start_timer(self, wait_seconds: Optional[int] = None):
         self.stop_timer()
@@ -53,7 +53,7 @@ class AsyncIOScheduler(BaseScheduler):
     @run_in_event_loop
     def wakeup(self):
         self.stop_timer()
-        wait_seconds = self.process_jobs()
+        wait_seconds = self.process_tasks()
         self.start_timer(wait_seconds)
 
     def create_default_executor(self):

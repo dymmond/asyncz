@@ -6,11 +6,11 @@ from threading import Event
 
 import pytest
 import pytz
-from asyncz.events.constants import JOB_ERROR, JOB_EXECUTED, JOB_MISSED
+from asyncz.events.constants import TASK_ERROR, TASK_EXECUTED, TASK_MISSED
 from asyncz.exceptions import MaximumInstancesError
 from asyncz.executors.asyncio import AsyncIOExecutor
-from asyncz.executors.base import run_coroutine_job, run_job
-from asyncz.jobs import Job
+from asyncz.executors.base import run_coroutine_task, run_task
+from asyncz.tasks import Task
 from asyncz.schedulers.asyncio import AsyncIOScheduler
 from asyncz.schedulers.base import BaseScheduler
 from loguru import logger
@@ -53,14 +53,14 @@ def success():
     return 5
 
 
-def test_max_instances(scheduler_mocked, executor, create_job, freeze_time):
+def test_max_instances(scheduler_mocked, executor, create_task, freeze_time):
     events = []
     scheduler_mocked.dispatch_event = lambda event: events.append(event)
-    job = create_job(fn=wait_event, max_instances=2, next_run_time=None)
-    executor.send_job(job, [freeze_time.current])
-    executor.send_job(job, [freeze_time.current])
+    task = create_task(fn=wait_event, max_instances=2, next_run_time=None)
+    executor.send_task(task, [freeze_time.current])
+    executor.send_task(task, [freeze_time.current])
 
-    pytest.raises(MaximumInstancesError, executor.send_job, job, [freeze_time.current])
+    pytest.raises(MaximumInstancesError, executor.send_task, task, [freeze_time.current])
     executor.shutdown()
     assert len(events) == 2
     assert events[0].return_value == "test"
@@ -69,67 +69,67 @@ def test_max_instances(scheduler_mocked, executor, create_job, freeze_time):
 
 @pytest.mark.parametrize(
     "event_code,fn",
-    [(JOB_EXECUTED, success), (JOB_MISSED, failure), (JOB_ERROR, failure)],
+    [(TASK_EXECUTED, success), (TASK_MISSED, failure), (TASK_ERROR, failure)],
     ids=["executed", "missed", "error"],
 )
-def test_send_job(scheduler_mocked, executor, create_job, freeze_time, timezone, event_code, fn):
+def test_send_task(scheduler_mocked, executor, create_task, freeze_time, timezone, event_code, fn):
     scheduler_mocked.dispatch_event = MagicMock()
-    job = create_job(fn=fn, id="foo")
-    job.store_alias = "test_store"
+    task = create_task(fn=fn, id="foo")
+    task.store_alias = "test_store"
     run_time = (
         timezone.localize(datetime(1970, 1, 1))
-        if event_code == JOB_MISSED
+        if event_code == TASK_MISSED
         else freeze_time.current
     )
-    executor.send_job(job, [run_time])
+    executor.send_task(task, [run_time])
     executor.shutdown()
 
     assert scheduler_mocked.dispatch_event.call_count == 1
     event = scheduler_mocked.dispatch_event.call_args[0][0]
     assert event.code == event_code
-    assert event.job_id == "foo"
+    assert event.task_id == "foo"
     assert event.store == "test_store"
 
-    if event_code == JOB_EXECUTED:
+    if event_code == TASK_EXECUTED:
         assert event.return_value == 5
-    elif event_code == JOB_ERROR:
+    elif event_code == TASK_ERROR:
         assert str(event.exception) == "test failure"
         assert isinstance(event.traceback, str)
 
 
-class FakeJob:
+class FakeTask:
     id = "abc"
     max_instances = 1
     store_alias = "foo"
 
 
-def dummy_run_job(job, store_alias, run_times, logger_name):
+def dummy_run_task(task, store_alias, run_times, logger_name):
     raise Exception("dummy")
 
 
-def test_run_job_error(monkeypatch, executor):
+def test_run_task_error(monkeypatch, executor):
     """
-    Tests that run_job_error is properly called. Since we use loguru, there is no need to parse the exceptions.
+    Tests that run_task_error is properly called. Since we use loguru, there is no need to parse the exceptions.
     """
 
-    def run_job_error(job_id, exc, traceback):
-        assert job_id == "abc"
+    def run_task_error(task_id, exc, traceback):
+        assert task_id == "abc"
         exc_traceback[:] = [exc, traceback]
         event.set()
 
     event = Event()
     exc_traceback = [None, None]
-    monkeypatch.setattr("asyncz.executors.base.run_job", dummy_run_job)
-    monkeypatch.setattr("asyncz.executors.pool.run_job", dummy_run_job)
-    monkeypatch.setattr(executor, "run_job_error", run_job_error)
-    executor.send_job(FakeJob(), [])
+    monkeypatch.setattr("asyncz.executors.base.run_task", dummy_run_task)
+    monkeypatch.setattr("asyncz.executors.pool.run_task", dummy_run_task)
+    monkeypatch.setattr(executor, "run_task_error", run_task_error)
+    executor.send_task(FakeTask(), [])
 
     event.wait(5)
     assert exc_traceback[0] == None
     assert exc_traceback[1] == None
 
 
-def test_run_job_memory_leak():
+def test_run_task_memory_leak():
     class FooBar:
         pass
 
@@ -137,10 +137,10 @@ def test_run_job_memory_leak():
         foo = FooBar()  # noqa: F841
         raise Exception("dummy")
 
-    fake_job = Mock(Job, id="dummy", fn=fn, args=(), kwargs={}, mistrigger_grace_time=1)
+    fake_task = Mock(Task, id="dummy", fn=fn, args=(), kwargs={}, mistrigger_grace_time=1)
     with patch("loguru.logger"):
         for _ in range(5):
-            run_job(fake_job, "foo", [datetime.now(pytz.UTC)], logger)
+            run_task(fake_task, "foo", [datetime.now(pytz.UTC)], logger)
 
     foos = [x for x in gc.get_objects() if type(x) is FooBar]
     assert len(foos) == 0
@@ -172,14 +172,14 @@ async def waiter(sleep, exception):
 
 @pytest.mark.parametrize("exception", [False, True])
 @pytest.mark.asyncio
-async def test_run_coroutine_job(asyncio_scheduler, asyncio_executor, exception):
+async def test_run_coroutine_task(asyncio_scheduler, asyncio_executor, exception):
     from asyncio import Future, sleep
 
     future = Future()
-    job = asyncio_scheduler.add_job(waiter, "interval", seconds=1, args=[sleep, exception])
-    asyncio_executor.run_job_success = lambda job_id, events: future.set_result(events)
-    asyncio_executor.run_job_error = lambda job_id, exc, tb: future.set_exception(exc)
-    asyncio_executor.send_job(job, [datetime.now(pytz.utc)])
+    task = asyncio_scheduler.add_task(waiter, "interval", seconds=1, args=[sleep, exception])
+    asyncio_executor.run_task_success = lambda task_id, events: future.set_result(events)
+    asyncio_executor.run_task_error = lambda task_id, exc, tb: future.set_exception(exc)
+    asyncio_executor.send_task(task, [datetime.now(pytz.utc)])
     events = await future
     assert len(events) == 1
 
@@ -194,8 +194,8 @@ async def test_asyncio_executor_shutdown(asyncio_scheduler, asyncio_executor):
     """Test that the AsyncIO executor cancels its pending tasks on shutdown."""
     from asyncio import sleep
 
-    job = asyncio_scheduler.add_job(waiter, "interval", seconds=1, args=[sleep, None])
-    asyncio_executor.send_job(job, [datetime.now(pytz.utc)])
+    task = asyncio_scheduler.add_task(waiter, "interval", seconds=1, args=[sleep, None])
+    asyncio_executor.send_task(task, [datetime.now(pytz.utc)])
     futures = asyncio_executor.pending_futures.copy()
     assert len(futures) == 1
 
@@ -205,7 +205,7 @@ async def test_asyncio_executor_shutdown(asyncio_scheduler, asyncio_executor):
 
 
 @pytest.mark.asyncio
-async def test_run_job_memory_leak():
+async def test_run_task_memory_leak():
     class FooBar:
         pass
 
@@ -213,11 +213,11 @@ async def test_run_job_memory_leak():
         foo = FooBar()  # noqa: F841
         raise Exception("dummy")
 
-    fake_job = Mock(Job, id="dummy", fn=fn, args=(), kwargs={}, mistrigger_grace_time=1)
+    fake_task = Mock(Task, id="dummy", fn=fn, args=(), kwargs={}, mistrigger_grace_time=1)
 
     with patch("loguru.logger"):
         for _ in range(5):
-            await run_coroutine_job(fake_job, "foo", [datetime.now(pytz.utc)], logger)
+            await run_coroutine_task(fake_task, "foo", [datetime.now(pytz.utc)], logger)
 
     foos = [x for x in gc.get_objects() if type(x) is FooBar]
     assert len(foos) == 0

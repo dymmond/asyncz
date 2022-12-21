@@ -13,4 +13,4 @@ def my_task():
 trigger = AndTrigger(triggers=[IntervalTrigger(hours=5), CronTrigger(day_of_week="mon, tue")])
 
 # Add the trigger to the task
-scheduler.add_job(my_task, trigger)
+scheduler.add_task(my_task, trigger)

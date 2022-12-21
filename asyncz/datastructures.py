@@ -58,7 +58,7 @@ class CronState(BaseDatastructureState):
     jitter: Optional[int]
 
 
-class JobState(BaseDatastructureState):
+class TaskState(BaseDatastructureState):
     id: Optional[str]
     name: Optional[str]
     fn: Optional[Union[Callable[..., Any], str]]

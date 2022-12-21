@@ -50,7 +50,7 @@ class CronTrigger(BaseTrigger):
         start_at: Earliest possible date/time to trigger on (inclusive).
         end_at: Latest possible date/time to trier on (inclusive).
         timezone: Time zone to use for the date/time calculations (defaults to scheduler timezone).
-        jitter: Delay the job executions by jitter seconds at most.
+        jitter: Delay the task executions by jitter seconds at most.
 
     The first day of the week is always monday.
     """

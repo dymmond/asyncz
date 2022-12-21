@@ -63,8 +63,8 @@ custom settings.
 * Two stores - A [mongo](./stores.md#mongo) and a [redis](./stores.md#redis).
 * Two executors - An [asyncio](./executors.md#asyncioexecutor) and
 a [thread pool](./executors.md#threadpoolexecutor).
-* Coalesce turned off for new jobs by default.
-* Maximum instance limiting to 4 for new jobs.
+* Coalesce turned off for new tasks by default.
+* Maximum instance limiting to 4 for new tasks.
 
 #### First option
 
@@ -108,29 +108,29 @@ To stop the scheduler simply run:
 {!> ../docs_src/schedulers/shutdown.py !}
 ```
 
-## Adding jobs
+## Adding tasks
 
-A scheduler to work needs jobs, of course and Asyncz offers some ways of adding jobs into the
+A scheduler to work needs tasks, of course and Asyncz offers some ways of adding tasks into the
 scheduler.
 
-* [add_jobs](#add-jobs)
-* [scheduled_jobs](#scheduled-jobs)
+* [add_tasks](#add-tasks)
+* [scheduled_tasks](#scheduled-tasks)
 
 There is also a third option but that is related with the integration with ASGI frameworks, for
 instance [esmerald](./contrib/esmerald/decorator.md) which it should not be used in this agnostic
 context.
 
-### Add jobs
+### Add tasks
 
-Adding a job via `add_job` is the most common and probably the one you will be using more times
-than the `scheduled_job`.
+Adding a task via `add_task` is the most common and probably the one you will be using more times
+than the `scheduled_task`.
 
-**The `add_job` returns an instance of [Job](./jobs.md).**
+**The `add_task` returns an instance of [Task](./tasks.md).**
 
-So, how can you add a job?
+So, how can you add a task?
 
 ```python hl_lines="26-29 32-38 41-47"
-{!> ../docs_src/schedulers/add_job.py !}
+{!> ../docs_src/schedulers/add_task.py !}
 ```
 
 What happen here is actually very simple. We created an instance of the `AsyncIOScheduler` and
@@ -143,157 +143,157 @@ or `interval`?
 Well, we want to pass some attributes to the object and this way makes it cleaner
 and simpler.
 
-When adding jobs there is not a specific order. **You can add jobs at any given time**. If the
-scheduler is not yet running, once it does it will add the jobs to it.
+When adding tasks there is not a specific order. **You can add tasks at any given time**. If the
+scheduler is not yet running, once it does it will add the tasks to it.
 
-## Scheduled jobs
+## Scheduled tasks
 
-Scheduled jobs works in the same way as [add_jobs](#add-jobs) with the **unique difference** that
+Scheduled tasks works in the same way as [add_tasks](#add-tasks) with the **unique difference** that
 the `replacing_existing` is always `True` and it is used as a decorator.
 
 ```python hl_lines="10-12 19-23 29-33"
-{!> ../docs_src/schedulers/scheduled_job.py !}
+{!> ../docs_src/schedulers/scheduled_task.py !}
 ```
 
-## Deleting jobs
+## Deleting tasks
 
-In the same way you can [add jobs](#add-jobs) you can also remove them with the same ease and there
+In the same way you can [add tasks](#add-tasks) you can also remove them with the same ease and there
 are also different ways of removing them.
 
-* [delete_job](#delete-job)
+* [delete_task](#delete-task)
 * [delete](#delete)
 
-### Delete job
+### Delete task
 
-This is probably the most common way of removing jobs from the scheduler using the job id and the
+This is probably the most common way of removing tasks from the scheduler using the task id and the
 store alias.
 
 ```python hl_lines="27 34 40 41"
-{!> ../docs_src/schedulers/delete_job.py !}
+{!> ../docs_src/schedulers/delete_task.py !}
 ```
 
 ## Delete
 
-The `delete` function is probably more convenient but it requires that you store the [Job](./jobs)
-somewhere ocne the instance is received and for jobs scheduled by [scheduled job](#scheduled-jobs)
-this method does not work, instead only the [delete job](#delete-job) will work.
+The `delete` function is probably more convenient but it requires that you store the [Task](./tasks)
+somewhere ocne the instance is received and for tasks scheduled by [scheduled task](#scheduled-tasks)
+this method does not work, instead only the [delete task](#delete-task) will work.
 
 ```python hl_lines="23 29"
 {!> ../docs_src/schedulers/delete.py !}
 ```
 
-## Pause and resume job
+## Pause and resume task
 
-As shown above, you can add and remove jobs but you can pause and resume jobs as well. When a job
+As shown above, you can add and remove tasks but you can pause and resume tasks as well. When a task
 is paused, there is no next time to run since the action is no longer being validate. That can be
-again reactivated by resuming that same [Job](./jobs).
+again reactivated by resuming that same [Task](./tasks).
 
 Like the previous examples, there are also multiple ways of achieving that.
 
-* [pause_job](#pause-job)
+* [pause_task](#pause-task)
 * [pause](#pause)
-* [resume_job](#resume-job)
+* [resume_task](#resume-task)
 * [resume](#resume)
 
-### Pause job
+### Pause task
 
-Like [delete_job](#delete-job), you can pause a job using the id.
+Like [delete_task](#delete-task), you can pause a task using the id.
 
 ```python hl_lines="22 29 35-36"
-{!> ../docs_src/schedulers/pause_job.py !}
+{!> ../docs_src/schedulers/pause_task.py !}
 ```
 
 ### Pause
 
-The same is applied to the simple pause where you can do it directly via job instance.
+The same is applied to the simple pause where you can do it directly via task instance.
 
 ```python hl_lines="23 29"
 {!> ../docs_src/schedulers/pause.py !}
 ```
 
-### Resume job
+### Resume task
 
-Resuming a job is as simple as again, passing a job id.
+Resuming a task is as simple as again, passing a task id.
 
 ```python hl_lines="22 29 35-36"
-{!> ../docs_src/schedulers/resume_job.py !}
+{!> ../docs_src/schedulers/resume_task.py !}
 ```
 
 ### Resume
 
-Same for the resume. You can resume a job directly from the instance.
+Same for the resume. You can resume a task directly from the instance.
 
 ```python hl_lines="23 29"
 {!> ../docs_src/schedulers/resume.py !}
 ```
 
 !!! Check
-    [add_job](#add-jobs), [delete_job](#delete-job), [pause_job](#pause-job) and
-    [resume_job](#resume-job) expect a **mandatory job_id** parameter as well an optional
-    [store](./stores.md) name. Why the store name? Because you might want to store the jobs
+    [add_task](#add-tasks), [delete_task](#delete-task), [pause_task](#pause-task) and
+    [resume_task](#resume-task) expect a **mandatory task_id** parameter as well an optional
+    [store](./stores.md) name. Why the store name? Because you might want to store the tasks
     in different places and this points it out the right place.
 
-## Update job
+## Update task
 
-As mentioned in the [jobs](./jobs.md#update-a-job) section, internally the scheduler updates the
-information given to the job and then executes it.
+As mentioned in the [tasks](./tasks.md#update-a-task) section, internally the scheduler updates the
+information given to the task and then executes it.
 
-You can update any [attribute of the job](./jobs.md#parameters) by calling:
+You can update any [attribute of the task](./tasks.md#parameters) by calling:
 
-* [**asyncz.jobs.Job.update()**](./jobs.md#update-a-job) - The update method from a job instance.
-* **update_job** - The function from the scheduler.
+* [**asyncz.tasks.Task.update()**](./tasks.md#update-a-task) - The update method from a task instance.
+* **update_task** - The function from the scheduler.
 
-### From a job instance
+### From a task instance
 
 ```python hl_lines="26-30"
-{!> ../docs_src/jobs/update_job.py !}
+{!> ../docs_src/tasks/update_task.py !}
 ```
 
 ### From the scheduler
 
 ```python hl_lines="38-39"
-{!> ../docs_src/schedulers/update_job.py !}
+{!> ../docs_src/schedulers/update_task.py !}
 ```
 
 ### Important note
 
 All attributes can be updated **but the id** as this is immutable.
 
-## Reschedule jobs
+## Reschedule tasks
 
-You can also reschedule a job if you want/need but by change what it means is changing
+You can also reschedule a task if you want/need but by change what it means is changing
 **only the trigger** by using:
 
-* [**asyncz.jobs.Job.reschedule()**](./jobs.md#reschedule-a-job) - The reschedule job from the Job
+* [**asyncz.tasks.Taskk.reschedule()**](./tasks.md#reschedule-a-task) - The reschedule task from the Task
 instance. The trigger must be the [alias of the trigger object](./triggers.md#alias).
-* **reschedule_job** - The function from the scheduler instance to reschedule the job.
+* **reschedule_task** - The function from the scheduler instance to reschedule the task.
 
-### Reschedule the job instance
+### Reschedule the task instance
 
 ```python hl_lines="26-30"
-{!> ../docs_src/jobs/reschedule_job.py !}
+{!> ../docs_src/tasks/reschedule_task.py !}
 ```
 
 ### Reschedule from the scheduler
 
 ```python hl_lines="38-39"
-{!> ../docs_src/schedulers/reschedule_job.py !}
+{!> ../docs_src/schedulers/reschedule_task.py !}
 ```
 
-## Resume and pause the jobs
+## Resume and pause the tasks
 
-Resuming and pausing job processing (all jobs) is also allowed with simple instructions.
+Resuming and pausing task processing (all tasks) is also allowed with simple instructions.
 
-### Pausing all jobs
+### Pausing all tasks
 
 ```python hl_lines="35"
-{!> ../docs_src/schedulers/pausing_all_jobs.py !}
+{!> ../docs_src/schedulers/pausing_all_tasks.py !}
 ```
 
-### Resuming all jobs
+### Resuming all tasks
 
 ```python hl_lines="38"
-{!> ../docs_src/schedulers/resuming_all_jobs.py !}
+{!> ../docs_src/schedulers/resuming_all_tasks.py !}
 ```
 
 ## Start the scheduler in the paused state
@@ -361,8 +361,8 @@ There are also some optional functionalities you can override if you want.
 
 ## Limit the number of currently executing instances
 
-By default, only one instance of each [Job](./jobs.md) is allowed to run at the same time.
-To change that when creating a job you can set the `max_instances` to the number you desire and
+By default, only one instance of each [Task](./tasks.md) is allowed to run at the same time.
+To change that when creating a task you can set the `max_instances` to the number you desire and
 this will let the scheduler know how many should run concurrently.
 
 ## Events

@@ -11,7 +11,7 @@ class AndTrigger(BaseCombinationTrigger):
 
     Args:
         triggers: List of triggers to combine.
-        jiter: Delay the job execution by the jitter seconds at most.
+        jiter: Delay the task execution by the jitter seconds at most.
     """
 
     alias: str = "and"
@@ -39,7 +39,7 @@ class OrTrigger(BaseCombinationTrigger):
 
     Args:
         triggers: List of triggers to combine.
-        jiter: Delay the job execution by the jitter seconds at most.
+        jiter: Delay the task execution by the jitter seconds at most.
     """
 
     alias: str = "or"

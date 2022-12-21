@@ -9,6 +9,6 @@ def my_task():
 
 
 # Run every 5 hours and limits the window
-scheduler.add_job(my_task, "interval", hours=5, jitter=200)
+scheduler.add_task(my_task, "interval", hours=5, jitter=200)
 
 scheduler.start()

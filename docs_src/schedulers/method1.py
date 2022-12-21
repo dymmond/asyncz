@@ -12,9 +12,9 @@ stores = {"mongo": MongoDBStore(), "default": RedisStore(database=0)}
 executors = {"default": AsyncIOExecutor(), "threadpool": ThreadPoolExecutor(max_workers=20)}
 
 # Set the defaults
-job_defaults = {"coalesce": False, "max_instances": 4}
+task_defaults = {"coalesce": False, "max_instances": 4}
 
 # Start the scheduler
 scheduler = AsyncIOScheduler(
-    stores=stores, executors=executors, job_defaults=job_defaults, timezone=pytz.utc
+    stores=stores, executors=executors, task_defaults=task_defaults, timezone=pytz.utc
 )

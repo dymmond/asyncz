@@ -4,11 +4,11 @@ from concurrent.futures.process import BrokenProcessPool
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, List, Optional
 
-from asyncz.executors.base import BaseExecutor, run_job
+from asyncz.executors.base import BaseExecutor, run_task
 from asyncz.typing import DictAny
 
 if TYPE_CHECKING:
-    from asyncz.jobs.types import JobType
+    from asyncz.tasks.types import TaskType
 
 
 class BasePoolExecutor(BaseExecutor):
@@ -17,7 +17,7 @@ class BasePoolExecutor(BaseExecutor):
         super().__init__(**kwargs)
         self.pool = pool
 
-    def do_send_job(self, job: "JobType", run_times: List[datetime]) -> Any:
+    def do_send_task(self, task: "TaskType", run_times: List[datetime]) -> Any:
         def callback(fn):
             exc, _ = (
                 fn.exception_info()
@@ -25,16 +25,16 @@ class BasePoolExecutor(BaseExecutor):
                 else (fn.exception(), getattr(fn.exception(), "__traceback__", None))
             )
             if exc:
-                self.run_job_error(job.id)
+                self.run_task_error(task.id)
             else:
-                self.run_job_success(job.id, fn.result())
+                self.run_task_success(task.id, fn.result())
 
         try:
-            fn = self.pool.submit(run_job, job, job.store_alias, run_times)
+            fn = self.pool.submit(run_task, task, task.store_alias, run_times)
         except (BrokenProcessPool, TypeError):
             self.logger.warning("Process pool is broken. Replacing pool with a new instance.")
             self.pool = self.pool.__class__(self.pool.max_workers)
-            fn = self.pool.submit(run_job, job, job.store_alias, run_times, self.logger)
+            fn = self.pool.submit(run_task, task, task.store_alias, run_times, self.logger)
 
         fn.add_done_callback(callback)
 
@@ -47,7 +47,7 @@ class BasePoolExecutor(BaseExecutor):
 
 class ThreadPoolExecutor(BasePoolExecutor):
     """
-    An executor that runs jobs in a concurrent.futures thread pool.
+    An executor that runs tasks in a concurrent.futures thread pool.
 
     Args:
         max_workers: The maximum number of spawned threads.
@@ -65,7 +65,7 @@ class ThreadPoolExecutor(BasePoolExecutor):
 
 class ProcessPoolExecutor(BasePoolExecutor):
     """
-    An executor that runs jobs in a concurrent.futures process pool.
+    An executor that runs tasks in a concurrent.futures process pool.
 
     Args:
         max_workers: The maximum number of spawned processes.

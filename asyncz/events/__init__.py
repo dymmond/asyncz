@@ -1,12 +1,12 @@
-from .base import JobEvent, JobExecutionEvent, JobSubmissionEvent, SchedulerEvent
-from .constants import JOB_ERROR, JOB_EXECUTED, JOB_MISSED
+from .base import SchedulerEvent, TaskEvent, TaskExecutionEvent, TaskSubmissionEvent
+from .constants import TASK_ERROR, TASK_EXECUTED, TASK_MISSED
 
 __all__ = [
-    "JobEvent",
-    "JobExecutionEvent",
-    "JobSubmissionEvent",
+    "TaskEvent",
+    "TaskExecutionEvent",
+    "TaskSubmissionEvent",
     "SchedulerEvent",
-    "JOB_ERROR",
-    "JOB_EXECUTED",
-    "JOB_MISSED",
+    "TASK_ERROR",
+    "TASK_EXECUTED",
+    "TASK_MISSED",
 ]

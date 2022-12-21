@@ -1,4 +1,3 @@
-
 from asyncz.schedulers import AsyncIOScheduler
 from loguru import logger
 
@@ -10,6 +9,6 @@ def my_task():
 
 
 # Run every 5 hours
-scheduler.add_job(my_task, "interval", hours=5)
+scheduler.add_task(my_task, "interval", hours=5)
 
 scheduler.start()

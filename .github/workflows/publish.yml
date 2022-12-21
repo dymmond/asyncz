@@ -5,7 +5,7 @@ on:
     tags:
       - "*"
 
-jobs:
+tasks:
   publish:
     name: "Publish release"
     runs-on: "ubuntu-latest"

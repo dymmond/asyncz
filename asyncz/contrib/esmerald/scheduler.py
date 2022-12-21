@@ -85,7 +85,7 @@ class EsmeraldScheduler:
                 continue
 
             try:
-                scheduled_task.add_job(self.handler)
+                scheduled_task.add_task(self.handler)
             except Exception as e:
                 raise ImproperlyConfigured(str(e))
 
@@ -157,20 +157,20 @@ class Task:
         """_summary_
 
         Args:
-            name (Optional[str], optional): textual description of the job.
+            name (Optional[str], optional): textual description of the task.
             trigger (Optional[TriggerType], optional): an instance of a trigger class.
-            identifier (Optional[str], optional): explicit identifier for the job.
-            mistrigger_grace_time (Optional[int], optional): seconds after the designated runtime that the job is still
-                allowed to be run (or None to allow the job to run no matter how late it is).
+            identifier (Optional[str], optional): explicit identifier for the task.
+            mistrigger_grace_time (Optional[int], optional): seconds after the designated runtime that the task is still
+                allowed to be run (or None to allow the task to run no matter how late it is).
             coalesce (Optional[bool], optional): run once instead of many times if the scheduler determines that the
-                job should be run more than once in succession.
+                taskkkk should be run more than once in succession.
             max_intances (Optional[int], optional): maximum number of concurrently running instances allowed for this
-                job.
-            next_run_time (Optional[datetime], optional): when to first run the job, regardless of the trigger (pass
-                None to add the job as paused).
-            jobstore (Optional[str], optional): alias of the job store to store the job in.
-            executor (Optional[str], optional): alias of the executor to run the job with.
-            replace_existing (bool, optional): True to replace an existing job with the same id
+                task.
+            next_run_time (Optional[datetime], optional): when to first run the task, regardless of the trigger (pass
+                None to add the task as paused).
+            store (Optional[str], optional): alias of the task store to store the task in.
+            executor (Optional[str], optional): alias of the executor to run the task with.
+            replace_existing (bool, optional): True to replace an existing task with the same id
                 (but retain the number of runs from the existing one).
             args (Optional[Any], optional): list of positional arguments to call func with.
             kwargs (Optional[Dict[str, Any]], optional): dict of keyword arguments to call func with.
@@ -191,9 +191,9 @@ class Task:
         self.is_enabled = is_enabled
         self.fn = None
 
-    def add_job(self, scheduler: "SchedulerType"):
+    def add_task(self, scheduler: "SchedulerType"):
         try:
-            scheduler.add_job(
+            scheduler.add_task(
                 fn=self.fn,
                 trigger=self.trigger,
                 args=self.args,

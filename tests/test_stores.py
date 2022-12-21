@@ -1,19 +1,19 @@
 from datetime import datetime
 
 import pytest
-from asyncz.exceptions import ConflictIdError, JobLookupError
+from asyncz.exceptions import ConflictIdError, TaskLookupError
 from asyncz.stores.memory import MemoryStore
 
 
-def dummy_job():
+def dummy_task():
     pass
 
 
-def dummy_job2():
+def dummy_task2():
     pass
 
 
-def dummy_job3():
+def dummy_task3():
     pass
 
 
@@ -40,7 +40,7 @@ def redistore():
     store = redis.RedisStore()
     store.start(None, "redis")
     yield store
-    store.remove_all_jobs()
+    store.remove_all_tasks()
     store.shutdown()
 
 
@@ -78,202 +78,204 @@ def persistent_store(request):
 
 
 @pytest.fixture
-def create_add_job(timezone, create_job):
-    def create(store, fn=dummy_job, run_at=datetime(2999, 1, 1), id=None, paused=False, **kwargs):
+def create_add_task(timezone, create_task):
+    def create(store, fn=dummy_task, run_at=datetime(2999, 1, 1), id=None, paused=False, **kwargs):
         run_at = timezone.localize(run_at)
-        job = create_job(fn=fn, trigger="date", trigger_args={"run_at": run_at}, id=id, **kwargs)
-        job.next_run_time = None if paused else job.trigger.get_next_trigger_time(None, run_at)
+        task = create_task(fn=fn, trigger="date", trigger_args={"run_at": run_at}, id=id, **kwargs)
+        task.next_run_time = None if paused else task.trigger.get_next_trigger_time(None, run_at)
         if store:
-            store.add_job(job)
-        return job
+            store.add_task(task)
+        return task
 
     return create
 
 
-def test_add_callable_instance_method_job(store, create_add_job):
+def test_add_callable_instance_method_task(store, create_add_task):
     instance = DummyClass()
-    initial_job = create_add_job(store, instance.dummy_method, kwargs={"a": 1, "b": 2})
-    job = store.lookup_job(initial_job.id)
-    assert job.fn(*job.args, **job.kwargs) == 3
+    initial_task = create_add_task(store, instance.dummy_method, kwargs={"a": 1, "b": 2})
+    task = store.lookup_task(initial_task.id)
+    assert task.fn(*task.args, **task.kwargs) == 3
 
 
-def test_add_callable_class_method_job(store, create_add_job):
-    initial_job = create_add_job(store, DummyClass.dummy_classmethod, kwargs={"a": 1, "b": 2})
-    job = store.lookup_job(initial_job.id)
-    assert job.fn(*job.args, **job.kwargs) == 3
+def test_add_callable_class_method_task(store, create_add_task):
+    initial_task = create_add_task(store, DummyClass.dummy_classmethod, kwargs={"a": 1, "b": 2})
+    task = store.lookup_task(initial_task.id)
+    assert task.fn(*task.args, **task.kwargs) == 3
 
 
-def test_add_textual_instance_method_job(store, create_add_job):
-    initial_job = create_add_job(
+def test_add_textual_instance_method_task(store, create_add_task):
+    initial_task = create_add_task(
         store, "tests.test_stores:dummy_instance.dummy_method", kwargs={"a": 1, "b": 2}
     )
-    job = store.lookup_job(initial_job.id)
-    assert job.fn(*job.args, **job.kwargs) == 3
+    task = store.lookup_task(initial_task.id)
+    assert task.fn(*task.args, **task.kwargs) == 3
 
 
-def test_add_textual_class_method_job(store, create_add_job):
-    initial_job = create_add_job(
+def test_add_textual_class_method_task(store, create_add_task):
+    initial_task = create_add_task(
         store, "tests.test_stores:DummyClass.dummy_classmethod", kwargs={"a": 1, "b": 2}
     )
-    job = store.lookup_job(initial_job.id)
-    assert job.fn(*job.args, **job.kwargs) == 3
+    task = store.lookup_task(initial_task.id)
+    assert task.fn(*task.args, **task.kwargs) == 3
 
 
-def test_lookup_job(store, create_add_job):
-    initial_job = create_add_job(store)
-    job = store.lookup_job(initial_job.id)
-    assert job == initial_job
+def test_lookup_task(store, create_add_task):
+    initial_task = create_add_task(store)
+    task = store.lookup_task(initial_task.id)
+    assert task == initial_task
 
 
-def test_lookup_nonexistent_job(store):
-    assert store.lookup_job("foo") is None
+def test_lookup_nonexistent_task(store):
+    assert store.lookup_task("foo") is None
 
 
-def test_get_all_jobs(store, create_add_job):
-    job1 = create_add_job(store, dummy_job, datetime(2025, 5, 3))
-    job2 = create_add_job(store, dummy_job2, datetime(2022, 8, 14))
-    job3 = create_add_job(store, dummy_job2, datetime(2022, 7, 11), paused=True)
-    jobs = store.get_all_jobs()
-    assert jobs == [job2, job1, job3]
+def test_get_all_tasks(store, create_add_task):
+    task1 = create_add_task(store, dummy_task, datetime(2025, 5, 3))
+    task2 = create_add_task(store, dummy_task2, datetime(2022, 8, 14))
+    task3 = create_add_task(store, dummy_task2, datetime(2022, 7, 11), paused=True)
+    tasks = store.get_all_tasks()
+    assert tasks == [task2, task1, task3]
 
 
-def test_get_pending_jobs(store, create_add_job, timezone):
-    create_add_job(store, dummy_job, datetime(2022, 5, 3))
-    job2 = create_add_job(store, dummy_job2, datetime(2020, 2, 26))
-    job3 = create_add_job(store, dummy_job3, datetime(2019, 8, 14))
-    create_add_job(store, dummy_job3, datetime(2019, 7, 11), paused=True)
-    jobs = store.get_due_jobs(timezone.localize(datetime(2020, 2, 27)))
-    assert jobs == [job3, job2]
+def test_get_pending_tasks(store, create_add_task, timezone):
+    create_add_task(store, dummy_task, datetime(2022, 5, 3))
+    task2 = create_add_task(store, dummy_task2, datetime(2020, 2, 26))
+    task3 = create_add_task(store, dummy_task3, datetime(2019, 8, 14))
+    create_add_task(store, dummy_task3, datetime(2019, 7, 11), paused=True)
+    tasks = store.get_due_tasks(timezone.localize(datetime(2020, 2, 27)))
+    assert tasks == [task3, task2]
 
-    jobs = store.get_due_jobs(timezone.localize(datetime(2019, 8, 13)))
-    assert jobs == []
-
-
-def test_get_pending_jobs_subsecond_difference(store, create_add_job, timezone):
-    job1 = create_add_job(store, dummy_job, datetime(2022, 7, 7, 0, 0, 0, 401))
-    job2 = create_add_job(store, dummy_job2, datetime(2022, 7, 7, 0, 0, 0, 402))
-    job3 = create_add_job(store, dummy_job3, datetime(2022, 7, 7, 0, 0, 0, 400))
-    jobs = store.get_due_jobs(timezone.localize(datetime(2022, 7, 7, 1)))
-    assert jobs == [job3, job1, job2]
+    tasks = store.get_due_tasks(timezone.localize(datetime(2019, 8, 13)))
+    assert tasks == []
 
 
-def test_get_next_run_time(store, create_add_job, timezone):
-    create_add_job(store, dummy_job, datetime(2022, 5, 3))
-    create_add_job(store, dummy_job2, datetime(2020, 2, 26))
-    create_add_job(store, dummy_job3, datetime(2019, 8, 14))
-    create_add_job(store, dummy_job3, datetime(2019, 7, 11), paused=True)
+def test_get_pending_tasks_subsecond_difference(store, create_add_task, timezone):
+    task1 = create_add_task(store, dummy_task, datetime(2022, 7, 7, 0, 0, 0, 401))
+    task2 = create_add_task(store, dummy_task2, datetime(2022, 7, 7, 0, 0, 0, 402))
+    task3 = create_add_task(store, dummy_task3, datetime(2022, 7, 7, 0, 0, 0, 400))
+    tasks = store.get_due_tasks(timezone.localize(datetime(2022, 7, 7, 1)))
+    assert tasks == [task3, task1, task2]
+
+
+def test_get_next_run_time(store, create_add_task, timezone):
+    create_add_task(store, dummy_task, datetime(2022, 5, 3))
+    create_add_task(store, dummy_task2, datetime(2020, 2, 26))
+    create_add_task(store, dummy_task3, datetime(2019, 8, 14))
+    create_add_task(store, dummy_task3, datetime(2019, 7, 11), paused=True)
     assert store.get_next_run_time() == timezone.localize(datetime(2019, 8, 14))
 
 
-def test_add_job_conflicting_id(store, create_add_job):
-    create_add_job(store, dummy_job, datetime(2022, 5, 3), id="blah")
+def test_add_task_conflicting_id(store, create_add_task):
+    create_add_task(store, dummy_task, datetime(2022, 5, 3), id="blah")
     pytest.raises(
-        ConflictIdError, create_add_job, store, dummy_job2, datetime(2020, 2, 26), id="blah"
+        ConflictIdError, create_add_task, store, dummy_task2, datetime(2020, 2, 26), id="blah"
     )
 
 
-def test_update_job(store, create_add_job, timezone):
-    job1 = create_add_job(store, dummy_job, datetime(2022, 5, 3))
-    job2 = create_add_job(store, dummy_job2, datetime(2020, 2, 26))
-    replacement = create_add_job(
-        None, dummy_job, datetime(2022, 5, 4), id=job1.id, max_instances=6
+def test_update_task(store, create_add_task, timezone):
+    task1 = create_add_task(store, dummy_task, datetime(2022, 5, 3))
+    task2 = create_add_task(store, dummy_task2, datetime(2020, 2, 26))
+    replacement = create_add_task(
+        None, dummy_task, datetime(2022, 5, 4), id=task1.id, max_instances=6
     )
     assert replacement.max_instances == 6
-    store.update_job(replacement)
+    store.update_task(replacement)
 
-    jobs = store.get_all_jobs()
-    assert len(jobs) == 2
-    assert jobs[0].id == job2.id
-    assert jobs[1].id == job1.id
-    assert jobs[1].next_run_time == timezone.localize(datetime(2022, 5, 4))
-    assert jobs[1].max_instances == 6
+    tasks = store.get_all_tasks()
+    assert len(tasks) == 2
+    assert tasks[0].id == task2.id
+    assert tasks[1].id == task1.id
+    assert tasks[1].next_run_time == timezone.localize(datetime(2022, 5, 4))
+    assert tasks[1].max_instances == 6
 
 
 @pytest.mark.parametrize("next_run_time", [datetime(2019, 8, 13), None], ids=["earlier", "null"])
-def test_update_job_next_runtime(store, create_add_job, next_run_time, timezone):
-    job1 = create_add_job(store, dummy_job, datetime(2022, 5, 3))
-    create_add_job(store, dummy_job2, datetime(2020, 2, 26))
-    job3 = create_add_job(store, dummy_job3, datetime(2019, 8, 14))
-    job1.next_run_time = timezone.localize(next_run_time) if next_run_time else None
-    store.update_job(job1)
+def test_update_task_next_runtime(store, create_add_task, next_run_time, timezone):
+    task1 = create_add_task(store, dummy_task, datetime(2022, 5, 3))
+    create_add_task(store, dummy_task2, datetime(2020, 2, 26))
+    task3 = create_add_task(store, dummy_task3, datetime(2019, 8, 14))
+    task1.next_run_time = timezone.localize(next_run_time) if next_run_time else None
+    store.update_task(task1)
 
     if next_run_time:
-        assert store.get_next_run_time() == job1.next_run_time
+        assert store.get_next_run_time() == task1.next_run_time
     else:
-        assert store.get_next_run_time() == job3.next_run_time
+        assert store.get_next_run_time() == task3.next_run_time
 
 
 @pytest.mark.parametrize("next_run_time", [datetime(2019, 8, 13), None], ids=["earlier", "null"])
 @pytest.mark.parametrize("index", [0, 1, 2], ids=["first", "middle", "last"])
-def test_update_job_clear_next_runtime_when_run_times_are_initially_the_same(
-    store, create_add_job, next_run_time, timezone, index
+def test_update_task_clear_next_runtime_when_run_times_are_initially_the_same(
+    store, create_add_task, next_run_time, timezone, index
 ):
-    jobs = [create_add_job(store, dummy_job, datetime(2020, 2, 26), "job%d" % i) for i in range(3)]
-    jobs[index].next_run_time = timezone.localize(next_run_time) if next_run_time else None
-    store.update_job(jobs[index])
+    tasks = [
+        create_add_task(store, dummy_task, datetime(2020, 2, 26), "task%d" % i) for i in range(3)
+    ]
+    tasks[index].next_run_time = timezone.localize(next_run_time) if next_run_time else None
+    store.update_task(tasks[index])
     due_date = timezone.localize(datetime(2020, 2, 27))
-    due_jobs = store.get_due_jobs(due_date)
+    due_tasks = store.get_due_tasks(due_date)
 
-    assert len(due_jobs) == (3 if next_run_time else 2)
-    due_job_ids = [job.id for job in due_jobs]
+    assert len(due_tasks) == (3 if next_run_time else 2)
+    due_task_ids = [task.id for task in due_tasks]
     if next_run_time:
         if index == 0:
-            assert due_job_ids == ["job0", "job1", "job2"]
+            assert due_task_ids == ["task0", "task1", "task2"]
         elif index == 1:
-            assert due_job_ids == ["job1", "job0", "job2"]
+            assert due_task_ids == ["task1", "task0", "task2"]
         else:
-            assert due_job_ids == ["job2", "job0", "job1"]
+            assert due_task_ids == ["task2", "task0", "task1"]
     else:
         if index == 0:
-            assert due_job_ids == ["job1", "job2"]
+            assert due_task_ids == ["task1", "task2"]
         elif index == 1:
-            assert due_job_ids == ["job0", "job2"]
+            assert due_task_ids == ["task0", "task2"]
         else:
-            assert due_job_ids == ["job0", "job1"]
+            assert due_task_ids == ["task0", "task1"]
 
 
-def test_update_job_nonexistent_job(store, create_add_job):
-    job = create_add_job(None, dummy_job, datetime(2022, 5, 3))
-    pytest.raises(JobLookupError, store.update_job, job)
+def test_update_task_nonexistent_task(store, create_add_task):
+    task = create_add_task(None, dummy_task, datetime(2022, 5, 3))
+    pytest.raises(TaskLookupError, store.update_task, task)
 
 
-def test_one_job_fails_to_load(persistent_store, create_add_job, monkeypatch, timezone):
-    job1 = create_add_job(persistent_store, dummy_job, datetime(2022, 5, 3))
-    job2 = create_add_job(persistent_store, dummy_job2, datetime(2020, 2, 26))
-    create_add_job(persistent_store, dummy_job3, datetime(2019, 8, 14))
+def test_one_task_fails_to_load(persistent_store, create_add_task, monkeypatch, timezone):
+    task1 = create_add_task(persistent_store, dummy_task, datetime(2022, 5, 3))
+    task2 = create_add_task(persistent_store, dummy_task2, datetime(2020, 2, 26))
+    create_add_task(persistent_store, dummy_task3, datetime(2019, 8, 14))
 
-    monkeypatch.delitem(globals(), "dummy_job3")
+    monkeypatch.delitem(globals(), "dummy_task3")
 
-    jobs = persistent_store.get_all_jobs()
-    assert jobs == [job2, job1]
+    tasks = persistent_store.get_all_tasks()
+    assert tasks == [task2, task1]
 
     assert persistent_store.get_next_run_time() == timezone.localize(datetime(2020, 2, 26))
 
 
-def test_remove_job(store, create_add_job):
-    job1 = create_add_job(store, dummy_job, datetime(2022, 5, 3))
-    job2 = create_add_job(store, dummy_job2, datetime(2020, 2, 26))
+def test_remove_task(store, create_add_task):
+    task1 = create_add_task(store, dummy_task, datetime(2022, 5, 3))
+    task2 = create_add_task(store, dummy_task2, datetime(2020, 2, 26))
 
-    store.delete_job(job1.id)
-    jobs = store.get_all_jobs()
-    assert jobs == [job2]
+    store.delete_task(task1.id)
+    tasks = store.get_all_tasks()
+    assert tasks == [task2]
 
-    store.delete_job(job2.id)
-    jobs = store.get_all_jobs()
-    assert jobs == []
-
-
-def test_remove_nonexistent_job(store):
-    pytest.raises(JobLookupError, store.delete_job, "blah")
+    store.delete_task(task2.id)
+    tasks = store.get_all_tasks()
+    assert tasks == []
 
 
-def test_remove_all_jobs(store, create_add_job):
-    create_add_job(store, dummy_job, datetime(2022, 5, 3))
-    create_add_job(store, dummy_job2, datetime(2020, 2, 26))
+def test_remove_nonexistent_task(store):
+    pytest.raises(TaskLookupError, store.delete_task, "blah")
 
-    store.remove_all_jobs()
-    jobs = store.get_all_jobs()
-    assert jobs == []
+
+def test_remove_all_tasks(store, create_add_task):
+    create_add_task(store, dummy_task, datetime(2022, 5, 3))
+    create_add_task(store, dummy_task2, datetime(2020, 2, 26))
+
+    store.remove_all_tasks()
+    tasks = store.get_all_tasks()
+    assert tasks == []
 
 
 def test_repr_memstore(memstore):
@@ -284,14 +286,14 @@ def xtest_repr_mongodbstore(mongodbstore):
     assert repr(mongodbstore).startswith("<MongoDBStore (client=MongoClient(")
 
 
-def test_repr_redisjobstore(redistore):
+def test_repr_redistaskstore(redistore):
     assert repr(redistore) == "<RedisStore>"
 
 
-def test_memstore_close(memstore, create_add_job):
-    create_add_job(memstore, dummy_job, datetime(2022, 5, 3))
+def test_memstore_close(memstore, create_add_task):
+    create_add_task(memstore, dummy_task, datetime(2022, 5, 3))
     memstore.shutdown()
-    assert not memstore.get_all_jobs()
+    assert not memstore.get_all_tasks()
 
 
 def test_mongodb_client_ref():

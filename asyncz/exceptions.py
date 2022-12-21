@@ -52,11 +52,11 @@ class SchedulerLookupError(BaseLookupError):
         super().__init__(detail=detail)
 
 
-class JobLookupError(BaseLookupError):
-    detail = "No task with the id {job_id} has been found."
+class TaskLookupError(BaseLookupError):
+    detail = "No task with the id {task_id} has been found."
 
-    def __init__(self, job_id: str):
-        detail = self.detail.format(job_id=job_id)
+    def __init__(self, task_id: str):
+        detail = self.detail.format(task_id=task_id)
         super().__init__(detail=detail)
 
 
@@ -69,10 +69,10 @@ class ConflictError(KeyError):
 
 
 class ConflictIdError(KeyError):
-    detail = "Job identifier ({job_id}) conflicts with an existing job."
+    detail = "Task identifier ({task_id}) conflicts with an existing task."
 
-    def __init__(self, job_id: str):
-        detail = self.detail.format(job_id=job_id)
+    def __init__(self, task_id: str):
+        detail = self.detail.format(task_id=task_id)
         super().__init__(detail)
 
 
@@ -81,7 +81,7 @@ class MaxInterationsReached(AsynczException):
 
 
 class MaximumInstancesError(AsynczException):
-    detail = "The job by the id of {id} reached its maximum number of instances {total}."
+    detail = "The task by the id of {id} reached its maximum number of instances {total}."
 
     def __init__(self, _id: Union[UUID, str, int], total: int):
         detail = self.detail.format(id=_id, total=total)

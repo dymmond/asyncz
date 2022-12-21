@@ -6,36 +6,36 @@ from threading import RLock
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 from asyncz._mapping import AsynczObjectMapping
-from asyncz.events.base import JobEvent, JobSubmissionEvent, SchedulerEvent
+from asyncz.events.base import SchedulerEvent, TaskEvent, TaskSubmissionEvent
 from asyncz.events.constants import (
     ALL_EVENTS,
-    ALL_JOBS_REMOVED,
+    ALL_TASKS_REMOVED,
     EXECUTOR_ADDED,
     EXECUTOR_REMOVED,
-    JOB_ADDED,
-    JOB_MAX_INSTANCES,
-    JOB_MODIFIED,
-    JOB_REMOVED,
-    JOB_SUBMITTED,
     SCHEDULER_PAUSED,
     SCHEDULER_RESUMED,
     SCHEDULER_SHUTDOWN,
     SCHEDULER_START,
     STORE_ADDED,
     STORE_REMOVED,
+    TASK_ADDED,
+    TASK_MAX_INSTANCES,
+    TASK_MODIFIED,
+    TASK_REMOVED,
+    TASK_SUBMITTED,
 )
 from asyncz.exceptions import (
     ConflictIdError,
-    JobLookupError,
     MaxInterationsReached,
     SchedulerAlreadyRunningError,
     SchedulerNotRunningError,
+    TaskLookupError,
 )
 from asyncz.executors.base import BaseExecutor
 from asyncz.executors.pool import ThreadPoolExecutor
-from asyncz.jobs import Job
 from asyncz.stores.base import BaseStore
 from asyncz.stores.memory import MemoryStore
+from asyncz.tasks import Task
 from asyncz.triggers.base import BaseTrigger
 from asyncz.typing import undefined
 from asyncz.utils import (
@@ -55,15 +55,15 @@ except ImportError:
     from collections import MutableMapping
 
 from asyncz.enums import PluginInstance, SchedulerState
-from asyncz.schedulers.datastructures import JobDefaultStruct
+from asyncz.schedulers.datastructures import TaskDefaultStruct
 from asyncz.state import BaseStateExtra
 
 DictAny = Dict[Any, Any]
 
 if TYPE_CHECKING:
     from asyncz.executors.types import ExecutorType
-    from asyncz.jobs.types import JobType
     from asyncz.stores.types import StoreType
+    from asyncz.tasks.types import TaskType
     from asyncz.triggers.types import TriggerType
 
 
@@ -77,10 +77,10 @@ class BaseScheduler(BaseStateExtra, ABC):
         logger: logger to use for the scheduler's logging (defaults to asyncz.scheduler).
         timezone: The default time zone (defaults to the local timezone).
         store_retry_interval: The minimum number of seconds to wait between
-            retries in the scheduler's main loop if the job store raises an exception when getting
-            the list of due jobs.
-        job_defaults: Default values for newly added jobs.
-        stores: A dictionary of job store alias -> job store instance or configuration dict.
+            retries in the scheduler's main loop if the task store raises an exception when getting
+            the list of due tasks.
+        task_defaults: Default values for newly added tasks.
+        stores: A dictionary of task store alias -> task store instance or configuration dict.
         executors: A dictionary of executor alias -> executor instance or configuration dict.
         state: current running state of the scheduler.
     """
@@ -101,19 +101,19 @@ class BaseScheduler(BaseStateExtra, ABC):
         self.store_lock = self.create_lock()
         self.listeners = []
         self.listeners_lock = self.create_lock()
-        self.pending_jobs = []
+        self.pending_tasks = []
         self.state = SchedulerState.STATE_STOPPED
         self.logger = logger
-        self.configure(self.global_config, **kwargs)
+        self.setup(self.global_config, **kwargs)
 
     def __getstate__(self):
         raise TypeError(
             "Schedulers cannot be serialized. Ensure that you are not passing a "
-            "scheduler instance as an argument to a job, or scheduling an instance "
+            "scheduler instance as an argument to a task, or scheduling an instance "
             "method where the instance contains a scheduler as an attribute."
         )
 
-    def configure(
+    def setup(
         self,
         global_config: Optional["DictAny"] = None,
         prefix: Optional[str] = "asyncz.",
@@ -153,11 +153,11 @@ class BaseScheduler(BaseStateExtra, ABC):
             parent[key] = value
 
         config.update(options)
-        self._configure(config)
+        self._setup(config)
 
     def start(self, paused: bool = False):
         """
-        Start the configured executors and job stores and begin processing scheduled jobs.
+        Start the configured executors and task stores and begin processing scheduled tasks.
 
         Args:
             paused: If True don't start the process until resume is called.
@@ -181,9 +181,9 @@ class BaseScheduler(BaseStateExtra, ABC):
             for alias, store in self.stores.items():
                 store.start(self, alias)
 
-            for job, store_alias, replace_existing in self.pending_jobs:
-                self.real_add_job(job, store_alias, replace_existing)
-            del self.pending_jobs[:]
+            for task, store_alias, replace_existing in self.pending_tasks:
+                self.real_add_task(task, store_alias, replace_existing)
+            del self.pending_tasks[:]
 
         self.state = SchedulerState.STATE_PAUSED if paused else SchedulerState.STATE_RUNNING
         self.logger.info("Scheduler started.")
@@ -195,11 +195,11 @@ class BaseScheduler(BaseStateExtra, ABC):
     @abstractmethod
     def shutdown(self, wait: bool = True):
         """
-        Shuts down the scheduler, along with its executors and job stores.
-        Does not interrupt any currently running jobs.
+        Shuts down the scheduler, along with its executors and task stores.
+        Does not interrupt any currently running tasks.
 
         Args:
-            wait: True to wait until all currently executing jobs have finished.
+            wait: True to wait until all currently executing tasks have finished.
         """
         if self.state == SchedulerState.STATE_STOPPED:
             raise SchedulerNotRunningError()
@@ -218,27 +218,27 @@ class BaseScheduler(BaseStateExtra, ABC):
 
     def pause(self):
         """
-        Pause job processing in the scheduler.
+        Pause task processing in the scheduler.
 
-        This will prevent the scheduler from waking up to do job processing until resume
-        is called. It will not however stop any already running job processing.
+        This will prevent the scheduler from waking up to do task processing until resume
+        is called. It will not however stop any already running task processing.
         """
         if self.state == SchedulerState.STATE_STOPPED:
             raise SchedulerNotRunningError()
         elif self.state == SchedulerState.STATE_RUNNING:
             self.state = SchedulerState.STATE_PAUSED
-            self.logger.info("Paused scheduler job processing.")
+            self.logger.info("Paused scheduler task processing.")
             self.dispatch_event(SchedulerEvent(code=SCHEDULER_PAUSED))
 
     def resume(self):
         """
-        Resume job processing in the scheduler.
+        Resume task processing in the scheduler.
         """
         if self.state == SchedulerState.STATE_STOPPED:
             raise SchedulerNotRunningError
         elif self.state == SchedulerState.STATE_PAUSED:
             self.state = SchedulerState.STATE_RUNNING
-            self.logger.info("Resumed scheduler job processing.")
+            self.logger.info("Resumed scheduler task processing.")
             self.dispatch_event(SchedulerEvent(code=SCHEDULER_RESUMED))
             self.wakeup()
 
@@ -290,15 +290,15 @@ class BaseScheduler(BaseStateExtra, ABC):
 
     def add_store(self, store: "StoreType", alias: str = "default", **store_options: "DictAny"):
         """
-        Adds a job store to this scheduler.
+        Adds a task store to this scheduler.
 
-        Any extra keyword arguments will be passed to the job store plugin's constructor, assuming
-        that the first argument is the name of a job store plugin.
+        Any extra keyword arguments will be passed to the task store plugin's constructor, assuming
+        that the first argument is the name of a task store plugin.
         """
         with self.store_lock:
             if alias in self.stores:
                 raise ValueError(
-                    f"This scheduler already has a job store by the alias of '{alias}'."
+                    f"This scheduler already has a task store by the alias of '{alias}'."
                 )
 
             if isinstance(store, BaseStore):
@@ -309,7 +309,7 @@ class BaseScheduler(BaseStateExtra, ABC):
                 )
             else:
                 raise TypeError(
-                    f"Expected a job store instance or a string, got {store.__class__.__name__} instead."
+                    f"Expected a task store instance or a string, got {store.__class__.__name__} instead."
                 )
 
             if self.state != SchedulerState.STATE_STOPPED:
@@ -322,7 +322,7 @@ class BaseScheduler(BaseStateExtra, ABC):
 
     def remove_store(self, alias: str, shutdown: bool = True):
         """
-        Removes the job store by the given alias from this scheduler.
+        Removes the task store by the given alias from this scheduler.
         """
         with self.store_lock:
             store = self.lookup_store(alias)
@@ -359,7 +359,7 @@ class BaseScheduler(BaseStateExtra, ABC):
                 if callback == _callback:
                     del self.listeners[index]
 
-    def add_job(
+    def add_task(
         self,
         fn: Optional[Callable[..., Any]],
         trigger: Optional[Union["TriggerType", str]] = None,
@@ -375,12 +375,12 @@ class BaseScheduler(BaseStateExtra, ABC):
         executor: str = "default",
         replace_existing: bool = False,
         **trigger_args: "DictAny",
-    ) -> "JobType":
+    ) -> "TaskType":
         """
-        Adds the given job to the job list and wakes up the scheduler if it's already running.
+        Adds the given task to the task list and wakes up the scheduler if it's already running.
 
         Any option that defaults to undefined will be replaced with the corresponding default
-        value when the job is scheduled (which happens when the scheduler is started, or
+        value when the task is scheduled (which happens when the scheduler is started, or
         immediately if the scheduler is already running).
 
         The fn argument can be given either as a callable object or a textual reference in
@@ -399,20 +399,20 @@ class BaseScheduler(BaseStateExtra, ABC):
             trigger: Trigger instance that determines when fn is called.
             args: List of positional arguments to call fn with.
             kwargs: Dict of keyword arguments to call fn with.
-            id: Explicit identifier for the job (for modifying it later).
-            name: Textual description of the job.
-            mistriger_grace_time: Seconds after the designated runtime that the job is still
-                allowed to be run (or None to allow the job to run no matter how late it is).
+            id: Explicit identifier for the task (for modifying it later).
+            name: Textual description of the task.
+            mistriger_grace_time: Seconds after the designated runtime that the task is still
+                allowed to be run (or None to allow the task to run no matter how late it is).
             coalesce: Run once instead of many times if the scheduler determines that the
-                job should be run more than once in succession.
-            max_instances: Maximum number of concurrently running instances allowed for this job.
-            next_run_time: When to first run the job, regardless of the trigger (pass
-                None to add the job as paused).
-            store: Alias of the job store to store the job in.
-            executor: Alias of the executor to run the job with.
-            replace_existing: True to replace an existing job with the same id (but retain the number of runs from the existing one).
+                task should be run more than once in succession.
+            max_instances: Maximum number of concurrently running instances allowed for this task.
+            next_run_time: When to first run the task, regardless of the trigger (pass
+                None to add the task as paused).
+            store: Alias of the task store to store the task in.
+            executor: Alias of the executor to run the task with.
+            replace_existing: True to replace an existing task with the same id (but retain the number of runs from the existing one).
         """
-        job_struct = dict(
+        task_struct = dict(
             trigger=self.create_trigger(trigger, trigger_args),
             executor=executor,
             fn=fn,
@@ -425,22 +425,22 @@ class BaseScheduler(BaseStateExtra, ABC):
             max_instances=max_instances,
             next_run_time=next_run_time,
         )
-        job_kwargs = dict(
-            (key, value) for key, value in job_struct.items() if value is not undefined
+        task_kwargs = dict(
+            (key, value) for key, value in task_struct.items() if value is not undefined
         )
-        job = Job(self, **job_kwargs)
+        task = Task(self, **task_kwargs)
 
         with self.store_lock:
             if self.state == SchedulerState.STATE_STOPPED:
-                self.pending_jobs.append((job, store, replace_existing))
+                self.pending_tasks.append((task, store, replace_existing))
                 self.logger.info(
-                    f"Adding job tentatively. It will be properly scheduled when the scheduler starts."
+                    f"Adding task tentatively. It will be properly scheduled when the scheduler starts."
                 )
             else:
-                self.real_add_job(job, store, replace_existing)
-        return job
+                self.real_add_task(task, store, replace_existing)
+        return task
 
-    def scheduled_job(
+    def scheduled_task(
         self,
         trigger: Optional[Union["TriggerType", str]] = None,
         args: Optional[Any] = None,
@@ -456,27 +456,27 @@ class BaseScheduler(BaseStateExtra, ABC):
         **trigger_args: "DictAny",
     ):
         """
-        Functionality that can be used as a decorator for any function to schedule a job with a difference that replace_existing is always True.
+        Functionality that can be used as a decorator for any function to schedule a task with a difference that replace_existing is always True.
 
         Args:
             trigger: Trigger that determines when fn is called.
             args: List of positional arguments to call fn with.
             kwargs: Dict of keyword arguments to call fn with.
-            id: Explicit identifier for the job (for modifying it later).
-            name: Textual description of the job.
-            mistriger_grace_time: Seconds after the designated runtime that the job is still
-                allowed to be run (or None to allow the job to run no matter how late it is).
+            id: Explicit identifier for the task (for modifying it later).
+            name: Textual description of the task.
+            mistriger_grace_time: Seconds after the designated runtime that the task is still
+                allowed to be run (or None to allow the task to run no matter how late it is).
             coalesce: Run once instead of many times if the scheduler determines that the
-                job should be run more than once in succession.
-            max_instances: Maximum number of concurrently running instances allowed for this job.
-            next_run_time: When to first run the job, regardless of the trigger (pass
-                None to add the job as paused).
-            store: Alias of the job store to store the job in.
-            executor: Alias of the executor to run the job with.
+                task should be run more than once in succession.
+            max_instances: Maximum number of concurrently running instances allowed for this task.
+            next_run_time: When to first run the task, regardless of the trigger (pass
+                None to add the task as paused).
+            store: Alias of the task store to store the task in.
+            executor: Alias of the executor to run the task with.
         """
 
         def wrap(fn):
-            self.add_job(
+            self.add_task(
                 fn=fn,
                 trigger=trigger,
                 args=args,
@@ -496,201 +496,198 @@ class BaseScheduler(BaseStateExtra, ABC):
 
         return wrap
 
-    def update_job(
-        self, job_id: Union[int, str], store: Optional[str] = None, **updates: "DictAny"
-    ) -> "JobType":
+    def update_task(
+        self, task_id: Union[int, str], store: Optional[str] = None, **updates: "DictAny"
+    ) -> "TaskType":
         """
-        Modifies the propertues of a single job.
+        Modifies the propertues of a single task.
 
         Modifications are passed to this method as extra keyword arguments.
 
         Args:
-            job_id: The identifier of the job.
-            store: Alias of the store that contains the job.
+            task_id: The identifier of the task.
+            store: Alias of the store that contains the task.
         """
         with self.store_lock:
-            job, store = self.lookup_job(job_id, store)
-            job.update(**updates)
+            task, store = self.lookup_task(task_id, store)
+            task.update(**updates)
 
             if store:
-                self.lookup_store(store).update_job(job)
+                self.lookup_store(store).update_task(task)
 
-        self.dispatch_event(JobEvent(code=JOB_MODIFIED, job_id=job_id, store=store))
+        self.dispatch_event(TaskEvent(code=TASK_MODIFIED, task_id=task_id, store=store))
 
         if self.state == SchedulerState.STATE_RUNNING:
             self.wakeup()
-        return job
+        return task
 
-    def reschedule_job(
+    def reschedule_task(
         self,
-        job_id: Union[int, str],
+        task_id: Union[int, str],
         store: Optional[str] = None,
         trigger: Optional[str] = None,
         **trigger_args: "DictAny",
-    ) -> "JobType":
+    ) -> "TaskType":
         """
-        Constructs a new trigger for a job and updates its next run time.
+        Constructs a new trigger for a task and updates its next run time.
 
         Extra keyword arguments are passed directly to the trigger's constructor.
 
         Args:
-            job_id: The identifier of the job.
-            store: Alias of the job store that contains the job.
+            task_id: The identifier of the task.
+            store: Alias of the task store that contains the task.
             trigger: Alias of the trigger type or a trigger instance.
         """
         trigger = self.create_trigger(trigger, trigger_args)
         now = datetime.now(self.timezone)
         next_run_time = trigger.get_next_trigger_time(None, now)
-        return self.update_job(job_id, store, trigger=trigger, next_run_time=next_run_time)
+        return self.update_task(task_id, store, trigger=trigger, next_run_time=next_run_time)
 
-    def pause_job(self, job_id: Union[int, str], store: Optional[str] = None) -> "JobType":
+    def pause_task(self, task_id: Union[int, str], store: Optional[str] = None) -> "TaskType":
         """
-        Causes the given job not to be executed until it is explicitly resumed.
+        Causes the given task not to be executed until it is explicitly resumed.
 
         Args:
-            job_id: The identifier of the job.
-            store: Alias of the job store that contains the job.
+            task_id: The identifier of the task.
+            store: Alias of the task store that contains the task.
         """
-        return self.update_job(job_id, store, next_run_time=None)
+        return self.update_task(task_id, store, next_run_time=None)
 
-    def resume_job(
-        self, job_id: Union[int, str], store: Optional[str] = None
-    ) -> Union["JobType", None]:
+    def resume_task(
+        self, task_id: Union[int, str], store: Optional[str] = None
+    ) -> Union["TaskType", None]:
         """
-        Resumes the schedule of the given job, or removes the job if its schedule is finished.
+        Resumes the schedule of the given task, or removes the task if its schedule is finished.
 
         Args:
-            job_id: The identifier of the job.
-            store: Alias of the job store that contains the job.
+            task_id: The identifier of the task.
+            store: Alias of the task store that contains the task.
         """
         with self.store_lock:
-            job, store = self.lookup_job(job_id, store)
+            task, store = self.lookup_task(task_id, store)
             now = datetime.now(self.timezone)
-            next_run_time = job.trigger.get_next_trigger_time(None, now)
+            next_run_time = task.trigger.get_next_trigger_time(None, now)
 
             if next_run_time:
-                return self.update_job(job_id, store, next_run_time=next_run_time)
+                return self.update_task(task_id, store, next_run_time=next_run_time)
             else:
-                self.delete_job(job.id, store)
+                self.delete_task(task.id, store)
 
-    def get_jobs(self, store: Optional[str] = None) -> List["JobType"]:
+    def get_tasks(self, store: Optional[str] = None) -> List["TaskType"]:
         """
-        Returns a list of pending jobs (if the scheduler hasn't been started yet) and scheduled
-        jobs, either from a specific job store or from all of them.
+        Returns a list of pending tasks (if the scheduler hasn't been started yet) and scheduled
+        tasks, either from a specific task store or from all of them.
 
-        If the scheduler has not been started yet, only pending jobs can be returned because the
-        job stores haven't been started yet either.
+        If the scheduler has not been started yet, only pending tasks can be returned because the
+        task stores haven't been started yet either.
 
         Args:
-            store: alias of the job store.
+            store: alias of the task store.
         """
         with self.store_lock:
-            jobs = []
+            tasks = []
             if self.state == SchedulerState.STATE_STOPPED:
-                for job, alias, _ in self.pending_jobs:
+                for task, alias, _ in self.pending_tasks:
                     if store is None or alias == store:
-                        jobs.append(job)
+                        tasks.append(task)
             else:
                 for alias, _store in self.stores.items():
                     if store is None or alias == store:
-                        jobs.extend(_store.get_all_jobs())
+                        tasks.extend(_store.get_all_tasks())
 
-            return jobs
+            return tasks
 
-    def get_job(self, job_id: str, store: Optional[str] = None) -> Union["JobType", None]:
+    def get_task(self, task_id: str, store: Optional[str] = None) -> Union["TaskType", None]:
         """
-        Returms the Job that matches the given job_id.
+        Returms the Task that matches the given task_id.
 
         Args:
-            job_id: The identifier of the job.
-            store: Alias of the job store that most likely contains the job.
+            task_id: The identifier of the task.
+            store: Alias of the task store that most likely contains the task.
         """
         with self.store_lock:
             try:
-                return self.lookup_job(job_id, store)[0]
-            except JobLookupError:
+                return self.lookup_task(task_id, store)[0]
+            except TaskLookupError:
                 return
 
-    def delete_job(self, job_id: str, store: Optional[str] = None) -> None:
+    def delete_task(self, task_id: str, store: Optional[str] = None) -> None:
         """
-        Removes a job, preventing it from being run anymore.
+        Removes a task, preventing it from being run anymore.
 
         Args:
-            job_id: The identifier of the job.
-            store: Alias of the job store that most likely contains the job.
+            task_id: The identifier of the task.
+            store: Alias of the task store that most likely contains the task.
         """
         store_alias = None
 
         with self.store_lock:
             if self.state == SchedulerState.STATE_STOPPED:
-                for index, (job, alias, _) in enumerate(self.pending_jobs):
-                    if job.id == job_id and store in (None, alias):
-                        del self.pending_jobs[index]
+                for index, (task, alias, _) in enumerate(self.pending_tasks):
+                    if task.id == task_id and store in (None, alias):
+                        del self.pending_tasks[index]
                         store_alias = alias
                         break
             else:
                 for alias, _store in self.stores.items():
                     if store in (None, alias):
                         try:
-                            _store.delete_job(job_id)
+                            _store.delete_task(task_id)
                             store_alias = alias
                             break
-                        except JobLookupError:
+                        except TaskLookupError:
                             continue
 
         if store_alias is None:
-            raise JobLookupError(job_id)
+            raise TaskLookupError(task_id)
 
-        event = JobEvent(code=JOB_REMOVED, job_id=job_id, store_alias=store_alias)
+        event = TaskEvent(code=TASK_REMOVED, task_id=task_id, store_alias=store_alias)
         self.dispatch_event(event)
 
-        self.logger.info(f"Removed job {job_id}.")
+        self.logger.info(f"Removed task {task_id}.")
 
-    def remove_all_jobs(self, store: Optional[str]) -> None:
+    def remove_all_tasks(self, store: Optional[str]) -> None:
         """
-        Removes all jobs from the specified job store, or all job stores if none is given.
+        Removes all tasks from the specified task store, or all task stores if none is given.
         """
         with self.store_lock:
             if self.state == SchedulerState.STATE_STOPPED:
                 if store:
-                    self.pending_jobs = [
-                        pending for pending in self.pending_jobs if pending[1] != store
+                    self.pending_tasks = [
+                        pending for pending in self.pending_tasks if pending[1] != store
                     ]
                 else:
-                    self.pending_jobs = []
+                    self.pending_tasks = []
             else:
                 for alias, _store in self.stores.items():
                     if store in (None, alias):
-                        _store.remove_all_jobs()
-        self.dispatch_event(SchedulerEvent(code=ALL_JOBS_REMOVED, alias=store))
+                        _store.remove_all_tasks()
+        self.dispatch_event(SchedulerEvent(code=ALL_TASKS_REMOVED, alias=store))
 
     @abstractmethod
     def wakeup(self):
         """
-        Notifies the scheduler that there may be jobs due for execution.
-        Triggers process_jobs to be run in an implementation specific manner.
+        Notifies the scheduler that there may be tasks due for execution.
+        Triggers process_tasks to be run in an implementation specific manner.
         """
 
-    def _configure(self, config: "DictAny") -> None:
+    def _setup(self, config: "DictAny") -> None:
         """
         Applies initial configurations called by the Base constructor.
         """
-        # General options
         self.logger = maybe_ref(config.pop("logger", None)) or logger
         self.timezone = to_timezone(config.pop("timezone", None)) or get_localzone()
         self.store_retry_interval = float(config.pop("store_retry_interval", 10))
 
-        # Job options
-        job_defaults = config.get("job_defaults", {})
-        self.job_defaults = (
-            JobDefaultStruct(
-                mistrigger_grace_time=to_int(job_defaults.get("mistrigger_grace_time")),
-                coalesce=to_bool(job_defaults.get("coalesce", True)),
-                max_instances=to_int(job_defaults.get("max_instances", 1)),
+        task_defaults = config.get("task_defaults", {})
+        self.task_defaults = (
+            TaskDefaultStruct(
+                mistrigger_grace_time=to_int(task_defaults.get("mistrigger_grace_time")),
+                coalesce=to_bool(task_defaults.get("coalesce", True)),
+                max_instances=to_int(task_defaults.get("max_instances", 1)),
             )
         ) or {}
 
-        # Executors
         self.executors.clear()
         for alias, value in config.get("executors", {}).items():
             if isinstance(value, BaseExecutor):
@@ -763,7 +760,7 @@ class BaseScheduler(BaseStateExtra, ABC):
 
     def lookup_store(self, alias: str) -> "StoreType":
         """
-        Returns the job store instance by the given name from the list of job stores that were
+        Returns the task store instance by the given name from the list of task stores that were
         added to this scheduler.
 
         Args:
@@ -774,26 +771,26 @@ class BaseScheduler(BaseStateExtra, ABC):
         except KeyError:
             raise KeyError(f"No such store: {alias}.")
 
-    def lookup_job(self, job_id: Union[str, int], store_alias: str) -> Any:
+    def lookup_task(self, task_id: Union[str, int], store_alias: str) -> Any:
         """
-        Finds a job by its ID.
+        Finds a task by its ID.
 
         Args:
-            job_id: The id of the job to lookup.
-            alias: Alias of a job store to look in.
+            task_id: The id of the task to lookup.
+            alias: Alias of a task store to look in.
         """
         if self.state == SchedulerState.STATE_STOPPED:
-            for job, alias, replace_existing in self.pending_jobs:
-                if job.id == job_id:
-                    return job, None
+            for task, alias, replace_existing in self.pending_tasks:
+                if task.id == task_id:
+                    return task, None
         else:
             for alias, store in self.stores.items():
                 if store_alias in (None, alias):
-                    job = store.lookup_job(job_id)
-                    if job is not None:
-                        return job, alias
+                    task = store.lookup_task(task_id)
+                    if task is not None:
+                        return task, alias
 
-        raise JobLookupError(job_id)
+        raise TaskLookupError(task_id)
 
     def dispatch_event(self, event: "SchedulerEvent"):
         """
@@ -824,47 +821,45 @@ class BaseScheduler(BaseStateExtra, ABC):
                 "option for the scheduler to work."
             )
 
-    def real_add_job(self, job: "JobType", store_alias: str, replace_existing: bool):
+    def real_add_task(self, task: "TaskType", store_alias: str, replace_existing: bool):
         """
-        Adds the job.
+        Adds the task.
 
         Args:
-            job: Job instance.
-            store_alias: The alias of the store to add the job to.
-            replace_existing: The flag indicating the replacement of the job.
+            task: Task instance.
+            store_alias: The alias of the store to add the task to.
+            replace_existing: The flag indicating the replacement of the task.
         """
         replacements = {}
-        for key, value in self.job_defaults.dict(exclude_none=True).items():
+        for key, value in self.task_defaults.dict(exclude_none=True).items():
             replacements[key] = value
 
         # Calculate the next run time if there is none defined
-        if not getattr(job, "next_run_time", None):
+        if not getattr(task, "next_run_time", None):
             now = datetime.now(self.timezone)
-            replacements["next_run_time"] = job.trigger.get_next_trigger_time(None, now)
+            replacements["next_run_time"] = task.trigger.get_next_trigger_time(None, now)
 
         # Apply replacements
-        job._update(**replacements)
+        task._update(**replacements)
 
-        # Add the job to the given store
+        # Add the task to the given store
         store = self.lookup_store(store_alias)
         try:
-            store.add_job(job)
+            store.add_task(task)
         except ConflictIdError:
             if replace_existing:
-                store.update_job(job)
+                store.update_task(task)
             else:
                 raise
 
-        # Mark the job as no longer pending
-        job.store_alias = store_alias
+        task.store_alias = store_alias
 
-        # Notify listeners that a new job has been added
-        event = JobEvent(code=JOB_ADDED, job_id=job.id, alias=store_alias)
+        event = TaskEvent(code=TASK_ADDED, task_id=task.id, alias=store_alias)
         self.dispatch_event(event)
 
-        self.logger.info(f"Added job '{job.name}' to store '{store_alias}'.")
+        self.logger.info(f"Added task '{task.name}' to store '{store_alias}'.")
 
-        # Notify the scheduler about the new job.
+        # Notify the scheduler about the new task.
         if self.state == SchedulerState.STATE_RUNNING:
             self.wakeup()
 
@@ -934,19 +929,19 @@ class BaseScheduler(BaseStateExtra, ABC):
         """
         return RLock()
 
-    def process_jobs(self):
+    def process_tasks(self):
         """
-        Iterates through jobs in every jobstore, starts jobs that are due and figures out how long
+        Iterates through tasks in every store, starts tasks that are due and figures out how long
         to wait for the next round.
 
-        If the get_due_jobs() call raises an exception, a new wakeup is scheduled in at least
+        If the get_due_tasks() call raises an exception, a new wakeup is scheduled in at least
         store_retry_interval seconds.
         """
         if self.state == SchedulerState.STATE_PAUSED:
-            self.logger.debug("Scheduler is paused --- not processing jobs.")
+            self.logger.debug("Scheduler is paused. Not processing tasks.")
             return None
 
-        self.logger.debug("Looking for jobs to run.")
+        self.logger.debug("Looking for tasks to run.")
         now = datetime.now(self.timezone)
         next_wakeup_time = None
         events = []
@@ -954,63 +949,63 @@ class BaseScheduler(BaseStateExtra, ABC):
         with self.store_lock:
             for store_alias, store in self.stores.items():
                 try:
-                    due_jobs: List["JobType"] = store.get_due_jobs(now)
+                    due_tasks: List["TaskType"] = store.get_due_tasks(now)
                 except Exception as e:
                     self.logger.warning(
-                        f"Error getting due jobs from the store {store_alias}: {e}."
+                        f"Error getting due tasks from the store {store_alias}: {e}."
                     )
                     retry_wakeup_time = now + timedelta(seconds=self.store_retry_interval)
                     if not next_wakeup_time or next_wakeup_time > retry_wakeup_time:
                         next_wakeup_time = retry_wakeup_time
                     continue
 
-                for job in due_jobs:
+                for task in due_tasks:
                     try:
-                        executor = self.lookup_executor(job.executor)
+                        executor = self.lookup_executor(task.executor)
                     except BaseException:
                         self.logger.error(
-                            f"Executor lookup ('{job.executor}') failed for job '{job}'. Removing it from the store."
+                            f"Executor lookup ('{task.executor}') failed for task '{task}'. Removing it from the store."
                         )
-                        self.delete_job(job.id, store_alias)
+                        self.delete_task(task.id, store_alias)
                         continue
 
-                    run_times = job.get_run_times(now)
-                    run_times = run_times[-1:] if run_times and job.coalesce else run_times
+                    run_times = task.get_run_times(now)
+                    run_times = run_times[-1:] if run_times and task.coalesce else run_times
 
                     if run_times:
                         try:
-                            executor.send_job(job, run_times)
+                            executor.send_task(task, run_times)
                         except MaxInterationsReached:
                             self.logger.warning(
-                                f"Execution of job '{job}' skipped: Maximum number of running "
-                                f"instances reached '({job.max_instances})'."
+                                f"Execution of task '{task}' skipped: Maximum number of running "
+                                f"instances reached '({task.max_instances})'."
                             )
-                            event = JobSubmissionEvent(
-                                code=JOB_MAX_INSTANCES,
-                                job_id=job.id,
+                            event = TaskSubmissionEvent(
+                                code=TASK_MAX_INSTANCES,
+                                task_id=task.id,
                                 store=store_alias,
                                 scheduled_run_times=run_times,
                             )
                             events.append(event)
                         except BaseException:
                             self.logger.exception(
-                                f"Error submitting job '{job}' to executor '{job.executor}'."
+                                f"Error submitting task '{task}' to executor '{task.executor}'."
                             )
                         else:
-                            event = JobSubmissionEvent(
-                                code=JOB_SUBMITTED,
-                                job_id=job.id,
+                            event = TaskSubmissionEvent(
+                                code=TASK_SUBMITTED,
+                                task_id=task.id,
                                 store=store_alias,
                                 scheduled_run_times=run_times,
                             )
                             events.append(event)
 
-                        next_run = job.trigger.get_next_trigger_time(run_times[-1], now)
+                        next_run = task.trigger.get_next_trigger_time(run_times[-1], now)
                         if next_run:
-                            job._update(next_run_time=next_run)
-                            store.update_job(job)
+                            task._update(next_run_time=next_run)
+                            store.update_task(task)
                         else:
-                            self.delete_job(job.id, store_alias)
+                            self.delete_task(task.id, store_alias)
 
                 store_next_run_time = store.get_next_run_time()
                 if store_next_run_time and (
@@ -1026,7 +1021,7 @@ class BaseScheduler(BaseStateExtra, ABC):
             self.logger.debug("Scheduler is paused. Waiting until resume() is called.")
         elif next_wakeup_time is None:
             wait_seconds = None
-            self.logger.debug("No jobs. Waiting until job is added.")
+            self.logger.debug("No tasks. Waiting until task is added.")
         else:
             wait_seconds = min(max(timedelta_seconds(next_wakeup_time - now), 0), TIMEOUT_MAX)
             self.logger.debug(

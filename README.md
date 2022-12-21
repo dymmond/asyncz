@@ -38,7 +38,7 @@ best of what pydantic can offer.
 Nowadays using async frameworks with python is somewhat common and becoming even more mainstream. A lot of applications
 usually need a complex stack of technologies to fullfil their needs and directly or indirectly, a scheduler.
 
-There are great frameworks out there that do the job extremely well, the best example is APScheduler, which is where
+There are great frameworks out there that do the task extremely well, the best example is APScheduler, which is where
 Asyncz came from.
 
 To be even more honest, Asyncz is a revamp of APScheduler. Without the APScheduler there is no Asyncz, so much that
@@ -107,9 +107,9 @@ those questions.
 * **Triggers** - Here it will depend of the periocidity of our tasks. Example:
     * [CronTrigger](https://asyncz.tarsild.io/triggers.md#crontrigger) - UNIX like cron and gives you the same feeling as
 scheduling a task on a native UNIX like based system.
-    * [DateTrigger](https://asyncz.tarsild.io/triggers.md#datetrigger) - When you need to run a job once on a specific
+    * [DateTrigger](https://asyncz.tarsild.io/triggers.md#datetrigger) - When you need to run a task once on a specific
 point of time.
-    * [IntervalTrigger](https://asyncz.tarsild.io/triggers.md#intervaltrigger) - When you need to run jobs in specific
+    * [IntervalTrigger](https://asyncz.tarsild.io/triggers.md#intervaltrigger) - When you need to run tasks in specific
 intervals of time.
     * [OrTrigger](https://asyncz.tarsild.io/triggers.md#ortrigger)/[AndTrigger](https://asyncz.tarsild.io/triggers.md#andtrigger) - If you would
 like to combine more than one trigger (cron, interval and date) together.

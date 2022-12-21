@@ -21,15 +21,15 @@ def check_status():
     ...
 
 
-# Create the jobs
+# Create the tasks
 # Run every Monday, Wednesday and Friday
-scheduler.add_job(
+scheduler.add_task(
     fn=send_email_newsletter,
     trigger=CronTrigger(day_of_week="mon,wed,fri", hour="8", minute="1", second="5"),
 )
 
 # Run every 2 minutes
-scheduler.add_job(
+scheduler.add_task(
     fn=collect_www_info,
     trigger=IntervalTrigger(minutes=2),
     max_instances=1,
@@ -38,7 +38,7 @@ scheduler.add_job(
 )
 
 # Run every 10 minutes
-scheduler.add_job(
+scheduler.add_task(
     fn=check_status,
     trigger=IntervalTrigger(minutes=10),
     max_instances=1,

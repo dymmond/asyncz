@@ -1,4 +1,4 @@
-from asyncz.jobs import Job
+from asyncz.tasks import Task
 from asyncz.schedulers import AsyncIOScheduler
 from asyncz.triggers import CronTrigger
 
@@ -11,9 +11,9 @@ def check_status():
     ...
 
 
-# Create a job
-job = Job(
-    id="my-job",
+# Create a task
+task = Task(
+    id="my-task",
     fn=check_status,
     name="my-func",
     scheduler=scheduler,
@@ -22,5 +22,5 @@ job = Job(
     coalesce=True,
 )
 
-# Reschedule the job
-job.reschedule("my-job", trigger="cron", hour=10, minute=5)
+# Reschedule the task
+task.reschedule("my-task", trigger="cron", hour=10, minute=5)

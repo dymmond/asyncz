@@ -2,9 +2,9 @@ import pickle
 from datetime import datetime
 from typing import Any, List, Optional, Union
 
-from asyncz.exceptions import AsynczException, ConflictIdError, JobLookupError
-from asyncz.jobs import Job
-from asyncz.jobs.types import JobType
+from asyncz.exceptions import AsynczException, ConflictIdError, TaskLookupError
+from asyncz.tasks import Task
+from asyncz.tasks.types import TaskType
 from asyncz.stores.base import BaseStore
 from asyncz.typing import DictAny
 from asyncz.utils import datetime_to_utc_timestamp, utc_timestamp_to_datetime
@@ -18,13 +18,13 @@ except ImportError:
 
 class RedisStore(BaseStore):
     """
-    Stores jobs in a Redis instance. Any remaining kwargs are passing directly to the redis
+    Stores tasks in a Redis instance. Any remaining kwargs are passing directly to the redis
     instance.
 
     Args:
-        datababe - The database number to store jobs in.
-        jobs_key - The key to store jobs in.
-        run_times_key - The key to store the jobs run times in.
+        datababe - The database number to store tasks in.
+        tasks_key - The key to store tasks in.
+        run_times_key - The key to store the tasks run times in.
         pickle_protocol - Pickle protocol level to use (for serialization), defaults to the
             highest available
     """
@@ -32,7 +32,7 @@ class RedisStore(BaseStore):
     def __init__(
         self,
         database: int = 0,
-        jobs_key: str = "asyncz.jobs",
+        tasks_key: str = "asyncz.tasks",
         run_times_key: str = "asyncz.run_times",
         pickle_protocol: Optional[int] = pickle.HIGHEST_PROTOCOL,
         **kwargs: DictAny,
@@ -44,105 +44,105 @@ class RedisStore(BaseStore):
             raise AsynczException(f"The database value must be and int and got ({type(database)})")
 
         self.pickle_protocol = pickle_protocol
-        self.jobs_key = jobs_key
+        self.tasks_key = tasks_key
         self.run_times_key = run_times_key
         self.redis = Redis(db=self.database, **kwargs)
 
-    def lookup_job(self, job_id: Union[str, int]) -> "JobType":
-        state = self.redis.hget(self.jobs_key, job_id)
-        return self.rebuild_job(state) if state else None
+    def lookup_task(self, task_id: Union[str, int]) -> "TaskType":
+        state = self.redis.hget(self.tasks_key, task_id)
+        return self.rebuild_task(state) if state else None
 
-    def rebuild_job(self, state: Any) -> "JobType":
+    def rebuild_task(self, state: Any) -> "TaskType":
         state = pickle.loads(state)
-        job = Job.__new__(JobType)
-        job.__setstate__(state)
-        job.scheduler = self.scheduler
-        job.store_alias = self.alias
-        return job
+        task = Task.__new__(TaskType)
+        task.__setstate__(state)
+        task.scheduler = self.scheduler
+        task.store_alias = self.alias
+        return task
 
-    def get_due_jobs(self, now: datetime) -> List["JobType"]:
+    def get_due_tasks(self, now: datetime) -> List["TaskType"]:
         timestamp = datetime_to_utc_timestamp(now)
         ids = self.redis.zrangebyscore(self.run_times_key, 0, timestamp)
         if not ids:
             return []
-        states = self.redis.hmget(self.jobs_key, *ids)
-        return self.rebuild_jobs(zip(ids, states))
+        states = self.redis.hmget(self.tasks_key, *ids)
+        return self.rebuild_tasks(zip(ids, states))
 
-    def rebuild_jobs(self, states: Any) -> List["JobType"]:
-        jobs = []
-        failed_job_ids = []
+    def rebuild_tasks(self, states: Any) -> List["TaskType"]:
+        tasks = []
+        failed_task_ids = []
 
-        for job_id, state in states:
+        for task_id, state in states:
             try:
-                jobs.append(self.rebuild_job(state))
+                tasks.append(self.rebuild_task(state))
             except BaseException:
-                self.logger.exception(f"Unable to restore job '{job_id}'. Removing it...")
-                failed_job_ids.append(job_id)
+                self.logger.exception(f"Unable to restore task '{task_id}'. Removing it...")
+                failed_task_ids.append(task_id)
 
-        if failed_job_ids:
+        if failed_task_ids:
             with self.redis.pipeline() as pipe:
-                pipe.hdel(self.jobs_key, *failed_job_ids)
-                pipe.zrem(self.run_times_key, *failed_job_ids)
+                pipe.hdel(self.tasks_key, *failed_task_ids)
+                pipe.zrem(self.run_times_key, *failed_task_ids)
                 pipe.execute()
 
-        return jobs
+        return tasks
 
     def get_next_run_time(self) -> datetime:
         next_run_time = self.redis.zrange(self.run_times_key, 0, 0, withscores=True)
         if next_run_time:
             return utc_timestamp_to_datetime(next_run_time[0][1])
 
-    def get_all_jobs(self) -> List["JobType"]:
-        states = self.redis.hgetall(self.jobs_key)
-        jobs = self.rebuild_jobs(states.items())
+    def get_all_tasks(self) -> List["TaskType"]:
+        states = self.redis.hgetall(self.tasks_key)
+        tasks = self.rebuild_tasks(states.items())
         paused_sort_key = datetime(9999, 12, 31, tzinfo=utc)
-        return sorted(jobs, key=lambda job: job.next_run_time or paused_sort_key)
+        return sorted(tasks, key=lambda task: task.next_run_time or paused_sort_key)
 
-    def add_job(self, job: "JobType"):
-        if self.redis.hexists(self.jobs_key, job.id):
-            raise ConflictIdError(job.id)
+    def add_task(self, task: "TaskType"):
+        if self.redis.hexists(self.tasks_key, task.id):
+            raise ConflictIdError(task.id)
 
         with self.redis.pipeline() as pipe:
             pipe.multi()
             pipe.hset(
-                self.jobs_key, job.id, pickle.dumps(job.__getstate__(), self.pickle_protocol)
+                self.tasks_key, task.id, pickle.dumps(task.__getstate__(), self.pickle_protocol)
             )
 
-            if job.next_run_time:
+            if task.next_run_time:
                 pipe.zadd(
-                    self.run_times_key, {job.id: datetime_to_utc_timestamp(job.next_run_time)}
+                    self.run_times_key, {task.id: datetime_to_utc_timestamp(task.next_run_time)}
                 )
             pipe.execute()
 
-    def update_job(self, job: "JobType"):
-        if not self.redis.hexists(self.jobs_key, job.id):
-            raise JobLookupError(job.id)
+    def update_task(self, task: "TaskType"):
+        if not self.redis.hexists(self.tasks_key, task.id):
+            raise TaskLookupError(task.id)
 
         with self.redis.pipeline() as pipe:
             pipe.hset(
-                self.jobs_key, job.id, pickle.dumps(job.__getstate__(), self.pickle_protocol)
+                self.tasks_key, task.id, pickle.dumps(task.__getstate__(), self.pickle_protocol)
             )
-            if job.next_run_time:
+            if task.next_run_time:
                 pipe.zadd(
-                    self.run_times_key, {job.id: datetime_to_utc_timestamp(job.next_run_time)}
+                    self.run_times_key, {task.id: datetime_to_utc_timestamp(task.next_run_time)}
                 )
             else:
-                pipe.zrem(self.run_times_key, job.id)
+                pipe.zrem(self.run_times_key, task.id)
 
             pipe.execute()
 
-    def delete_job(self, job_id: Union[str, int]):
-        if not self.redis.hexists(self.jobs_key, job_id):
-            raise JobLookupError(job_id)
+    def delete_task(self, task_id: Union[str, int]):
+        if not self.redis.hexists(self.tasks_key, task_id):
+            raise TaskLookupError(task_id)
 
         with self.redis.pipeline() as pipe:
-            pipe.hdel(self.jobs_key, job_id)
-            pipe.zrem(self.run_times_key, job_id)
+            pipe.hdel(self.tasks_key, task_id)
+            pipe.zrem(self.run_times_key, task_id)
             pipe.execute()
 
-    def remove_all_jobs(self):
+    def remove_all_tasks(self):
         with self.redis.pipeline() as pipe:
-            pipe.delete(self.jobs_key)
+            pipe.delete(self.tasks_key)
             pipe.delete(self.run_times_key)
             pipe.execute()
 

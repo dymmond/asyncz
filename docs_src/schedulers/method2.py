@@ -10,8 +10,8 @@ scheduler = AsyncIOScheduler(
             "class": "asyncz.executors.threadpool:ThreadPoolExecutor",
         },
         "asyncz.executors.default": {"class": "asyncz.executors.asyncio::AsyncIOExecutor"},
-        "asyncz.job_defaults.coalesce": "false",
-        "asyncz.job_defaults.max_instances": "3",
-        "asyncz.job_defaults.timezone": "UTC",
+        "asyncz.task_defaults.coalesce": "false",
+        "asyncz.task_defaults.max_instances": "3",
+        "asyncz.task_defaults.timezone": "UTC",
     },
 )

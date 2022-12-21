@@ -15,4 +15,4 @@ trigger = OrTrigger(
 )
 
 # Add the trigger to the task
-scheduler.add_job(my_task, trigger)
+scheduler.add_task(my_task, trigger)

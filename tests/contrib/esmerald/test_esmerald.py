@@ -5,7 +5,7 @@ import pytest
 from asyncz.contrib.esmerald.decorator import scheduler
 from asyncz.contrib.esmerald.scheduler import EsmeraldScheduler
 from asyncz.executors.base import BaseExecutor
-from asyncz.jobs.types import JobType
+from asyncz.tasks.types import TaskType
 from asyncz.schedulers import AsyncIOScheduler
 from asyncz.schedulers.base import BaseScheduler
 from asyncz.stores.base import BaseStore
@@ -50,10 +50,10 @@ class DummyExecutor(BaseExecutor):
         self.args = args
         self.start = MagicMock()
         self.shutdown = MagicMock()
-        self.send_job = MagicMock()
+        self.send_task = MagicMock()
 
-    def do_send_job(self, job: "JobType", run_times: List[datetime]) -> Any:
-        return super().do_send_job(job, run_times)
+    def do_send_task(self, task: "TaskType", run_times: List[datetime]) -> Any:
+        return super().do_send_task(task, run_times)
 
 
 class DummyStore(BaseStore):
@@ -63,28 +63,28 @@ class DummyStore(BaseStore):
         self.start = MagicMock()
         self.shutdown = MagicMock()
 
-    def get_due_jobs(self, now: datetime) -> List["JobType"]:
+    def get_due_tasks(self, now: datetime) -> List["TaskType"]:
         ...
 
-    def lookup_job(self, job_id: Union[str, int]) -> "JobType":
+    def lookup_task(self, task_id: Union[str, int]) -> "TaskType":
         ...
 
-    def delete_job(self, job_id: Union[str, int]):
+    def delete_task(self, task_id: Union[str, int]):
         ...
 
-    def remove_all_jobs(self):
+    def remove_all_tasks(self):
         ...
 
     def get_next_run_time(self) -> datetime:
         ...
 
-    def get_all_jobs(self) -> List["JobType"]:
+    def get_all_tasks(self) -> List["TaskType"]:
         ...
 
-    def add_job(self, job: "JobType"):
+    def add_task(self, task: "TaskType"):
         ...
 
-    def update_job(self, job: "JobType"):
+    def update_task(self, task: "TaskType"):
         ...
 
 
@@ -118,7 +118,7 @@ def test_esmerald_starts_scheduler():
 @pytest.fixture
 def scheduler_class(monkeypatch):
     scheduler_class = AsyncIOScheduler
-    scheduler_class._configure = MagicMock()
+    scheduler_class._setup = MagicMock()
     monkeypatch.setattr("esmerald.applications.Scheduler", Mock(side_effect=EsmeraldScheduler))
     return scheduler_class
 
@@ -128,9 +128,9 @@ def scheduler_class(monkeypatch):
     [
         {
             "asyncz.timezone": "UTC",
-            "asyncz.job_defaults.mistrigger_grace_time": "5",
-            "asyncz.job_defaults.coalesce": "false",
-            "asyncz.job_defaults.max_instances": "9",
+            "asyncz.task_defaults.mistrigger_grace_time": "5",
+            "asyncz.task_defaults.coalesce": "false",
+            "asyncz.task_defaults.max_instances": "9",
             "asyncz.executors.default.class": "%s:DummyExecutor" % __name__,
             "asyncz.executors.default.arg1": "3",
             "asyncz.executors.default.arg2": "a",
@@ -144,7 +144,7 @@ def scheduler_class(monkeypatch):
         },
         {
             "asyncz.timezone": "UTC",
-            "asyncz.job_defaults": {
+            "asyncz.task_defaults": {
                 "mistrigger_grace_time": "5",
                 "coalesce": "false",
                 "max_instances": "9",
@@ -169,10 +169,10 @@ def test_esmerald_scheduler_configurations(scheduler_class, global_config):
         enable_scheduler=True,
     )
 
-    app.scheduler_class._configure.assert_called_once_with(
+    app.scheduler_class._setup.assert_called_once_with(
         {
             "timezone": "UTC",
-            "job_defaults": {
+            "task_defaults": {
                 "mistrigger_grace_time": "5",
                 "coalesce": "false",
                 "max_instances": "9",

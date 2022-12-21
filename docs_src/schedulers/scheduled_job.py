@@ -7,7 +7,7 @@ scheduler = AsyncIOScheduler(timezone=pytz.utc)
 
 
 # Run every Monday, Wednesday and Friday
-@scheduler.scheduled_job(
+@scheduler.scheduled_task(
     trigger=CronTrigger(day_of_week="mon,wed,fri", hour="8", minute="1", second="5")
 )
 def send_email_newsletter():
@@ -16,7 +16,7 @@ def send_email_newsletter():
 
 
 # Run every 2 minutes
-@scheduler.scheduled_job(
+@scheduler.scheduled_task(
     trigger=IntervalTrigger(minutes=2),
     max_instances=1,
     coalesce=True,
@@ -26,7 +26,7 @@ def collect_www_info():
     ...
 
 
-@scheduler.scheduled_job(
+@scheduler.scheduled_task(
     trigger=IntervalTrigger(minutes=10),
     max_instances=1,
     coalesce=False,

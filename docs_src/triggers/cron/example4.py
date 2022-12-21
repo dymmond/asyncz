@@ -8,6 +8,6 @@ def my_task():
     logger.info("My task working")
 
 
-scheduler.add_job(my_task, "cron", hours="*", jitter=200)
+scheduler.add_task(my_task, "cron", hours="*", jitter=200)
 
 scheduler.start()

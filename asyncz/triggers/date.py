@@ -13,7 +13,7 @@ class DateTrigger(BaseTrigger):
     Triggers once on the given datetime. If run_at is left empty then the current time is used.
 
     Args:
-        run_at: The date/time to run the job at.
+        run_at: The date/time to run the task at.
         timezone: The time zone for the run_at if it does not have one already.
     """
 

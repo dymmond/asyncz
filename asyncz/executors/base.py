@@ -6,8 +6,8 @@ from datetime import datetime, timedelta
 from traceback import format_tb
 from typing import TYPE_CHECKING, Any, List, Optional, Union
 
-from asyncz.events import JobExecutionEvent
-from asyncz.events.constants import JOB_ERROR, JOB_EXECUTED, JOB_MISSED
+from asyncz.events import TaskExecutionEvent
+from asyncz.events.constants import TASK_ERROR, TASK_EXECUTED, TASK_MISSED
 from asyncz.exceptions import MaximumInstancesError
 from asyncz.state import BaseStateExtra
 from loguru import logger
@@ -15,7 +15,7 @@ from loguru._logger import Logger
 from pytz import utc
 
 if TYPE_CHECKING:
-    from asyncz.jobs.types import JobType
+    from asyncz.tasks.types import TaskType
 
 
 class BaseExecutor(BaseStateExtra, ABC):
@@ -48,97 +48,100 @@ class BaseExecutor(BaseStateExtra, ABC):
         Shuts down the executor.
 
         Args:
-            wait - Boolean indicating to wait until all submitted jobs have been executed.
+            wait - Boolean indicating to wait until all submitted tasks have been executed.
         """
 
-    def send_job(self, job: "JobType", run_times: List[datetime]):
+    def send_task(self, task: "TaskType", run_times: List[datetime]):
         """
-        Sends the job for execution.
+        Sends the task for execution.
 
         Args:
-            job: A Job instanceyo execute.
-            run_times: A list of datetimes specifying when the job should have been run.
+            task: A Task instanceyo execute.
+            run_times: A list of datetimes specifying when the task should have been run.
         """
         assert self.lock is not None, "This executor has not been started yet."
 
         with self.lock:
-            if self.instances[job.id] >= job.max_instances:
-                raise MaximumInstancesError(job.id, job.max_instances)
+            if self.instances[task.id] >= task.max_instances:
+                raise MaximumInstancesError(task.id, task.max_instances)
 
-            self.do_send_job(job, run_times)
-            self.instances[job.id] += 1
+            self.do_send_task(task, run_times)
+            self.instances[task.id] += 1
 
     @abstractmethod
-    def do_send_job(self, job: "JobType", run_times: List[datetime]) -> Any:
+    def do_send_task(self, task: "TaskType", run_times: List[datetime]) -> Any:
         """
-        Executes the actual task of scheduling `run_job` to be called.
+        Executes the actual task of scheduling `run_task` to be called.
         """
         ...
 
-    def run_job_success(self, job_id: Union[str, int], events: List[int]) -> Any:
+    def run_task_success(self, task_id: Union[str, int], events: List[int]) -> Any:
         """
-        Called by the executor with the list of generated events when the function run_job has
+        Called by the executor with the list of generated events when the function run_task has
         been successfully executed.
         """
         with self.lock:
-            self.instances[job_id] -= 1
-            if self.instances[job_id] == 0:
-                del self.instances[job_id]
+            self.instances[task_id] -= 1
+            if self.instances[task_id] == 0:
+                del self.instances[task_id]
 
         for event in events or []:
             self.scheduler.dispatch_event(event)
 
-    def run_job_error(self, job_id: Union[str, int]) -> Any:
+    def run_task_error(self, task_id: Union[str, int]) -> Any:
         """
-        Called by the executor with the exception if there is an error calling the run_job.
+        Called by the executor with the exception if there is an error calling the run_task.
         """
         with self.lock:
-            self.instances[job_id] -= 1
-            if self.instances[job_id] == 0:
-                del self.instances[job_id]
+            self.instances[task_id] -= 1
+            if self.instances[task_id] == 0:
+                del self.instances[task_id]
 
-        self.logger.opt(exception=True).error(f"Error running job {job_id}", exc_info=True)
+        self.logger.opt(exception=True).error(f"Error running task {task_id}", exc_info=True)
 
 
-def run_job(
-    job: "JobType", store_alias: str, run_times: List[datetime], _logger: Optional["Logger"] = None
+def run_task(
+    task: "TaskType",
+    store_alias: str,
+    run_times: List[datetime],
+    _logger: Optional["Logger"] = None,
 ):
     """
-    Called by executors to run the job. Returns a list of scheduler events to be dispatched by the
+    Called by executors to run the task. Returns a list of scheduler events to be dispatched by the
     scheduler.
 
-    The run job is made to run in async mode.
+    The run task is made to run in async mode.
     """
     if not _logger:
         _logger = logger
 
     events = []
     for run_time in run_times:
-        if getattr(job, "mistrigger_grace_time", None) is not None:
+        if getattr(task, "mistrigger_grace_time", None) is not None:
             difference = datetime.now(utc) - run_time
-            grace_time = timedelta(seconds=job.mistrigger_grace_time)
+            grace_time = timedelta(seconds=task.mistrigger_grace_time)
             if difference > grace_time:
                 events.append(
-                    JobExecutionEvent(
-                        code=JOB_MISSED,
-                        job_id=job.id,
+                    TaskExecutionEvent(
+                        code=TASK_MISSED,
+                        task_id=task.id,
                         store=store_alias,
                         scheduled_run_time=run_time,
                     )
                 )
-                _logger.warning(f"Run time of job '{job}' was missed by {difference}")
+                _logger.warning(f"Run time of task '{task}' was missed by {difference}")
                 continue
 
-        _logger.info(f'Running job "{job}" (scheduled at {run_time})')
+        _logger.info(f'Running task "{task}" (scheduled at {run_time})')
         try:
-            return_value = job.fn(*job.args, **job.kwargs)
+            return_value = task.fn(*task.args, **task.kwargs)
         except BaseException:
             exc, trace_back = sys.exc_info()[1:]
             formatted_trace_back = "".join(format_tb(trace_back))
             events.append(
-                JobExecutionEvent(
-                    code=JOB_ERROR,
-                    job_id=job.id,
+                TaskExecutionEvent(
+                    code=TASK_ERROR,
+                    task_id=task.id,
                     store=store_alias,
                     scheduled_run_time=run_time,
                     exception=exc,
@@ -149,57 +152,60 @@ def run_job(
             del trace_back
         else:
             events.append(
-                JobExecutionEvent(
-                    code=JOB_EXECUTED,
-                    job_id=job.id,
+                TaskExecutionEvent(
+                    code=TASK_EXECUTED,
+                    task_id=task.id,
                     store=store_alias,
                     scheduled_run_time=run_time,
                     return_value=return_value,
                 )
             )
-            _logger.info(f"Job '{job}' executed successfully.")
+            _logger.info(f"Task '{task}' executed successfully.")
     return events
 
 
-async def run_coroutine_job(
-    job: "JobType", store_alias: str, run_times: List[datetime], _logger: Optional["Logger"] = None
+async def run_coroutine_task(
+    task: "TaskType",
+    store_alias: str,
+    run_times: List[datetime],
+    _logger: Optional["Logger"] = None,
 ):
     """
-    Called by executors to run the job. Returns a list of scheduler events to be dispatched by the
+    Called by executors to run the task. Returns a list of scheduler events to be dispatched by the
     scheduler.
 
-    The run job is made to run in async mode.
+    The run task is made to run in async mode.
     """
     if not _logger:
         _logger = logger
 
     events = []
     for run_time in run_times:
-        if getattr(job, "mistrigger_grace_time", None) is not None:
+        if getattr(task, "mistrigger_grace_time", None) is not None:
             difference = datetime.now(utc) - run_time
-            grace_time = timedelta(seconds=job.mistrigger_grace_time)
+            grace_time = timedelta(seconds=task.mistrigger_grace_time)
             if difference > grace_time:
                 events.append(
-                    JobExecutionEvent(
-                        code=JOB_MISSED,
-                        job_id=job.id,
+                    TaskExecutionEvent(
+                        code=TASK_MISSED,
+                        task_id=task.id,
                         alias=store_alias,
                         scheduled_run_time=run_time,
                     )
                 )
-                _logger.warning(f"Run time of job '{job}' was missed by {difference}")
+                _logger.warning(f"Run time of task '{task}' was missed by {difference}")
                 continue
 
-        _logger.info(f'Running job "{job}" (scheduled at {run_time})')
+        _logger.info(f'Running task "{task}" (scheduled at {run_time})')
         try:
-            return_value = await job.fn(*job.args, **job.kwargs)
+            return_value = await task.fn(*task.args, **task.kwargs)
         except BaseException:
             exc, trace_back = sys.exc_info()[1:]
             formatted_trace_back = "".join(format_tb(trace_back))
             events.append(
-                JobExecutionEvent(
-                    code=JOB_ERROR,
-                    job_id=job.id,
+                TaskExecutionEvent(
+                    code=TASK_ERROR,
+                    task_id=task.id,
                     alias=store_alias,
                     scheduled_run_time=run_time,
                     exception=exc,
@@ -210,14 +216,14 @@ async def run_coroutine_job(
             del trace_back
         else:
             events.append(
-                JobExecutionEvent(
-                    code=JOB_EXECUTED,
-                    job_id=job.id,
+                TaskExecutionEvent(
+                    code=TASK_EXECUTED,
+                    task_id=task.id,
                     alias=store_alias,
                     scheduled_run_time=run_time,
                     return_value=return_value,
                 )
             )
-            _logger.info(f"Job '{job}' executed successfully")
+            _logger.info(f"Task '{task}' executed successfully")
 
     return events

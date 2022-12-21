@@ -1,7 +1,7 @@
 # Triggers
 
 In simple terms, a trigger is what contains the logic for the [scheduler](./schedulers.md) to
-execute. Internal jobs contain their own trigger which checks when a job should be the next to run.
+execute. Internal tasks contain their own trigger which checks when a task should be the next to run.
 
 There are five types of triggers available within the Asyncz.
 
@@ -10,14 +10,14 @@ the same.
 
 ## DateTrigger
 
-The DateTrigger is the simplest way of scheduling a job. It schedules a job to be executed once
+The DateTrigger is the simplest way of scheduling a task. It schedules a task to be executed once
 at a given time.
 
 **alias** - `date`
 
 ### Parameters
 
-* **run_at** - The date/time to run the job at.
+* **run_at** - The date/time to run the task at.
 
     <sup>Default: `None`</sup>
 
@@ -37,7 +37,7 @@ You can run the trigger by passing a date as text as well.
 {!> ../docs_src/triggers/date/example2.py !}
 ```
 
-Do you want to run immediatly after adding the job? Don't specify any date then.
+Do you want to run immediatly after adding the task? Don't specify any date then.
 
 ```python hl_lines="12"
 {!> ../docs_src/triggers/date/example3.py !}
@@ -45,7 +45,7 @@ Do you want to run immediatly after adding the job? Don't specify any date then.
 
 ## IntervalTrigger
 
-If you want to run the job periodically, this is the trigger for you then. The advantage of this
+If you want to run the task periodically, this is the trigger for you then. The advantage of this
 trigger is that you can specify also the `start_at` and `end_at` making it more custom for your
 needs.
 
@@ -85,7 +85,7 @@ needs.
 
     <sup>Default: `None`</sup>
 
-* **jitter** - Delay the job execution by jitter seconds at most.
+* **jitter** - Delay the task execution by jitter seconds at most.
 
     <sup>Default: `None`</sup>
 
@@ -101,7 +101,7 @@ Use the `start_at` and `end_at` to provide a limit in which the scheduler should
 {!> ../docs_src/triggers/interval/example2.py !}
 ```
 
-What about using the `scheduled_job` decorator?
+What about using the `scheduled_task` decorator?
 
 ```python hl_lines="8"
 {!> ../docs_src/triggers/interval/example3.py !}
@@ -109,7 +109,7 @@ What about using the `scheduled_job` decorator?
 
 What is the jitter? A simple random component that can be added to the execution. This can be
 useful if there are multiple server running tasks and you don't want them to run the same task
-at the exact same time or to prevent the same job to run concurrently.
+at the exact same time or to prevent the same task to run concurrently.
 
 ```python hl_lines="12"
 {!> ../docs_src/triggers/interval/example4.py !}
@@ -194,7 +194,7 @@ beautifully done which means you can omit fields that you don't need.
 
     <sup>Default: `None`</sup>
 
-* **jitter** - Delay the job executions by jitter seconds at most.
+* **jitter** - Delay the task executions by jitter seconds at most.
 
     <sup>Default: `None`</sup>
 
@@ -231,7 +231,7 @@ unexpected behavior with the cron trigger when entering or leaving DST.
 ```python
 # In the Europe/London timezone, this will not execute at all on the last sunday morning of March
 # Likewise, it will execute twice on the last sunday morning of October
-scheduler.add_job(my_task, 'cron', hour=4, minute=25)
+scheduler.add_task(my_task, 'cron', hour=4, minute=25)
 ```
 
 #### Examples
@@ -246,7 +246,7 @@ Use the `start_at` and `end_at` to provide a limit in which the scheduler should
 {!> ../docs_src/triggers/cron/example2.py !}
 ```
 
-What about using the `scheduled_job` decorator?
+What about using the `scheduled_task` decorator?
 
 ```python hl_lines="7"
 {!> ../docs_src/triggers/cron/example3.py !}
@@ -275,7 +275,7 @@ is considered to be finished when any of the given triggers has finished the sch
 #### Parameters
 
 * **triggers** - List of triggers to combine.
-* **jiter** - Delay the job execution by the jitter seconds at most.
+* **jiter** - Delay the task execution by the jitter seconds at most.
 
     <sup>Default: `None`</sup>
 
@@ -295,7 +295,7 @@ is considered to be finished when all of the given triggers have finished their 
 #### Parameters
 
 * **triggers** - List of triggers to combine.
-* **jiter** - Delay the job execution by the jitter seconds at most.
+* **jiter** - Delay the task execution by the jitter seconds at most.
 
     <sup>Default: `None`</sup>
 

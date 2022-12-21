@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import pytest
 import pytz
-from asyncz.jobs import Job
+from asyncz.tasks import Task
 from asyncz.schedulers.asyncio import AsyncIOScheduler
 from asyncz.schedulers.base import BaseScheduler
 
@@ -50,7 +50,7 @@ def freeze_time(monkeypatch, timezone):
 
 
 @pytest.fixture
-def job_defaults(timezone):
+def task_defaults(timezone):
     run_at = timezone.localize(datetime(2022, 11, 3, 18, 40))
     return {
         "trigger": "date",
@@ -67,15 +67,15 @@ def job_defaults(timezone):
 
 
 @pytest.fixture
-def create_job(job_defaults, timezone):
+def create_task(task_defaults, timezone):
     def create(**kwargs):
         kwargs.setdefault("scheduler", Mock(BaseScheduler, timezone=timezone))
-        job_kwargs = job_defaults.copy()
-        job_kwargs.update(kwargs)
-        job_kwargs["trigger"] = AsyncIOScheduler().create_trigger(
-            job_kwargs.pop("trigger"), job_kwargs.pop("trigger_args")
+        task_kwargs = task_defaults.copy()
+        task_kwargs.update(kwargs)
+        task_kwargs["trigger"] = AsyncIOScheduler().create_trigger(
+            task_kwargs.pop("trigger"), task_kwargs.pop("trigger_args")
         )
-        job_kwargs.setdefault("next_run_time", None)
-        return Job(**job_kwargs)
+        task_kwargs.setdefault("next_run_time", None)
+        return Task(**task_kwargs)
 
     return create

@@ -8,7 +8,7 @@ on:
   pull_request:
     branches: ["main"]
 
-jobs:
+tasks:
   tests:
     name: "Python ${{ matrix.python-version }}"
     runs-on: "ubuntu-latest"
