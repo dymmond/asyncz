@@ -1,5 +1,5 @@
-from asyncz.tasks import Task
 from asyncz.schedulers import AsyncIOScheduler
+from asyncz.tasks import Task
 from asyncz.triggers import CronTrigger
 
 # Create a scheduler
@@ -11,7 +11,7 @@ def check_status():
     ...
 
 
-task = Task(
+Task(
     id="my-task",
     fn=check_status,
     name="my-func",
@@ -20,6 +20,5 @@ task = Task(
     max_instances=3,
     coalesce=True,
 )
-
 
 scheduler.start()
