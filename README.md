@@ -39,7 +39,7 @@ Nowadays using async frameworks with python is somewhat common and becoming even
 usually need a complex stack of technologies to fullfil their needs and directly or indirectly, a scheduler.
 
 There are great frameworks out there that do the job extremely well, the best example is APScheduler, which is where
-Asyncz is inspired by.
+Asyncz came from.
 
 To be even more honest, Asyncz is a revamp of APScheduler. Without the APScheduler there is no Asyncz, so much that
 even the APScheduler tests are used within asyncz. That is how great APScheduler is!

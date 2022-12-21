@@ -2,4 +2,4 @@ Although Asyncz is not Apscheduler there is no deny that the base was and althou
 rewritten in Pydantic and with a different structure and use cases, we believe it is worth
 mention APScheduler and the main reason is simply because it wouldn't be possible to have Asyncz
 without APScheduler and we used the same level of testing as the library to make sure we were
-covering the needed use cases but not all of them as Asyncz has a different target and use case.
+covering the needed use cases but not all of them as Asyncz has a different target.
