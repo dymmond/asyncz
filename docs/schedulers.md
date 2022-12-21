@@ -367,7 +367,7 @@ this will let the scheduler know how many should run concurrently.
 
 ## Events
 
-It is also possible to attach event listeners to the schedule/ The events are triggered on specific
+It is also possible to attach event listeners to the schedule. The events are triggered on specific
 occasions and may carry some additional information with them regarding detauls of that specific
 event. Check the [events](./events.md) section to see the available events.
 
