@@ -275,7 +275,7 @@ is considered to be finished when any of the given triggers has finished the sch
 #### Parameters
 
 * **triggers** - List of triggers to combine.
-* **jiter** - Delay the task execution by the jitter seconds at most.
+* **jitter** - Delay the task execution by the jitter seconds at most.
 
     <sup>Default: `None`</sup>
 
@@ -295,7 +295,7 @@ is considered to be finished when all of the given triggers have finished their 
 #### Parameters
 
 * **triggers** - List of triggers to combine.
-* **jiter** - Delay the task execution by the jitter seconds at most.
+* **jitter** - Delay the task execution by the jitter seconds at most.
 
     <sup>Default: `None`</sup>
 
