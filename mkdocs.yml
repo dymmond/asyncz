@@ -51,6 +51,7 @@ nav:
           - Decorator: "contrib/esmerald/decorator.md"
   - Contributing: "contributing.md"
   - Vendors: "vendors.md"
+  - Sponsorship: "sponsorship.md"
   - Release Notes: "release-notes.md"
 markdown_extensions:
   - toc:

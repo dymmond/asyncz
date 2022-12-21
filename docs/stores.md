@@ -13,6 +13,15 @@ information.
 
 ## MemoryStore
 
+This is the default store when using Asyncz and probably the one you will be using when running
+stateless tasks or tasks that do not require some sort of cache.
+
+**Store Alias** - `memory`
+
+```python
+from asyncz.stores import MemoryStore
+```
+
 ## RedisStore
 
 ## MongoDBStore

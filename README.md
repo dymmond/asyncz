@@ -51,6 +51,8 @@ python into the table.
 APScheduler is widely used by millions of python developers and Asyncz **does not aim to replace** it, instead
 is a more focused and optimised solution for async and ASGI frameworks out there.
 
+See the [vendors](./vendors/apscheduler/README.md) for more details.
+
 ## Logging
 
 We all struggle with the logging and the configurations and with that in mind Asyncz comes with natice support
