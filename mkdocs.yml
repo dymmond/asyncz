@@ -1,5 +1,5 @@
 site_name: Asyncz
-site_description: The scheduler that simply works.
+site_description: The APScheduler simplified and in Pydantic.
 site_url: https://asyncz.tarsild.io
 
 theme:
