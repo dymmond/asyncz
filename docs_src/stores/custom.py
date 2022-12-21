@@ -4,7 +4,6 @@ from typing import List, Union
 from asyncz.schedulers import AsyncIOScheduler
 from asyncz.stores.base import BaseStore
 from asyncz.tasks.types import TaskType
-from asyncz.typing import DictAny
 
 
 class CustomStore(BaseStore):
