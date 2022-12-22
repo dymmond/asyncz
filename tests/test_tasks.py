@@ -6,8 +6,8 @@ from functools import partial
 import pytest
 from asyncz.datastructures import TaskState
 from asyncz.exceptions import AsynczException
-from asyncz.tasks import Task
 from asyncz.schedulers.base import BaseScheduler
+from asyncz.tasks import Task
 from asyncz.triggers import DateTrigger
 from mock import MagicMock, patch
 
@@ -83,7 +83,7 @@ def test_get_run_times(create_task, timezone):
     expected_times = [run_time + timedelta(seconds=1), run_time + timedelta(seconds=2)]
     task = create_task(
         trigger="interval",
-        trigger_args={"seconds": 1, "timezone": timezone, "start_date": run_time},
+        trigger_args={"seconds": 1, "timezone": timezone, "start_at": run_time},
         next_run_time=expected_times[0],
         fn=dummyfn,
     )

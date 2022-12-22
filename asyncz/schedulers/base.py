@@ -370,7 +370,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         mistrigger_grace_time: Optional[int] = undefined,
         coalesce: Optional[bool] = undefined,
         max_instances: Optional[int] = undefined,
-        next_run_time: Optional[Union[datetime, str]] = None,
+        next_run_time: Optional[Union[datetime, str]] = undefined,
         store: str = "default",
         executor: str = "default",
         replace_existing: bool = False,
@@ -680,13 +680,11 @@ class BaseScheduler(BaseStateExtra, ABC):
         self.store_retry_interval = float(config.pop("store_retry_interval", 10))
 
         task_defaults = config.get("task_defaults", {})
-        self.task_defaults = (
-            TaskDefaultStruct(
-                mistrigger_grace_time=to_int(task_defaults.get("mistrigger_grace_time")),
-                coalesce=to_bool(task_defaults.get("coalesce", True)),
-                max_instances=to_int(task_defaults.get("max_instances", 1)),
-            )
-        ) or {}
+        self.task_defaults = TaskDefaultStruct(
+            mistrigger_grace_time=to_int(task_defaults.get("mistrigger_grace_time")),
+            coalesce=to_bool(task_defaults.get("coalesce", True)),
+            max_instances=to_int(task_defaults.get("max_instances", 1)),
+        )
 
         self.executors.clear()
         for alias, value in config.get("executors", {}).items():
@@ -1011,7 +1009,7 @@ class BaseScheduler(BaseStateExtra, ABC):
                 if store_next_run_time and (
                     next_wakeup_time is None or store_next_run_time < next_wakeup_time
                 ):
-                    store_next_run_time.astimezone(self.timezone)
+                    next_wakeup_time = store_next_run_time.astimezone(self.timezone)
 
         for event in events:
             self.dispatch_event(event)
@@ -1025,5 +1023,5 @@ class BaseScheduler(BaseStateExtra, ABC):
         else:
             wait_seconds = min(max(timedelta_seconds(next_wakeup_time - now), 0), TIMEOUT_MAX)
             self.logger.debug(
-                f"Next wakeup is die at {next_wakeup_time} (in {wait_seconds} seconds)."
+                f"Next wakeup is due at {next_wakeup_time} (in {wait_seconds} seconds)."
             )

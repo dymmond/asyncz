@@ -48,7 +48,7 @@ class AsyncIOScheduler(BaseScheduler):
     def stop_timer(self):
         if self.timeout:
             self.timeout.cancel()
-            del self.timezone
+            del self.timeout
 
     @run_in_event_loop
     def wakeup(self):
