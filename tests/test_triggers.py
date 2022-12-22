@@ -589,7 +589,7 @@ class TestCronTrigger(object):
         expected = timezone.localize(datetime(2022, 3, 30))
         assert trigger.get_next_trigger_time(None, now) == expected
 
-    def test_timezone_from_start_date(self, timezone):
+    def test_timezone_from_start_at(self, timezone):
         """
         Tests that the trigger takes the timezone from the start_at parameter if no timezone is
         supplied.
@@ -621,7 +621,7 @@ class TestCronTrigger(object):
         assert trigger.get_next_trigger_time(None, start_at) == correct_next_date
 
     @pytest.mark.parametrize(
-        "trigger_args, start_at, start_date_dst, correct_next_date",
+        "trigger_args, start_at, start_at_dst, correct_next_date",
         [
             ({"hour": 8}, datetime(2013, 3, 9, 12), False, datetime(2013, 3, 10, 8)),
             ({"hour": 8}, datetime(2013, 11, 2, 12), True, datetime(2013, 11, 3, 8)),
@@ -630,7 +630,7 @@ class TestCronTrigger(object):
         ],
         ids=["absolute_spring", "absolute_autumn", "interval_spring", "interval_autumn"],
     )
-    def test_dst_change(self, trigger_args, start_at, start_date_dst, correct_next_date):
+    def test_dst_change(self, trigger_args, start_at, start_at_dst, correct_next_date):
         """
         Making sure that CronTrigger works correctly when crossing the DST switch threshold.
         Note that you should explicitly compare datetimes as strings to avoid the internal datetime
@@ -639,8 +639,8 @@ class TestCronTrigger(object):
         """
         timezone = pytz.timezone("US/Eastern")
         trigger = CronTrigger(timezone=timezone, **trigger_args)
-        start_at = timezone.localize(start_at, is_dst=start_date_dst)
-        correct_next_date = timezone.localize(correct_next_date, is_dst=not start_date_dst)
+        start_at = timezone.localize(start_at, is_dst=start_at_dst)
+        correct_next_date = timezone.localize(correct_next_date, is_dst=not start_at_dst)
         assert str(trigger.get_next_trigger_time(None, start_at)) == str(correct_next_date)
 
     def test_timezone_change(self, timezone):
@@ -689,7 +689,7 @@ class TestCronTrigger(object):
             ) <= timedelta(seconds=5)
 
     @pytest.mark.parametrize(
-        "trigger_args, start_at, start_date_dst, correct_next_date",
+        "trigger_args, start_at, start_at_dst, correct_next_date",
         [
             ({"hour": 8}, datetime(2013, 3, 9, 12), False, datetime(2013, 3, 10, 8)),
             ({"hour": 8}, datetime(2013, 11, 2, 12), True, datetime(2013, 11, 3, 8)),
@@ -698,17 +698,17 @@ class TestCronTrigger(object):
         ],
         ids=["absolute_spring", "absolute_autumn", "interval_spring", "interval_autumn"],
     )
-    def test_jitter_dst_change(self, trigger_args, start_at, start_date_dst, correct_next_date):
+    def test_jitter_dst_change(self, trigger_args, start_at, start_at_dst, correct_next_date):
         timezone = pytz.timezone("US/Eastern")
         trigger = CronTrigger(timezone=timezone, jitter=5, **trigger_args)
-        start_at = timezone.localize(start_at, is_dst=start_date_dst)
-        correct_next_date = timezone.localize(correct_next_date, is_dst=not start_date_dst)
+        start_at = timezone.localize(start_at, is_dst=start_at_dst)
+        correct_next_date = timezone.localize(correct_next_date, is_dst=not start_at_dst)
 
         for _ in range(0, 100):
             next_trigger_time = trigger.get_next_trigger_time(None, start_at)
             assert abs(next_trigger_time - correct_next_date) <= timedelta(seconds=5)
 
-    def test_jitter_with_end_date(self, timezone):
+    def test_jitter_with_end_at(self, timezone):
         now = timezone.localize(datetime(2022, 11, 12, 6, 55, 30))
         end_at = timezone.localize(datetime(2022, 11, 12, 6, 56, 0))
         trigger = CronTrigger(minute="*", jitter=5, end_at=end_at)

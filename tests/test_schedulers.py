@@ -12,33 +12,33 @@ from asyncz.events.constants import (
     ALL_TASKS_REMOVED,
     EXECUTOR_ADDED,
     EXECUTOR_REMOVED,
-    TASK_ADDED,
-    TASK_EXECUTED,
-    TASK_MAX_INSTANCES,
-    TASK_MODIFIED,
-    TASK_REMOVED,
-    TASK_SUBMITTED,
     SCHEDULER_PAUSED,
     SCHEDULER_RESUMED,
     SCHEDULER_SHUTDOWN,
     SCHEDULER_STARTED,
     STORE_ADDED,
     STORE_REMOVED,
+    TASK_ADDED,
+    TASK_EXECUTED,
+    TASK_MAX_INSTANCES,
+    TASK_MODIFIED,
+    TASK_REMOVED,
+    TASK_SUBMITTED,
 )
 from asyncz.exceptions import (
     ConflictIdError,
-    TaskLookupError,
     MaxInterationsReached,
     SchedulerAlreadyRunningError,
     SchedulerNotRunningError,
+    TaskLookupError,
 )
 from asyncz.executors.base import BaseExecutor
 from asyncz.executors.debug import DebugExecutor
-from asyncz.tasks import Task
-from asyncz.tasks.types import TaskType
 from asyncz.schedulers.base import BaseScheduler
 from asyncz.stores.base import BaseStore
 from asyncz.stores.memory import MemoryStore
+from asyncz.tasks import Task
+from asyncz.tasks.types import TaskType
 from asyncz.triggers.base import BaseTrigger
 from asyncz.typing import undefined
 from mock import MagicMock, patch
@@ -793,7 +793,7 @@ class TestProcessTasks:
         store = MagicMock(
             BaseStore,
             get_due_tasks=MagicMock(return_value=[task]),
-            get_next_trigger_time=MagicMock(return_value=None),
+            get_next_run_time=MagicMock(return_value=None),
         )
         scheduler.stores["default"] = store
         return store

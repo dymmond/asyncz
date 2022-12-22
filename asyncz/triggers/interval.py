@@ -67,7 +67,7 @@ class IntervalTrigger(BaseTrigger):
 
         start_at = start_at or (datetime.now(self.timezone) + self.interval)
         self.start_at = to_datetime(start_at, self.timezone, "start_at")
-        self.end_at = to_datetime(end_at, self.timezone, "start_at")
+        self.end_at = to_datetime(end_at, self.timezone, "end_at")
         self.jitter = jitter
 
     def get_next_trigger_time(

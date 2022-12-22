@@ -66,15 +66,15 @@ def to_timezone(value: Any) -> timezone:
     """
     if isinstance(value, str):
         return timezone(value)
-    elif isinstance(value, tzinfo):
+    if isinstance(value, tzinfo):
         if not hasattr(value, "localize") or not hasattr(value, "normalize"):
             raise TypeError("Only timezones from the pytz library are supported.")
         if value.tzname(None) == "local":
             raise ValueError(
                 "Unable to determine the name of the local timezone -- you must explicitly "
                 "specify the name of the local timezone. Please refrain from using timezones like "
-                "EST to prevent problems with daylight saving time. Instead, use a locale based "
-                "timezone name (such as Europe/Helsinki)."
+                "BST to prevent problems with daylight saving time. Instead, use a locale based "
+                "timezone name (such as Europe/London)."
             )
         return value
     if value is not None:
@@ -134,7 +134,7 @@ def to_datetime(value: Union[str, datetime], tz: tzinfo, arg_name: str) -> datet
     return localize(_datetime, tz)
 
 
-def datetime_to_utc_timestamp(timeval: datetime) -> int:
+def datetime_to_utc_timestamp(timeval: datetime):
     """
     Converts a datetime instance to a timestamp.
     """

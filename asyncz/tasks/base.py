@@ -105,7 +105,6 @@ class Task(BaseStateExtra):
         while next_run_time and next_run_time <= now:
             run_times.append(next_run_time)
             next_run_time = self.trigger.get_next_trigger_time(next_run_time, now)
-
         return run_times
 
     def _update(self, **updates: "DictAny") -> None:
