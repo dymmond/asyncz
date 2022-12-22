@@ -2,7 +2,7 @@
 
 ## 0.1.1
 
-December, 2022.
+December 22, 2022.
 
 ### Fixed
 
