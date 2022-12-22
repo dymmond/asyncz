@@ -10,3 +10,6 @@ to the scheduler used by it directly.
 This does not mean that Asyncz only works with Esmerald, not at all. You can use it with any of
 your favourite framework directly or even better, you can [contribute](./../../contributing.md) to
 Asyncz and suggest/add an integration with your favourite ASGI web framework as well.
+
+Asyncz provides a [scheduler](./scheduler.md) and a [decorator](./decorator.md) that is internally
+used by Esmerald to perform its tasks.
