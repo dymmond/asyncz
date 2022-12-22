@@ -11,7 +11,7 @@ requires-python = ">=3.7"
 dynamic = ['version']
 license = "MIT"
 authors = [
-    { name = "Tiago Silva", email = "tiago.silva@dymmond.com" },
+    { name = "Tiago Silva", email = "tiago.arasilva@gmail.com" },
 ]
 classifiers = [
     "Intended Audience :: Information Technology",
@@ -46,7 +46,7 @@ dependencies = [
     "pytz>=2022.6",
     "tzlocal>=4.2,<5.0"
 ]
-keywords = ["api", "rest", "http", "asgi", "esmerald", "pydantic", "starlette", "fastapi", "framework", "websocket", "openapi", "ml", "machine learning", "scheduler", "cron", "esmerald"]
+keywords = ["api", "rest", "http", "asgi", "esmerald", "pydantic", "starlette", "fastapi", "apscheduler", "framework", "websocket", "openapi", "ml", "machine learning", "scheduler", "cron", "esmerald"]
 
 [project.urls]
 Homepage = "https://github.com/dymmond/asyncz"

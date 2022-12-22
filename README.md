@@ -153,7 +153,7 @@ fun 😁🎉.
 ## ASGI support
 
 Asyncz currently supports the [Esmerald framework](https://asyncz.tarsild.io/contrib/esmerald/index.md)
-and brings some batteries that are currently used by the framwork and leveraging Asyncz.
+and brings some batteries that are currently used by the framework and leveraging Asyncz.
 
 If you wish to have support to any other framework such as FastAPI, Starlite, Starlette or
 literally any other, check the [contributing](https://asyncz.tarsild.io/contributing.md) section and see how you can
