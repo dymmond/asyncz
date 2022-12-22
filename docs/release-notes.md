@@ -6,6 +6,8 @@ December 22, 2022.
 
 This release is the first release of Asyncz and it contain all the essentials.
 
+### Added
+
 * **Triggers**
 * **Schedulers**
 * **Executors**
