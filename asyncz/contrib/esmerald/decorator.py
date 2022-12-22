@@ -11,7 +11,7 @@ class scheduler(Task):
         *,
         name: Optional[str] = None,
         trigger: Optional[TriggerType] = None,
-        identifier: Optional[str] = None,
+        id: Optional[str] = None,
         mistrigger_grace_time: Optional[int] = None,
         coalesce: Optional[bool] = None,
         max_intances: Optional[int] = None,
@@ -26,7 +26,7 @@ class scheduler(Task):
         super().__init__(
             name=name,
             trigger=trigger,
-            identifier=identifier,
+            id=id,
             mistrigger_grace_time=mistrigger_grace_time,
             coalesce=coalesce,
             max_intances=max_intances,

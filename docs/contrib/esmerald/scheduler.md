@@ -15,6 +15,12 @@ enabled.
 Esmerald also defaults the `scheduler_class` to the
 Asyncz [AsyncIOScheduler](../../schedulers.md#asyncioscheduler) if nothing is provided.
 
+!!! Warning
+    By the time this document was written, Esmerald was in version 0.5.0 and it did not allow
+    passing different `EsmeraldScheduler` instance on instantiation time but that might change
+    in the future. In other words, this is just an explanation of how does the object work
+    internally.
+
 ### Parameters
 
 * **app** - Esmerald instance.
@@ -38,3 +44,10 @@ This is how Esmerald usually works. Let us assume:
 As stated above, this is just an illustration on how Esmerald operates with Asyncz
 (from the version 0.5.0 onwards) and shows how you can use your usual configurations of Asyncz
 directly with the framework
+
+## Functionalities
+
+`EsmeraldScheduler` does the heavy lifting for you.
+
+* Registers the tasks in the Asyncz scheduler based on the `tasks` parameters.
+* Registers the Esmerald events `startup` and `shutdown` automatically on app instantiation.
