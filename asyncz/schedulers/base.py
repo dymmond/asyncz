@@ -670,6 +670,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         Notifies the scheduler that there may be tasks due for execution.
         Triggers process_tasks to be run in an implementation specific manner.
         """
+        ...
 
     def _setup(self, config: "DictAny") -> None:
         """
