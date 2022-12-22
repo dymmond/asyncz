@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, List, Union
+from typing import Any, List
 
 from asyncz.executors.base import BaseExecutor
 from asyncz.schedulers import AsyncIOScheduler

@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-    <em>🚀 The APScheduler simplified and in Pydantic. 🚀</em>
+    <em>🚀 The scheduler that simply works. 🚀</em>
 </p>
 
 <p align="center">

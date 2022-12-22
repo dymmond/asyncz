@@ -142,7 +142,7 @@ class Task:
         *,
         name: Optional[str] = None,
         trigger: Optional[TriggerType] = None,
-        identifier: Optional[str] = None,
+        id: Optional[str] = None,
         mistrigger_grace_time: Optional[int] = None,
         coalesce: Optional[bool] = None,
         max_intances: Optional[int] = None,
@@ -157,28 +157,25 @@ class Task:
         """_summary_
 
         Args:
-            name (Optional[str], optional): textual description of the task.
-            trigger (Optional[TriggerType], optional): an instance of a trigger class.
-            identifier (Optional[str], optional): explicit identifier for the task.
-            mistrigger_grace_time (Optional[int], optional): seconds after the designated runtime that the task is still
-                allowed to be run (or None to allow the task to run no matter how late it is).
-            coalesce (Optional[bool], optional): run once instead of many times if the scheduler determines that the
-                taskkkk should be run more than once in succession.
-            max_intances (Optional[int], optional): maximum number of concurrently running instances allowed for this
-                task.
-            next_run_time (Optional[datetime], optional): when to first run the task, regardless of the trigger (pass
-                None to add the task as paused).
-            store (Optional[str], optional): alias of the task store to store the task in.
-            executor (Optional[str], optional): alias of the executor to run the task with.
-            replace_existing (bool, optional): True to replace an existing task with the same id
+            name: Textual description of the task.
+            trigger: An instance of a trigger class.
+            identifier: Explicit identifier for the task.
+            mistrigger_grace_time: Seconds after the designated runtime that the task is still allowed to be run (or None to allow the task to run no
+                matter  how late it is).
+            coalesce: Run once instead of many times if the scheduler determines that the task should be run more than once in succession.
+            max_intances: Maximum number of concurrently running instances allowed for this task.
+            next_run_time: When to first run the task, regardless of the trigger (pass None to add the task as paused).
+            store: Alias of the task store to store the task in.
+            executor: Alias of the executor to run the task with.
+            replace_existing: True to replace an existing task with the same id
                 (but retain the number of runs from the existing one).
-            args (Optional[Any], optional): list of positional arguments to call func with.
-            kwargs (Optional[Dict[str, Any]], optional): dict of keyword arguments to call func with.
-            is_enabled (bool, optional): True if the the task to be added to the scheduler.
+            args: List of positional arguments to call func with.
+            kwargs: Dict of keyword arguments to call func with.
+            is_enabled: True if the the task to be added to the scheduler.
         """
         self.name = name
         self.trigger = trigger
-        self.identifier = identifier
+        self.id = id
         self.mistrigger_grace_time = mistrigger_grace_time or undefined
         self.coalesce = coalesce or undefined
         self.max_intances = max_intances or undefined
@@ -198,7 +195,7 @@ class Task:
                 trigger=self.trigger,
                 args=self.args,
                 kwargs=self.kwargs,
-                id=self.identifier,
+                id=self.id,
                 name=self.name,
                 mistrigger_grace_time=self.mistrigger_grace_time,
                 coalesce=self.coalesce,
