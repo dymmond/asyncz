@@ -46,7 +46,7 @@ class AsyncIOScheduler(BaseScheduler):
             self.timeout = self.event_loop.call_later(wait_seconds, self.wakeup)
 
     def stop_timer(self):
-        if self.timeout:
+        if getattr(self, "timeout", None):
             self.timeout.cancel()
             del self.timeout
 

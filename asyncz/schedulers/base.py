@@ -1025,3 +1025,4 @@ class BaseScheduler(BaseStateExtra, ABC):
             self.logger.debug(
                 f"Next wakeup is due at {next_wakeup_time} (in {wait_seconds} seconds)."
             )
+        return wait_seconds
