@@ -5,10 +5,10 @@ import pytest
 from asyncz.contrib.esmerald.decorator import scheduler
 from asyncz.contrib.esmerald.scheduler import EsmeraldScheduler
 from asyncz.executors.base import BaseExecutor
-from asyncz.tasks.types import TaskType
 from asyncz.schedulers import AsyncIOScheduler
 from asyncz.schedulers.base import BaseScheduler
 from asyncz.stores.base import BaseStore
+from asyncz.tasks.types import TaskType
 from asyncz.triggers import IntervalTrigger
 from asyncz.triggers.base import BaseTrigger
 from esmerald import Esmerald
@@ -225,7 +225,7 @@ def test_raise_exception_on_tasks_value(scheduler_class):
 
 def test_raise_exception_on_missing_scheduler_class_and_enable_scheduler():
     """
-    If Esmerald enable_scheduler is True and no scheduler_class, raises ImproperlyConfigured
+    If Esmerald enable_scheduler is True and no scheduler_class, raises ImproperlyConfigured.
     """
     with pytest.raises(ImproperlyConfigured):
         Esmerald(
