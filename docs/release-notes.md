@@ -1,5 +1,13 @@
 # Release Notes
 
+## 0.1.2
+
+December 23, 22
+
+### Changed
+
+- Update Licence agreement. It was supposed to go in the version 0.1.0
+
 ## 0.1.1
 
 December 22, 2022.
