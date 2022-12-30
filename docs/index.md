@@ -24,7 +24,7 @@
 
 ---
 
-**Documentation**: [https://asyncz.tarsil.io](https://asyncz.tarsil.io) 📚
+**Documentation**: [https://asyncz.tarsild.io](https://asyncz.tarsild.io) 📚
 
 **Source Code**: [https://github.com/tarsil/asyncz](https://github.com/tarsil/asyncz)
 
