@@ -1,5 +1,13 @@
 # Release Notes
 
+## 0.1.3
+
+December 30, 2022
+
+### Changed
+
+- Updated pyproject to support python 3.11.
+
 ## 0.1.2
 
 December 23, 22
