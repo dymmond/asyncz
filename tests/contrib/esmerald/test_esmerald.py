@@ -119,7 +119,7 @@ def test_esmerald_starts_scheduler():
 def scheduler_class(monkeypatch):
     scheduler_class = AsyncIOScheduler
     scheduler_class._setup = MagicMock()
-    monkeypatch.setattr("esmerald.applications.EsmeraldScheduler", Mock(side_effect=EsmeraldScheduler))
+    monkeypatch.setattr("esmerald.applications.Scheduler", Mock(side_effect=EsmeraldScheduler))
     return scheduler_class
 
 
