@@ -22,7 +22,7 @@ stateless tasks or tasks that do not require some sort of cache.
 **Store Alias** - `memory`
 
 ```python
-from asyncz.stores import MemoryStore
+from asyncz.stores.memory import MemoryStore
 ```
 
 ## RedisStore
@@ -30,7 +30,7 @@ from asyncz.stores import MemoryStore
 **Store Alias** - `redis`
 
 ```python
-from asyncz.stores import RedisStore
+from asyncz.stores.redis import RedisStore
 ```
 
 ### Parameters
@@ -57,7 +57,7 @@ highest available.
 **Store Alias** - `mongo`
 
 ```python
-from asyncz.stores import MongoDBStore
+from asyncz.stores.mongo import MongoDBStore
 ```
 
 ### Parameters
