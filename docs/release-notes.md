@@ -1,5 +1,13 @@
 # Release Notes
 
+## 0.1.4
+
+January 3, 2023
+
+### Fix
+
+- Store module imports causing issues internally.
+
 ## 0.1.3
 
 December 30, 2022
