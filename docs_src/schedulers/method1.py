@@ -1,7 +1,8 @@
 import pytz
 from asyncz.executors import AsyncIOExecutor, ThreadPoolExecutor
 from asyncz.schedulers.asyncio import AsyncIOScheduler
-from asyncz.stores import MongoDBStore, RedisStore
+from asyncz.stores.mongo import MongoDBStore
+from asyncz.stores.redis import RedisStore
 
 # Define the stores
 # Override the default MemoryStore to become RedisStore where the db is 0
