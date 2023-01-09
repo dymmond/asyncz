@@ -50,11 +50,11 @@ dependencies = [
 keywords = ["api", "rest", "http", "asgi", "esmerald", "pydantic", "starlette", "fastapi", "apscheduler", "framework", "websocket", "openapi", "ml", "machine learning", "scheduler", "cron", "esmerald"]
 
 [project.urls]
-Homepage = "https://github.com/dymmond/asyncz"
-Documentation = "https://asyncz.dymmond.com/"
-Changelog = "https://asyncz.dymmond.com/release-notes/"
+Homepage = "https://github.com/tarsil/asyncz"
+Documentation = "https://asyncz.tarsild.io/"
+Changelog = "https://asyncz.tarsild.io/release-notes/"
 Funding = "https://github.com/sponsors/tarsil"
-Source = "https://github.com/dymmond/asyncz"
+Source = "https://github.com/tarsild/asyncz"
 
 [project.optional-dependencies]
 test = [
