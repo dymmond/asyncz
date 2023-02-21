@@ -1,8 +1,13 @@
 # Release Notes
 
-## 0.1.4
+## 0.2.0
 
-January 3, 2023
+### Changed
+
+- **Breaking changes**: Removed support for python 3.7 as it was limiting the technology from evolving
+with the rest of the packages.
+
+## 0.1.4
 
 ### Fix
 
@@ -10,23 +15,17 @@ January 3, 2023
 
 ## 0.1.3
 
-December 30, 2022
-
 ### Changed
 
 - Updated pyproject to support python 3.11.
 
 ## 0.1.2
 
-December 23, 22
-
 ### Changed
 
 - Update Licence agreement. It was supposed to go in the version 0.1.0
 
 ## 0.1.1
-
-December 22, 2022.
 
 ### Fixed
 
@@ -35,8 +34,6 @@ December 22, 2022.
 - Added missing return on the `process_tasks` causing the waiting time to be None.
 
 ## 0.1.0
-
-December 22, 2022.
 
 This release is the first release of Asyncz and it contain all the essentials.
 

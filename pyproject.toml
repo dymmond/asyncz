@@ -7,7 +7,7 @@ name = "asyncz"
 description = "The scheduler that nobody wants but every application needs."
 long_description = "The scheduler that nobody wants but every application needs."
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 dynamic = ['version']
 license = "MIT"
 authors = [
@@ -43,7 +43,7 @@ classifiers = [
 dependencies = [
     "asyncio>=3.4.3,<4.0.0",
     "loguru>=0.6.0,<0.7.0",
-    "pydantic==1.10.4",
+    "pydantic>=1.10.5,<2.0.0",
     "pytz>=2022.6",
     "tzlocal>=4.2,<5.0"
 ]
@@ -92,7 +92,7 @@ doc = [
 
 all = [
     "asyncio>=3.4.3,<4.0.0",
-    "pydantic==1.10.4",
+    "pydantic>=1.10.5,<2.0.0",
     "pytz>=2022.6",
     "tzlocal>=4.2,<5.0"
 ]
