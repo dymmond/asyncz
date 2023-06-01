@@ -44,7 +44,7 @@ dependencies = [
     "loguru>=0.6.0,<0.7.0",
     "pydantic>=1.10.5,<2.0.0",
     "pytz>=2022.6",
-    "tzlocal>=4.2,<5.0"
+    "tzlocal>=4.2,<6.0"
 ]
 keywords = ["api", "rest", "http", "asgi", "esmerald", "pydantic", "starlette", "fastapi", "apscheduler", "framework", "websocket", "openapi", "ml", "machine learning", "scheduler", "cron", "esmerald"]
 
@@ -93,7 +93,7 @@ all = [
     "asyncio>=3.4.3,<4.0.0",
     "pydantic>=1.10.5,<2.0.0",
     "pytz>=2022.6",
-    "tzlocal>=4.2,<5.0"
+    "tzlocal>=4.2,<6.0"
 ]
 
 [tool.hatch.version]
