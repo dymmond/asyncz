@@ -6,8 +6,9 @@ from datetime import date, datetime, time, timedelta, tzinfo
 from functools import partial
 from typing import Any, Dict, Union
 
-from asyncz.exceptions import AsynczException, AsynczLookupError
 from pytz import FixedOffset, timezone, utc
+
+from asyncz.exceptions import AsynczException, AsynczLookupError
 
 try:
     from threading import TIMEOUT_MAX
@@ -186,9 +187,9 @@ def get_callable_name(func: Any) -> str:
         f_class = getattr(func, "im_class", None)
 
     if f_class and hasattr(func, "__name__"):
-        return "%s.%s" % (f_class.__name__, func.__name__)
+        return "{}.{}".format(f_class.__name__, func.__name__)
 
-    if hasattr(func, "__call__"):
+    if hasattr(func, "__call__"):  # noqa
         if hasattr(func, "__name__"):
             return func.__name__
         return func.__class__.__name__
@@ -218,7 +219,7 @@ def obj_to_ref(obj: Any) -> str:
             module = obj.__module__
     else:
         module = obj.__module__
-    return "%s:%s" % (module, name)
+    return "{}:{}".format(module, name)
 
 
 def ref_to_obj(ref: str) -> Any:
@@ -234,14 +235,18 @@ def ref_to_obj(ref: str) -> Any:
     try:
         obj = __import__(modulename, fromlist=[rest])
     except ImportError:
-        raise AsynczLookupError("Error resolving reference %s: could not import module" % ref)
+        raise AsynczLookupError(
+            "Error resolving reference %s: could not import module" % ref
+        ) from None
 
     try:
         for name in rest.split("."):
             obj = getattr(obj, name)
         return obj
     except Exception:
-        raise AsynczLookupError("Error resolving reference %s: error looking up object" % ref)
+        raise AsynczLookupError(
+            "Error resolving reference %s: error looking up object" % ref
+        ) from None
 
 
 def maybe_ref(ref: str) -> Any:
@@ -269,7 +274,7 @@ def check_callable_args(func, args: Any, kwargs: Dict[Any, Any]) -> None:
     try:
         sig = inspect.signature(func, follow_wrapped=False)
     except ValueError as e:
-        raise AsynczException(detail=str(e))
+        raise AsynczException(detail=str(e)) from e
 
     for param in sig.parameters.values():
         if param.kind == param.POSITIONAL_OR_KEYWORD:

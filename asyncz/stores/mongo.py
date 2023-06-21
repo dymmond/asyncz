@@ -3,9 +3,9 @@ from datetime import datetime
 from typing import Any, List, Optional, Union
 
 from asyncz.exceptions import ConflictIdError, TaskLookupError
+from asyncz.stores.base import BaseStore
 from asyncz.tasks import Task
 from asyncz.tasks.types import TaskType
-from asyncz.stores.base import BaseStore
 from asyncz.typing import DictAny
 from asyncz.utils import datetime_to_utc_timestamp, maybe_ref, utc_timestamp_to_datetime
 
@@ -14,7 +14,7 @@ try:
     from pymongo import ASCENDING, MongoClient
     from pymongo.errors import DuplicateKeyError
 except ImportError:
-    raise ImportError("MongoDBStore requires pymongo to be installed")
+    raise ImportError("MongoDBStore requires pymongo to be installed") from None
 
 
 class MongoDBStore(BaseStore):
@@ -75,7 +75,7 @@ class MongoDBStore(BaseStore):
         return self.get_tasks({"next_run_time": {"$lte": timestamp}})
 
     def get_tasks(self, conditions: DictAny) -> List["Task"]:
-        tasks: List["Taskkk"] = []
+        tasks: List["Task"] = []
         failed_task_ids = []
 
         for document in self.collection.find(
@@ -116,7 +116,7 @@ class MongoDBStore(BaseStore):
                 }
             )
         except DuplicateKeyError:
-            raise ConflictIdError(task.id)
+            raise ConflictIdError(task.id) from None
 
     def update_task(self, task: "TaskType"):
         updates = {
@@ -139,4 +139,4 @@ class MongoDBStore(BaseStore):
         self.client.close()
 
     def __repr__(self):
-        return "<%s (client=%s)>" % (self.__class__.__name__, self.client)
+        return "<{} (client={})>".format(self.__class__.__name__, self.client)

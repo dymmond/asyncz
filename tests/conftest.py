@@ -1,12 +1,12 @@
-# coding: utf-8
 from datetime import datetime
 from unittest.mock import Mock
 
 import pytest
 import pytz
-from asyncz.tasks import Task
+
 from asyncz.schedulers.asyncio import AsyncIOScheduler
 from asyncz.schedulers.base import BaseScheduler
+from asyncz.tasks import Task
 
 
 @pytest.fixture

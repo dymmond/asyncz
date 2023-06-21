@@ -1,7 +1,11 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
+from unittest.mock import MagicMock, Mock
 
 import pytest
+from esmerald import Esmerald
+from loguru import logger
+
 from asyncz.contrib.esmerald.decorator import scheduler
 from asyncz.contrib.esmerald.scheduler import EsmeraldScheduler
 from asyncz.executors.base import BaseExecutor
@@ -11,14 +15,11 @@ from asyncz.stores.base import BaseStore
 from asyncz.tasks.types import TaskType
 from asyncz.triggers import IntervalTrigger
 from asyncz.triggers.base import BaseTrigger
-from esmerald import Esmerald
-from loguru import logger
-from mock import MagicMock, Mock
 
 try:
     from esmerald.exceptions import ImproperlyConfigured
 except ImportError:
-    raise ImportError("Esmerald is required to be installted to run the tests.")
+    raise ImportError("Esmerald is required to be installted to run the tests.") from None
 
 
 class DummyScheduler(BaseScheduler):

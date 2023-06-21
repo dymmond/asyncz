@@ -5,6 +5,9 @@ from importlib import import_module
 from threading import RLock
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
+from loguru import logger
+from tzlocal import get_localzone
+
 from asyncz._mapping import AsynczObjectMapping
 from asyncz.events.base import SchedulerEvent, TaskEvent, TaskSubmissionEvent
 from asyncz.events.constants import (
@@ -38,21 +41,12 @@ from asyncz.stores.memory import MemoryStore
 from asyncz.tasks import Task
 from asyncz.triggers.base import BaseTrigger
 from asyncz.typing import undefined
-from asyncz.utils import (
-    TIMEOUT_MAX,
-    maybe_ref,
-    timedelta_seconds,
-    to_bool,
-    to_int,
-    to_timezone,
-)
-from loguru import logger
-from tzlocal import get_localzone
+from asyncz.utils import TIMEOUT_MAX, maybe_ref, timedelta_seconds, to_bool, to_int, to_timezone
 
 try:
     from collections.abc import MutableMapping
 except ImportError:
-    from collections import MutableMapping
+    from collections.abc import MutableMapping
 
 from asyncz.enums import PluginInstance, SchedulerState
 from asyncz.schedulers.datastructures import TaskDefaultStruct
@@ -89,11 +83,11 @@ class BaseScheduler(BaseStateExtra, ABC):
         super().__init__(**kwargs)
         mapping = AsynczObjectMapping()
         self.global_config = global_config or {}
-        self.trigger_plugins = dict((k, v) for k, v in mapping.triggers.items())
+        self.trigger_plugins = dict(mapping.triggers.items())
         self.trigger_classes = {}
-        self.executor_plugins = dict((k, v) for k, v in mapping.executors.items())
+        self.executor_plugins = dict(mapping.executors.items())
         self.executor_classes = {}
-        self.store_plugins = dict((k, v) for k, v in mapping.stores.items())
+        self.store_plugins = dict(mapping.stores.items())
         self.store_classes = {}
         self.executors = {}
         self.executor_lock = self.create_lock()
@@ -136,11 +130,11 @@ class BaseScheduler(BaseStateExtra, ABC):
 
         if prefix:
             prefix_length = len(prefix)
-            global_config = dict(
-                (key[prefix_length:], value)
+            global_config = {
+                key[prefix_length:]: value
                 for key, value in global_config.items()
                 if key.startswith(prefix)
-            )
+            }
 
         config = {}
         for key, value in global_config.items():
@@ -412,29 +406,27 @@ class BaseScheduler(BaseStateExtra, ABC):
             executor: Alias of the executor to run the task with.
             replace_existing: True to replace an existing task with the same id (but retain the number of runs from the existing one).
         """
-        task_struct = dict(
-            trigger=self.create_trigger(trigger, trigger_args),
-            executor=executor,
-            fn=fn,
-            args=tuple(args) if args is not None else (),
-            kwargs=dict(kwargs) if kwargs is not None else {},
-            id=id,
-            name=name,
-            mistrigger_grace_time=mistrigger_grace_time,
-            coalesce=coalesce,
-            max_instances=max_instances,
-            next_run_time=next_run_time,
-        )
-        task_kwargs = dict(
-            (key, value) for key, value in task_struct.items() if value is not undefined
-        )
+        task_struct = {
+            "trigger": self.create_trigger(trigger, trigger_args),
+            "executor": executor,
+            "fn": fn,
+            "args": tuple(args) if args is not None else (),
+            "kwargs": dict(kwargs) if kwargs is not None else {},
+            "id": id,
+            "name": name,
+            "mistrigger_grace_time": mistrigger_grace_time,
+            "coalesce": coalesce,
+            "max_instances": max_instances,
+            "next_run_time": next_run_time,
+        }
+        task_kwargs = {key: value for key, value in task_struct.items() if value is not undefined}
         task = Task(self, **task_kwargs)
 
         with self.store_lock:
             if self.state == SchedulerState.STATE_STOPPED:
                 self.pending_tasks.append((task, store, replace_existing))
                 self.logger.info(
-                    f"Adding task tentatively. It will be properly scheduled when the scheduler starts."
+                    "Adding task tentatively. It will be properly scheduled when the scheduler starts."
                 )
             else:
                 self.real_add_task(task, store, replace_existing)
@@ -755,7 +747,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         try:
             return self.executors[alias]
         except KeyError:
-            raise KeyError(f"No such executor: {alias}.")
+            raise KeyError(f"No such executor: {alias}.") from None
 
     def lookup_store(self, alias: str) -> "StoreType":
         """
@@ -768,7 +760,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         try:
             return self.stores[alias]
         except KeyError:
-            raise KeyError(f"No such store: {alias}.")
+            raise KeyError(f"No such store: {alias}.") from None
 
     def lookup_task(self, task_id: Union[str, int], store_alias: str) -> Any:
         """
@@ -779,7 +771,7 @@ class BaseScheduler(BaseStateExtra, ABC):
             alias: Alias of a task store to look in.
         """
         if self.state == SchedulerState.STATE_STOPPED:
-            for task, alias, replace_existing in self.pending_tasks:
+            for task, _, _ in self.pending_tasks:
                 if task.id == task_id:
                     return task, None
         else:
@@ -899,9 +891,9 @@ class BaseScheduler(BaseStateExtra, ABC):
                 if not issubclass(plugin_cls, base_class):
                     raise TypeError(
                         f"The {format(_type)} entry point does not point to a {format(_type)} class."
-                    )
+                    ) from None
             else:
-                raise LookupError(f"No {_type} by the name '{alias}' was found.")
+                raise LookupError(f"No {_type} by the name '{alias}' was found.") from None
 
         return plugin_cls(**constructor_args)
 

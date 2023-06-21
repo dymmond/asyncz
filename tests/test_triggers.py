@@ -6,6 +6,7 @@ from unittest.mock import Mock
 
 import pytest
 import pytz
+
 from asyncz.triggers import (
     AndTrigger,
     BaseTrigger,
@@ -304,7 +305,7 @@ class TestOrTrigger:
         assert repr(trigger) == repr(trigger2)
 
 
-class TestAndTrigger(object):
+class TestAndTrigger:
     @pytest.fixture
     def trigger(self, timezone):
         return AndTrigger(
@@ -360,7 +361,7 @@ class TestAndTrigger(object):
         assert repr(trigger) == repr(trigger2)
 
 
-class TestJitter(object):
+class TestJitter:
     def test_jitter_disabled(self):
         dt = datetime(2022, 5, 25, 14, 49, 50)
         trigger = DummyTriggerWithJitter(dt, None)
@@ -414,7 +415,7 @@ class TestJitter(object):
             assert min_expected_dt <= trigger.get_next_trigger_time(None, now) <= max_expected_dt
 
 
-class TestCronTrigger(object):
+class TestCronTrigger:
     def test_cron_trigger_1(self, timezone):
         trigger = CronTrigger(year="2022/2", month="1/3", day="5-13", timezone=timezone)
         assert repr(trigger) == (
@@ -721,22 +722,22 @@ class TestCronTrigger(object):
         "values, expected",
         [
             (
-                dict(day="*/31"),
+                {"day": "*/31"},
                 r"Error validating expression '\*/31': The step value \(31\) is higher "
                 r"than the total range of the expression \(30\).",
             ),
             (
-                dict(day="4-6/3"),
+                {"day": "4-6/3"},
                 r"Error validating expression '4-6/3': The step value \(3\) is higher "
                 r"than the total range of the expression \(2\).",
             ),
             (
-                dict(hour="0-24"),
+                {"hour": "0-24"},
                 r"Error validating expression '0-24': The last value \(24\) is higher "
                 r"than the maximum value \(23\).",
             ),
             (
-                dict(day="0-3"),
+                {"day": "0-3"},
                 r"Error validating expression '0-3': The first value \(0\) is lower "
                 r"than the minimum value \(1\).",
             ),

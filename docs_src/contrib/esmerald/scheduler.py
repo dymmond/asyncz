@@ -1,8 +1,9 @@
+from esmerald import Esmerald
+from loguru import logger
+
 from asyncz.contrib.esmerald.decorator import scheduler
 from asyncz.schedulers import AsyncIOScheduler
 from asyncz.triggers import IntervalTrigger
-from esmerald import Esmerald
-from loguru import logger
 
 
 # Run every 2 minutes

@@ -3,8 +3,11 @@ import pickle
 from datetime import datetime, timedelta
 from threading import Thread
 from typing import Any, List, Optional, Union
+from unittest.mock import MagicMock, patch
 
 import pytest
+from pytz import utc
+
 from asyncz.enums import SchedulerState
 from asyncz.events.base import SchedulerEvent
 from asyncz.events.constants import (
@@ -41,8 +44,6 @@ from asyncz.tasks import Task
 from asyncz.tasks.types import TaskType
 from asyncz.triggers.base import BaseTrigger
 from asyncz.typing import undefined
-from mock import MagicMock, patch
-from pytz import utc
 
 
 class DummyScheduler(BaseScheduler):
@@ -631,10 +632,10 @@ class TestBaseScheduler:
             "coalesce": False,
             "max_instances": 9,
         }
-        assert set(scheduler.executors.keys()) == set(["default", "alter"])
+        assert set(scheduler.executors.keys()) == {"default", "alter"}
         assert scheduler.executors["default"].args == {"arg1": "3", "arg2": "a"}
         assert scheduler.executors["alter"].args == {"arg": "true"}
-        assert set(scheduler.stores.keys()) == set(["default", "bar"])
+        assert set(scheduler.stores.keys()) == {"default", "bar"}
         assert scheduler.stores["default"].args == {"arg1": "3", "arg2": "a"}
         assert scheduler.stores["bar"].args == {"arg": "false"}
 

@@ -16,6 +16,7 @@ class BaseTrigger(BaseStateExtra, ABC):
     """
     Base model defining the protocol for every trigger.
     """
+
     alias: Optional[str] = None
 
     @abstractmethod

@@ -1,11 +1,12 @@
 from datetime import datetime, tzinfo
 from typing import Any, Dict, Optional, Union
 
+from tzlocal import get_localzone
+
 from asyncz.datastructures import DateState
 from asyncz.triggers.base import BaseTrigger
 from asyncz.typing import DictAny
 from asyncz.utils import datetime_repr, to_datetime, to_timezone
-from tzlocal import get_localzone
 
 
 class DateTrigger(BaseTrigger):
@@ -50,7 +51,7 @@ class DateTrigger(BaseTrigger):
         return "date[%s]" % datetime_repr(self.run_at)
 
     def __repr__(self) -> str:
-        return "<%s (run_at='%s')>" % (
+        return "<{} (run_at='{}')>".format(
             self.__class__.__name__,
             datetime_repr(self.run_at),
         )

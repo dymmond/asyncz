@@ -1,5 +1,5 @@
-from asyncz.tasks import Task
 from asyncz.schedulers import AsyncIOScheduler
+from asyncz.tasks import Task
 from asyncz.triggers import CronTrigger
 
 # Create a scheduler

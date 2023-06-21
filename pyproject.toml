@@ -10,9 +10,7 @@ readme = "README.md"
 requires-python = ">=3.8"
 dynamic = ['version']
 license = "MIT"
-authors = [
-    { name = "Tiago Silva", email = "tiago.arasilva@gmail.com" },
-]
+authors = [{ name = "Tiago Silva", email = "tiago.arasilva@gmail.com" }]
 classifiers = [
     "Intended Audience :: Information Technology",
     "Intended Audience :: System Administrators",
@@ -42,11 +40,29 @@ classifiers = [
 dependencies = [
     "asyncio>=3.4.3,<4.0.0",
     "loguru>=0.6.0,<0.7.0",
-    "pydantic>=1.10.5,<2.0.0",
+    "pydantic>=1.10.9,<2.0.0",
     "pytz>=2022.6",
-    "tzlocal>=4.2,<5.0"
+    "tzlocal>=4.2,<5.0",
 ]
-keywords = ["api", "rest", "http", "asgi", "esmerald", "pydantic", "starlette", "fastapi", "apscheduler", "framework", "websocket", "openapi", "ml", "machine learning", "scheduler", "cron", "esmerald"]
+keywords = [
+    "api",
+    "rest",
+    "http",
+    "asgi",
+    "asyncz",
+    "pydantic",
+    "starlette",
+    "fastapi",
+    "apscheduler",
+    "framework",
+    "websocket",
+    "openapi",
+    "ml",
+    "machine learning",
+    "scheduler",
+    "cron",
+    "asyncz",
+]
 
 [project.urls]
 Homepage = "https://github.com/tarsil/asyncz"
@@ -57,7 +73,7 @@ Source = "https://github.com/tarsil/asyncz"
 
 [project.optional-dependencies]
 test = [
-    "esmerald==0.4.2",
+    "asyncz==0.4.2",
     "mock>=4.0.3",
     "pymongo>=4.3.3,<5.0.0",
     "pytest >=7.1.3,<8.0.0",
@@ -66,6 +82,7 @@ test = [
     "pytest-loguru>=0.2.0,<1",
     "redis>=4.4.0,<5.0.0",
     "requests >=2.27.0,<3.0.0",
+    "ruff>=0.0.256,<1.0.0",
 ]
 
 dev = [
@@ -76,7 +93,7 @@ dev = [
     "mypy>=0.982,<2.0.0",
     "pre-commit >=2.17.0,<3.0.0",
     "loguru>=0.6.0,<0.7.0",
-    "watchfiles>=0.16.1,<0.20.0"
+    "watchfiles>=0.16.1,<0.20.0",
 ]
 
 doc = [
@@ -93,7 +110,7 @@ all = [
     "asyncio>=3.4.3,<4.0.0",
     "pydantic>=1.10.5,<2.0.0",
     "pytz>=2022.6",
-    "tzlocal>=4.2,<5.0"
+    "tzlocal>=4.2,<5.0",
 ]
 
 [tool.hatch.version]
@@ -104,22 +121,61 @@ profile = "black"
 known_third_party = ["asyncz", "pydantic", "starlette"]
 
 [tool.mypy]
+warn_unused_configs = true
+warn_unreachable = true
+warn_return_any = true
 strict = true
+disallow_untyped_decorators = true
+disallow_any_generics = false
+implicit_reexport = false
+show_error_codes = true
+disallow_incomplete_defs = true
+disable_error_code = "attr-defined"
+warn_unused_ignores = true
+warn_redundant_casts = true
+
+[tool.ruff]
+select = [
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "F", # pyflakes
+    "C", # flake8-comprehensions
+    "B", # flake8-bugbear
+]
+ignore = [
+    "E501", # line too long, handled by black
+    "B008", # do not perform function calls in argument defaults
+    "C901", # too complex
+]
+
+exclude = ["docs_src/*"]
 
 [[tool.mypy.overrides]]
 module = "asyncz.tests.*"
 ignore_missing_imports = true
 check_untyped_defs = true
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "docs_src.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = [
+    "sqlalchemy.*",
+    "asyncpg",
+    "alembic",
+    "sqlalchemy_utils.*",
+    "slugify",
+    "pytz",
+]
+ignore_missing_imports = true
+ignore_errors = true
 
 [tool.pytest.ini_options]
-addopts = [
-  "--strict-config",
-  "--strict-markers",
-]
+addopts = ["--strict-config", "--strict-markers"]
 xfail_strict = true
 junit_family = "xunit2"
 
 [tool.hatch.build.targets.sdist]
-include = [
-    "/asyncz",
-]
+include = ["/asyncz"]

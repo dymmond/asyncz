@@ -3,15 +3,10 @@ from calendar import monthrange
 from datetime import date, datetime
 from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional, Union
 
-from asyncz.triggers.cron.constants import (
-    MAX_VALUES,
-    MIN_VALUES,
-    MONTHS,
-    OPTIONS,
-    WEEKDAYS,
-)
-from asyncz.utils import to_int
 from pydantic import BaseModel
+
+from asyncz.triggers.cron.constants import MAX_VALUES, MIN_VALUES, MONTHS, OPTIONS, WEEKDAYS
+from asyncz.utils import to_int
 
 if TYPE_CHECKING:
     from asyncz.triggers.cron.types import FieldType
@@ -171,7 +166,7 @@ class MonthRangeExpression(RangeExpression):
         try:
             first_number = MONTHS.index(first.lower()) + 1
         except ValueError:
-            raise ValueError(f"Invalid month name '{first}'.")
+            raise ValueError(f"Invalid month name '{first}'.") from None
 
         if not last:
             last_number = None
@@ -179,13 +174,13 @@ class MonthRangeExpression(RangeExpression):
             try:
                 last_number = MONTHS.index(last.lower()) + 1
             except ValueError:
-                raise ValueError(f"Invalid month name '{last}'.")
+                raise ValueError(f"Invalid month name '{last}'.") from None
 
         super().__init__(first_number, last_number, **kwargs)
 
     def __str__(self):
         if self.last != self.first and self.last is not None:
-            return "%s-%s" % (MONTHS[self.first - 1], MONTHS[self.last - 1])
+            return "{}-{}".format(MONTHS[self.first - 1], MONTHS[self.last - 1])
         return MONTHS[self.first - 1]
 
     def __repr__(self) -> str:
@@ -209,7 +204,7 @@ class WeekdayRangeExpression(RangeExpression):
         try:
             first_number = WEEKDAYS.index(first.lower())
         except ValueError:
-            raise ValueError(f"Invalid weekday name '{first}'.")
+            raise ValueError(f"Invalid weekday name '{first}'.") from None
 
         if not last:
             last_number = None
@@ -217,12 +212,12 @@ class WeekdayRangeExpression(RangeExpression):
             try:
                 last_number = WEEKDAYS.index(last.lower())
             except ValueError:
-                raise ValueError(f"Invalid weekday name '{last}'")
+                raise ValueError(f"Invalid weekday name '{last}'") from None
         super().__init__(first_number, last_number, **kwargs)
 
     def __str__(self):
         if self.last != self.first and self.last is not None:
-            return "%s-%s" % (WEEKDAYS[self.first], WEEKDAYS[self.last])
+            return "{}-{}".format(WEEKDAYS[self.first], WEEKDAYS[self.last])
         return WEEKDAYS[self.first]
 
     def __repr__(self) -> str:
@@ -242,12 +237,12 @@ class WeekdayPositionExpression(AllExpression):
         try:
             self.option_number = OPTIONS.index(option_name.lower())
         except ValueError:
-            raise ValueError(f'Invalid weekday position "{option_name}".')
+            raise ValueError(f'Invalid weekday position "{option_name}".') from None
 
         try:
             self.weekday = WEEKDAYS.index(weekday_name.lower())
         except ValueError:
-            raise ValueError(f'Invalid weekday name "{weekday_name}".')
+            raise ValueError(f'Invalid weekday name "{weekday_name}".') from None
 
     def get_next_value(self, date: Union[date, datetime], field: "FieldType"):
         first_day_wday, last_day = monthrange(date.year, date.month)
@@ -272,7 +267,7 @@ class WeekdayPositionExpression(AllExpression):
         )
 
     def __str__(self):
-        return "%s %s" % (OPTIONS[self.option_number], WEEKDAYS[self.weekday])
+        return "{} {}".format(OPTIONS[self.option_number], WEEKDAYS[self.weekday])
 
     def __repr__(self):
         return (

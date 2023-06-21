@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta, tzinfo
 from typing import Any, Dict, Optional, Union
 
+from tzlocal import get_localzone
+
 from asyncz.datastructures import CronState
 from asyncz.triggers.base import BaseTrigger
 from asyncz.triggers.cron.constants import DEFAULT_VALUES
@@ -20,7 +22,6 @@ from asyncz.utils import (
     to_datetime,
     to_timezone,
 )
-from tzlocal import get_localzone
 
 
 class CronTrigger(BaseTrigger):
@@ -117,11 +118,11 @@ class CronTrigger(BaseTrigger):
         self.end_at = to_datetime(end_at, self.timezone, "end_at")
         self.jitter = jitter
 
-        values = dict(
-            (key, value)
+        values = {
+            key: value
             for key, value in iter(locals().items())
             if key in self.field_names and value is not None
-        )
+        }
 
         self.fields = []
         assign_defaults = False

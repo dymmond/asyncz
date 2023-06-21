@@ -2,14 +2,15 @@ import gc
 import weakref
 from datetime import datetime, timedelta
 from functools import partial
+from unittest.mock import MagicMock, patch
 
 import pytest
+
 from asyncz.datastructures import TaskState
 from asyncz.exceptions import AsynczException
 from asyncz.schedulers.base import BaseScheduler
 from asyncz.tasks import Task
 from asyncz.triggers import DateTrigger
-from mock import MagicMock, patch
 
 
 def dummyfn():
@@ -188,12 +189,12 @@ def test_getstate(task):
     assert state.name == b"n\xc3\xa4m\xc3\xa9".decode("utf-8")
     assert state.fn == "tests.test_tasks:dummyfn"
     assert state.args == ()
-    assert state.coalesce == False
+    assert state.coalesce is False
     assert state.trigger == task.trigger
     assert state.executor == "default"
     assert state.mistrigger_grace_time == 1
     assert state.max_instances == 1
-    assert state.next_run_time == None
+    assert state.next_run_time is None
     assert state.kwargs == {}
 
 

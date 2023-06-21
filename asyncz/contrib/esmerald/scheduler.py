@@ -14,7 +14,7 @@ try:
 except ImportError:
     raise ImportError(
         "Esmerald cannot be found. Please install it by running `pip install esmerald`."
-    )
+    ) from None
 
 if TYPE_CHECKING:
     from esmerald.applications import Esmerald
@@ -87,7 +87,7 @@ class EsmeraldScheduler:
             try:
                 scheduled_task.add_task(self.handler)
             except Exception as e:
-                raise ImproperlyConfigured(str(e))
+                raise ImproperlyConfigured(str(e)) from e
 
     def register_events(self, app: "Esmerald") -> None:
         """
@@ -206,7 +206,7 @@ class Task:
                 replace_existing=self.replace_existing,
             )
         except Exception as e:
-            raise ImproperlyConfigured(str(e))
+            raise ImproperlyConfigured(str(e)) from e
 
     def __call__(self, fn: "AnyCallable") -> None:
         """
