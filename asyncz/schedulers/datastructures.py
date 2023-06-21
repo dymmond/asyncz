@@ -1,9 +1,10 @@
 from datetime import datetime
 from typing import Any, Callable, Optional, Union
 
+from pydantic import BaseModel
+
 from asyncz.triggers.types import TriggerType
 from asyncz.typing import DictAny, UndefinedType
-from pydantic import BaseModel
 
 
 class BaseStruct(BaseModel):

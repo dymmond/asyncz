@@ -1,7 +1,7 @@
 # Asyncz
 
 <p align="center">
-  <a href="https://asyncz.tarsil.io"><img src="https://res.cloudinary.com/dymmond/image/upload/v1671461421/asyncz/asyncz-bg_bapqg1.png" alt='Asyncz'></a>
+  <a href="https://asyncz.tarsil.io"><img src="https://res.cloudinary.com/tarsild/image/upload/v1687363326/packages/asyncz/asyncz-new_wiyih8.png" alt='Asyncz'></a>
 </p>
 
 <p align="center">

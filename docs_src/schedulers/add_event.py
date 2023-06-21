@@ -1,7 +1,8 @@
 import pytz
+from loguru import logger
+
 from asyncz.events.constants import TASK_ADDED, TASK_REMOVED
 from asyncz.schedulers.asyncio import AsyncIOScheduler
-from loguru import logger
 
 # Create the scheduler
 scheduler = AsyncIOScheduler(timezone=pytz.utc)

@@ -9,7 +9,7 @@ class AsynczException(Exception):
 
     detail = None
 
-    def __init__(self, *args: Any, detail: str = ""):
+    def __init__(self, *args: Any, detail: str = "") -> None:
         if detail:
             self.detail = detail
         super().__init__(*(str(arg) for arg in args if arg), detail)
@@ -91,12 +91,12 @@ class MaximumInstancesError(AsynczException):
 class SchedulerAlreadyRunningError(AsynczException):
     detail = "Scheduler is already running"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.detail
 
 
 class SchedulerNotRunningError(AsynczException):
     detail = "Scheduler is not running"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.detail

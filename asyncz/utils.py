@@ -28,7 +28,7 @@ DATE_REGEX = re.compile(
 )
 
 
-def repr_escape(string):
+def repr_escape(string: str) -> str:
     return string
 
 
@@ -82,7 +82,7 @@ def to_timezone(value: Any) -> timezone:
         raise TypeError("Expected tzinfo, got %s instead" % value.__class__.__name__)
 
 
-def to_datetime(value: Union[str, datetime], tz: tzinfo, arg_name: str) -> datetime:
+def to_datetime(value: Union[str, datetime], tz: tzinfo, arg_name: str) -> Union[datetime, None]:
     """
     Converts the given value to a timezone compatible aware datetime object.
 
@@ -91,7 +91,7 @@ def to_datetime(value: Union[str, datetime], tz: tzinfo, arg_name: str) -> datet
     If the input is a string, it is parsed as a datetime with the given timezone.
     """
     if not value or value is None:
-        return
+        return  # type: ignore
 
     if isinstance(value, datetime):
         _datetime = value

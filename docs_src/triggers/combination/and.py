@@ -1,6 +1,7 @@
+from loguru import logger
+
 from asyncz.schedulers import AsyncIOScheduler
 from asyncz.triggers import AndTrigger, CronTrigger, IntervalTrigger
-from loguru import logger
 
 scheduler = AsyncIOScheduler()
 

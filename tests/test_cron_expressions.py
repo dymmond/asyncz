@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import pytest
+
 from asyncz.triggers.cron.expressions import (
     AllExpression,
     LastDayOfMonthExpression,

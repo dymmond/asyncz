@@ -1,9 +1,10 @@
 from datetime import datetime
 from typing import Optional, Union
 
+from loguru import logger
+
 from asyncz.schedulers import AsyncIOScheduler
 from asyncz.triggers.base import BaseTrigger
-from loguru import logger
 
 
 class CustomTrigger(BaseTrigger):
