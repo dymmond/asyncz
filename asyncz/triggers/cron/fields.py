@@ -1,7 +1,7 @@
 import re
 from calendar import monthrange
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
@@ -19,6 +19,7 @@ SEPARATOR = re.compile(" *, *")
 
 
 class BaseField(BaseModel):
+    name: Optional[str]
     exprs: Optional[Any]
     is_default: Optional[bool]
     expressions: Optional[List[Any]]
@@ -31,7 +32,7 @@ class BaseField(BaseModel):
         exprs: Any,
         is_default: Optional[bool] = False,
         compilers: Optional[List[Any]] = None,
-        **kwargs: Any
+        **kwargs: Dict[str, Any]
     ):
         super().__init__(**kwargs)
         self.name = name
@@ -45,31 +46,31 @@ class BaseField(BaseModel):
         self.real: bool = True
         self.compile_expressions(exprs)
 
-    def get_min(self, dateval: datetime) -> int:
+    def get_min(self, dateval: datetime):
         return MIN_VALUES[self.name]
 
-    def get_max(self, dateval: datetime) -> int:
+    def get_max(self, dateval: datetime):
         return MAX_VALUES[self.name]
 
-    def get_value(self, dateval: datetime) -> int:
-        return getattr(dateval, self.name)  # type: ignore
+    def get_value(self, dateval: datetime):
+        return getattr(dateval, self.name)
 
-    def get_next_value(self, dateval: datetime) -> Any:
+    def get_next_value(self, dateval: datetime):
         smallest = None
-        for expr in self.expressions:  # type: ignore
+        for expr in self.expressions:
             value = expr.get_next_value(dateval, self)
-            if smallest is None or (value is not None and value < smallest):  # type: ignore
+            if smallest is None or (value is not None and value < smallest):
                 smallest = value
 
         return smallest
 
-    def compile_expressions(self, exprs: Any) -> None:
+    def compile_expressions(self, exprs: Any):
         self.expressions = []
 
         for expr in SEPARATOR.split(str(exprs).strip()):
             self.compile_expression(expr)
 
-    def compile_expression(self, expr: Any) -> None:
+    def compile_expression(self, expr: Any):
         for compiler in self.compilers or []:
             match = compiler.regex.match(expr)
             if match:
@@ -79,19 +80,19 @@ class BaseField(BaseModel):
                 except ValueError as e:
                     message = "Error validating expression {!r}: {}".format(expr, e)
                     raise ValueError(message) from e
-                self.expressions.append(compiled_expr)  # type: ignore
+                self.expressions.append(compiled_expr)
                 return
 
         raise ValueError('Unrecognized expression "{}" for field "{}"'.format(expr, self.name))
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other):
         return isinstance(self, self.__class__) and self.expressions == other.expressions
 
-    def __str__(self) -> str:
-        expr_strings = (str(e) for e in self.expressions)  # type: ignore
+    def __str__(self):
+        expr_strings = (str(e) for e in self.expressions)
         return ",".join(expr_strings)
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         return "{}('{}', '{}')".format(self.__class__.__name__, self.name, self)
 
     class Config:
@@ -99,34 +100,42 @@ class BaseField(BaseModel):
 
 
 class WeekField(BaseField):
-    def __init__(self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any):
+    def __init__(
+        self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Dict[str, Any]
+    ):
         super().__init__(name, exprs, is_default, **kwargs)
         self.real: bool = False
 
-    def get_value(self, dateval: datetime) -> int:
+    def get_value(self, dateval: datetime):
         return dateval.isocalendar()[1]
 
 
 class DayOfMonthField(BaseField):
-    def __init__(self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any):
+    def __init__(
+        self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Dict[str, Any]
+    ):
         compilers = [WeekdayPositionExpression, LastDayOfMonthExpression]
         super().__init__(name, exprs, is_default, compilers=compilers, **kwargs)
 
-    def get_max(self, dateval: datetime) -> int:
+    def get_max(self, dateval: datetime):
         return monthrange(dateval.year, dateval.month)[1]
 
 
 class DayOfWeekField(BaseField):
-    def __init__(self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any):
+    def __init__(
+        self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Dict[str, Any]
+    ):
         compilers = [WeekdayRangeExpression]
         super().__init__(name, exprs, is_default, compilers=compilers, **kwargs)
         self.real: bool = False
 
-    def get_value(self, dateval: datetime) -> int:
+    def get_value(self, dateval: datetime):
         return dateval.weekday()
 
 
 class MonthField(BaseField):
-    def __init__(self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any):
+    def __init__(
+        self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Dict[str, Any]
+    ):
         compilers = [MonthRangeExpression]
         super().__init__(name, exprs, is_default, compilers=compilers, **kwargs)
