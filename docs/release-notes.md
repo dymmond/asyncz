@@ -1,5 +1,12 @@
 # Release Notes
 
+## 0.3.0
+
+### Changed
+
+- Updated base requirements.
+- Fixed linting and parsing of dates and integers.
+
 ## 0.2.0
 
 ### Changed
