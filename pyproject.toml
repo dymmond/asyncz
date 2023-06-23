@@ -94,6 +94,10 @@ dev = [
     "pre-commit >=2.17.0,<3.0.0",
     "loguru>=0.6.0,<0.7.0",
     "watchfiles>=0.16.1,<0.20.0",
+
+    # Types
+    "types-redis>=4.5.5.2",
+    "types-tzlocal>=5.0.1.0",
 ]
 
 doc = [
