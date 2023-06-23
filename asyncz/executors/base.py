@@ -6,13 +6,14 @@ from datetime import datetime, timedelta
 from traceback import format_tb
 from typing import TYPE_CHECKING, Any, List, Optional, Union
 
+from loguru import logger
+from loguru._logger import Logger
+from pytz import utc
+
 from asyncz.events import TaskExecutionEvent
 from asyncz.events.constants import TASK_ERROR, TASK_EXECUTED, TASK_MISSED
 from asyncz.exceptions import MaximumInstancesError
 from asyncz.state import BaseStateExtra
-from loguru import logger
-from loguru._logger import Logger
-from pytz import utc
 
 if TYPE_CHECKING:
     from asyncz.tasks.types import TaskType

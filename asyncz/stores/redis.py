@@ -2,18 +2,19 @@ import pickle
 from datetime import datetime
 from typing import Any, List, Optional, Union
 
+from pytz import utc
+
 from asyncz.exceptions import AsynczException, ConflictIdError, TaskLookupError
+from asyncz.stores.base import BaseStore
 from asyncz.tasks import Task
 from asyncz.tasks.types import TaskType
-from asyncz.stores.base import BaseStore
 from asyncz.typing import DictAny
 from asyncz.utils import datetime_to_utc_timestamp, utc_timestamp_to_datetime
-from pytz import utc
 
 try:
     from redis import Redis
 except ImportError:
-    raise ImportError("You must install redis to be able to use this store.")
+    raise ImportError("You must install redis to be able to use this store.") from None
 
 
 class RedisStore(BaseStore):
@@ -41,7 +42,9 @@ class RedisStore(BaseStore):
         try:
             self.database = int(database)
         except (TypeError, ValueError):
-            raise AsynczException(f"The database value must be and int and got ({type(database)})")
+            raise AsynczException(
+                f"The database value must be and int and got ({type(database)})"
+            ) from None
 
         self.pickle_protocol = pickle_protocol
         self.tasks_key = tasks_key

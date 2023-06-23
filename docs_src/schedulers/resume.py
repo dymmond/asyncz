@@ -1,4 +1,5 @@
 import pytz
+
 from asyncz.schedulers.asyncio import AsyncIOScheduler
 
 # Create the scheduler

@@ -1,5 +1,6 @@
-from asyncz.schedulers import AsyncIOScheduler
 from loguru import logger
+
+from asyncz.schedulers import AsyncIOScheduler
 
 scheduler = AsyncIOScheduler()
 

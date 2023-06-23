@@ -3,9 +3,11 @@ import sys
 from datetime import date, datetime, timedelta, tzinfo
 from functools import partial, wraps
 from types import ModuleType
+from unittest.mock import Mock
 
 import pytest
 import pytz
+
 from asyncz.exceptions import AsynczException
 from asyncz.tasks import Task
 from asyncz.utils import (
@@ -26,10 +28,9 @@ from asyncz.utils import (
     to_timezone,
     utc_timestamp_to_datetime,
 )
-from mock import Mock
 
 
-class DummyClass(object):
+class DummyClass:
     def meth(self):
         ...
 
@@ -44,7 +45,7 @@ class DummyClass(object):
     def __call__(self):
         ...
 
-    class InnerDummyClass(object):
+    class InnerDummyClass:
         @classmethod
         def innerclassmeth(cls):
             ...
@@ -54,7 +55,7 @@ class InheritedDummyClass(Task):
     ...
 
 
-class TestToFloat(object):
+class TestToFloat:
     @pytest.mark.parametrize("value", ["5fs", "shplse"], ids=["digit first", "text"])
     def test_invalid_value(self, value):
         pytest.raises(ValueError, to_float, value)
@@ -66,7 +67,7 @@ class TestToFloat(object):
         assert to_float(None) is None
 
 
-class TestToInt(object):
+class TestToInt:
     @pytest.mark.parametrize("value", ["5s", "shplse"], ids=["digit first", "text"])
     def test_invalid_value(self, value):
         pytest.raises(ValueError, to_int, value)
@@ -78,7 +79,7 @@ class TestToInt(object):
         assert to_int(None) is None
 
 
-class TestToBool(object):
+class TestToBool:
     @pytest.mark.parametrize(
         "value",
         [" True", "true ", "Yes", " yes ", "1  ", True],
@@ -99,7 +100,7 @@ class TestToBool(object):
         assert to_bool("yep") is False
 
 
-class TestToTimezone(object):
+class TestToTimezone:
     def test_str(self):
         value = to_timezone("Europe/London")
         assert isinstance(value, tzinfo)
@@ -126,7 +127,7 @@ class TestToTimezone(object):
         assert "Expected tzinfo, got int instead" in str(exc.value)
 
 
-class TestConvertToDatetime(object):
+class TestConvertToDatetime:
     @pytest.mark.parametrize(
         "input,expected",
         [
@@ -228,7 +229,7 @@ def test_datetime_repr(input, expected):
     assert datetime_repr(input) == expected
 
 
-class TestGetCallableName(object):
+class TestGetCallableName:
     @pytest.mark.parametrize(
         "input,expected",
         [
@@ -260,7 +261,7 @@ class TestGetCallableName(object):
         pytest.raises(TypeError, get_callable_name, object())
 
 
-class TestObjToRef(object):
+class TestObjToRef:
     @pytest.mark.parametrize(
         "obj, error",
         [
@@ -320,7 +321,7 @@ class TestObjToRef(object):
         assert obj_to_ref(input) == expected
 
 
-class TestRefToObj(object):
+class TestRefToObj:
     def test_valid_ref(self):
         from logging.handlers import RotatingFileHandler
 
@@ -362,7 +363,7 @@ def test_repr_escape_py2(input, expected):
     assert repr_escape(input) == expected
 
 
-class TestCheckCallableArgs(object):
+class TestCheckCallableArgs:
     def test_invalid_callable_args(self):
         """
         Tests that attempting to create a task with an invalid number of arguments raises an

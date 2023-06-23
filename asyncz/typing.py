@@ -6,13 +6,13 @@ class Undefined:
     Special type created to handle undefined placeholders.
     """
 
-    def __nonzero__(self):
+    def __nonzero__(self) -> bool:
         return False
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return False
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<undefined>"
 
 

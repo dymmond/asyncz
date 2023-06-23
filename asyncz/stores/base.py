@@ -2,9 +2,10 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, List, Optional, Union
 
+from loguru import logger
+
 from asyncz.state import BaseStateExtra
 from asyncz.typing import DictAny
-from loguru import logger
 
 if TYPE_CHECKING:
     from asyncz.tasks.types import TaskType

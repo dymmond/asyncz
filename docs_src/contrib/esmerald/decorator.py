@@ -1,7 +1,8 @@
-from asyncz.contrib.esmerald.decorator import scheduler
-from asyncz.triggers import CronTrigger, IntervalTrigger
 from esmerald import Esmerald
 from loguru import logger
+
+from asyncz.contrib.esmerald.decorator import scheduler
+from asyncz.triggers import CronTrigger, IntervalTrigger
 
 
 # Run every 2 minutes

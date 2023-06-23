@@ -2,17 +2,12 @@ from datetime import datetime, timedelta, tzinfo
 from math import ceil
 from typing import Any, Dict, Optional, Union
 
+from tzlocal import get_localzone
+
 from asyncz.datastructures import IntervalState
 from asyncz.triggers.base import BaseTrigger
 from asyncz.typing import DictAny
-from asyncz.utils import (
-    datetime_repr,
-    normalize,
-    timedelta_seconds,
-    to_datetime,
-    to_timezone,
-)
-from tzlocal import get_localzone
+from asyncz.utils import datetime_repr, normalize, timedelta_seconds, to_datetime, to_timezone
 
 
 class IntervalTrigger(BaseTrigger):
@@ -115,7 +110,7 @@ class IntervalTrigger(BaseTrigger):
         if self.jitter:
             options.append("jitter=%s" % self.jitter)
 
-        return "<%s (%s, timezone='%s')>" % (
+        return "<{} ({}, timezone='{}')>".format(
             self.__class__.__name__,
             ", ".join(options),
             self.timezone,

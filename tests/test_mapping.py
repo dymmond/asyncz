@@ -1,13 +1,14 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
+from unittest.mock import MagicMock
 
 import pytest
+
 from asyncz._mapping import AsynczObjectMapping
 from asyncz.executors.base import BaseExecutor
-from asyncz.tasks.types import TaskType
 from asyncz.stores.base import BaseStore
+from asyncz.tasks.types import TaskType
 from asyncz.triggers.base import BaseTrigger
-from mock import MagicMock
 
 
 class DummyTrigger(BaseTrigger):

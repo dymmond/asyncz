@@ -3,18 +3,19 @@ import time
 from asyncio import CancelledError
 from datetime import datetime
 from threading import Event
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 import pytz
+from loguru import logger
+
 from asyncz.events.constants import TASK_ERROR, TASK_EXECUTED, TASK_MISSED
 from asyncz.exceptions import MaximumInstancesError
 from asyncz.executors.asyncio import AsyncIOExecutor
 from asyncz.executors.base import run_coroutine_task, run_task
-from asyncz.tasks import Task
 from asyncz.schedulers.asyncio import AsyncIOScheduler
 from asyncz.schedulers.base import BaseScheduler
-from loguru import logger
-from mock import MagicMock, Mock, patch
+from asyncz.tasks import Task
 
 
 @pytest.fixture
@@ -125,8 +126,8 @@ def test_run_task_error(monkeypatch, executor):
     executor.send_task(FakeTask(), [])
 
     event.wait(5)
-    assert exc_traceback[0] == None
-    assert exc_traceback[1] == None
+    assert exc_traceback[0] is None
+    assert exc_traceback[1] is None
 
 
 def test_run_task_memory_leak():
@@ -205,7 +206,7 @@ async def test_asyncio_executor_shutdown(asyncio_scheduler, asyncio_executor):
 
 
 @pytest.mark.asyncio
-async def test_run_task_memory_leak():
+async def test_run_task_memory_leak_two():
     class FooBar:
         pass
 

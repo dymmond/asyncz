@@ -3,11 +3,9 @@ from calendar import monthrange
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from asyncz.triggers.cron.constants import MAX_VALUES, MIN_VALUES
 from pydantic import BaseModel
 
-SEPARATOR = re.compile(" *, *")
-
+from asyncz.triggers.cron.constants import MAX_VALUES, MIN_VALUES
 from asyncz.triggers.cron.expressions import (
     AllExpression,
     LastDayOfMonthExpression,
@@ -16,6 +14,8 @@ from asyncz.triggers.cron.expressions import (
     WeekdayPositionExpression,
     WeekdayRangeExpression,
 )
+
+SEPARATOR = re.compile(" *, *")
 
 
 class BaseField(BaseModel):
@@ -83,7 +83,7 @@ class BaseField(BaseModel):
                 self.expressions.append(compiled_expr)
                 return
 
-        raise ValueError('Unrecognized expression "%s" for field "%s"' % (expr, self.name))
+        raise ValueError('Unrecognized expression "{}" for field "{}"'.format(expr, self.name))
 
     def __eq__(self, other):
         return isinstance(self, self.__class__) and self.expressions == other.expressions
@@ -93,7 +93,7 @@ class BaseField(BaseModel):
         return ",".join(expr_strings)
 
     def __repr__(self):
-        return "%s('%s', '%s')" % (self.__class__.__name__, self.name, self)
+        return "{}('{}', '{}')".format(self.__class__.__name__, self.name, self)
 
     class Config:
         arbitrary_types_allowed = True
