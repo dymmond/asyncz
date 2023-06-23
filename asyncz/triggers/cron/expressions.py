@@ -83,13 +83,13 @@ class RangeExpression(AllExpression):
 
         if last is None and self.step is None:
             last = first
-        if last is not None and first > last:
+        if last is not None and first > last:  # type: ignore
             raise ValueError("The minimum value in a range must not be higher than the maximum.")
 
-        self.first = first
-        self.last = last
+        self.first: int = first
+        self.last: int = last
 
-    def validate_range(self, field_name: str):
+    def validate_range(self, field_name: str) -> None:
         super().validate_range(field_name)
 
         if self.first < MIN_VALUES[field_name]:
@@ -110,7 +110,7 @@ class RangeExpression(AllExpression):
                 f"expression ({value_range})."
             )
 
-    def get_next_value(self, date: Union[date, datetime], field: "FieldType"):
+    def get_next_value(self, date: Union[date, datetime], field: "FieldType") -> Union[int, None]:
         start_value = field.get_value(date)  # type: ignore
         min_value = field.get_min(date)  # type: ignore
         max_value = field.get_max(date)  # type: ignore
@@ -125,14 +125,14 @@ class RangeExpression(AllExpression):
 
         return next_value if next_value <= max_value else None
 
-    def __eq__(self, other: Any):
+    def __eq__(self, other: Any) -> bool:
         return (
             isinstance(other, self.__class__)
             and self.first == other.first
             and self.last == other.last
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.last != self.first and self.last is not None:
             range = "%d-%d" % (self.first, self.last)
         else:
@@ -161,8 +161,11 @@ class MonthRangeExpression(RangeExpression):
         self,
         first: Union[str, float],
         last: Optional[Union[str, float]] = None,
-        **kwargs: Dict[str, Any],
-    ):
+        **kwargs: Any,
+    ) -> None:
+        if isinstance(first, float):
+            first = str(first)
+
         try:
             first_number = MONTHS.index(first.lower()) + 1
         except ValueError:
@@ -171,6 +174,9 @@ class MonthRangeExpression(RangeExpression):
         if not last:
             last_number = None
         else:
+            if isinstance(last, float):
+                last = str(last)
+
             try:
                 last_number = MONTHS.index(last.lower()) + 1
             except ValueError:
@@ -178,7 +184,7 @@ class MonthRangeExpression(RangeExpression):
 
         super().__init__(first_number, last_number, **kwargs)
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.last != self.first and self.last is not None:
             return "{}-{}".format(MONTHS[self.first - 1], MONTHS[self.last - 1])
         return MONTHS[self.first - 1]
@@ -199,8 +205,11 @@ class WeekdayRangeExpression(RangeExpression):
         self,
         first: Union[str, float],
         last: Optional[Union[str, float]] = None,
-        **kwargs: Dict[str, Any],
+        **kwargs: Any,
     ):
+        if isinstance(first, float):
+            first = str(first)
+
         try:
             first_number = WEEKDAYS.index(first.lower())
         except ValueError:
@@ -209,13 +218,16 @@ class WeekdayRangeExpression(RangeExpression):
         if not last:
             last_number = None
         else:
+            if isinstance(last, float):
+                last = str(last)
+
             try:
                 last_number = WEEKDAYS.index(last.lower())
             except ValueError:
                 raise ValueError(f"Invalid weekday name '{last}'") from None
         super().__init__(first_number, last_number, **kwargs)
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.last != self.first and self.last is not None:
             return "{}-{}".format(WEEKDAYS[self.first], WEEKDAYS[self.last])
         return WEEKDAYS[self.first]
@@ -244,7 +256,9 @@ class WeekdayPositionExpression(AllExpression):
         except ValueError:
             raise ValueError(f'Invalid weekday name "{weekday_name}".') from None
 
-    def get_next_value(self, date: Union[date, datetime], field: "FieldType"):
+    def get_next_value(  # type: ignore
+        self, date: Union[date, datetime], field: "FieldType"
+    ) -> Union[float, int]:
         first_day_wday, last_day = monthrange(date.year, date.month)
 
         first_hit_day = self.weekday - first_day_wday + 1
@@ -259,17 +273,17 @@ class WeekdayPositionExpression(AllExpression):
         if target_day <= last_day and target_day >= date.day:
             return target_day
 
-    def __eq__(self, other: Any):
+    def __eq__(self, other: Any) -> bool:
         return (
             super().__eq__(other)
             and self.option_number == other.option_num
             and self.weekday == other.weekday
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "{} {}".format(OPTIONS[self.option_number], WEEKDAYS[self.weekday])
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"{self.__class__.__name__}('{OPTIONS[self.option_number]}"
             f"', '{WEEKDAYS[self.weekday]}')"
@@ -279,14 +293,14 @@ class WeekdayPositionExpression(AllExpression):
 class LastDayOfMonthExpression(AllExpression):
     regex: ClassVar[re.Pattern] = re.compile(r"last", re.IGNORECASE)
 
-    def __init__(self, **kwargs: Dict[str, Any]):
+    def __init__(self, **kwargs: Dict[str, Any]) -> None:
         super().__init__(step=None, **kwargs)
 
-    def get_next_value(self, date: Union[date, datetime], field: "FieldType"):
+    def get_next_value(self, date: Union[date, datetime], field: "FieldType"):  # type: ignore
         return monthrange(date.year, date.month)[1]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "last"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}()"
