@@ -4,7 +4,7 @@ from asyncio import iscoroutinefunction
 from calendar import timegm
 from datetime import date, datetime, time, timedelta, tzinfo
 from functools import partial
-from typing import Any, Dict, Union
+from typing import Any, Callable, Union
 
 from pytz import FixedOffset, timezone, utc
 
@@ -82,7 +82,9 @@ def to_timezone(value: Any) -> timezone:
         raise TypeError("Expected tzinfo, got %s instead" % value.__class__.__name__)
 
 
-def to_datetime(value: Union[str, datetime], tz: tzinfo, arg_name: str) -> Union[datetime, None]:
+def to_datetime(
+    value: Union[str, datetime], tz: tzinfo, arg_name: str
+) -> Union[datetime, None, Any]:
     """
     Converts the given value to a timezone compatible aware datetime object.
 
@@ -95,8 +97,8 @@ def to_datetime(value: Union[str, datetime], tz: tzinfo, arg_name: str) -> Union
 
     if isinstance(value, datetime):
         _datetime = value
-    elif isinstance(value, date):
-        _datetime = datetime.combine(value, time())
+    elif isinstance(value, date):  # type: ignore
+        _datetime = datetime.combine(value, time())  # type: ignore
     elif isinstance(value, str):
         _value = DATE_REGEX.match(value)
 
@@ -114,7 +116,7 @@ def to_datetime(value: Union[str, datetime], tz: tzinfo, arg_name: str) -> Union
             tz = FixedOffset(sign * (hours * 60 + minutes))
 
         values = {k: int(v or 0) for k, v in values.items()}
-        _datetime = datetime(**values)
+        _datetime = datetime(**values)  # type: ignore
     else:
         raise AsynczException(
             detail=f"Unsupported type for {arg_name}: {value.__class__.__name__}."
@@ -135,7 +137,7 @@ def to_datetime(value: Union[str, datetime], tz: tzinfo, arg_name: str) -> Union
     return localize(_datetime, tz)
 
 
-def datetime_to_utc_timestamp(timeval: datetime):
+def datetime_to_utc_timestamp(timeval: datetime) -> Union[int, float]:
     """
     Converts a datetime instance to a timestamp.
     """
@@ -151,7 +153,7 @@ def utc_timestamp_to_datetime(timestamp: Union[int, float]) -> datetime:
         return datetime.fromtimestamp(timestamp, utc)
 
 
-def timedelta_seconds(delta: Any) -> Union[int, float]:
+def timedelta_seconds(delta: Any) -> Any:
     """
     Converts the given timedelta to seconds.
     """
@@ -171,7 +173,7 @@ def datetime_repr(dateval: datetime) -> str:
     return dateval.strftime("%Y-%m-%d %H:%M:%S %Z") if dateval else "None"
 
 
-def get_callable_name(func: Any) -> str:
+def get_callable_name(func: Any) -> Any:
     """
     Returns the best available display name for the given function/callable.
     """
@@ -249,7 +251,7 @@ def ref_to_obj(ref: str) -> Any:
         ) from None
 
 
-def maybe_ref(ref: str) -> Any:
+def maybe_ref(ref: Any) -> Any:
     """
     Returns the object that the given reference points to, if it is indeed a reference.
     If it is not a reference, the object is returned as-is.
@@ -259,7 +261,7 @@ def maybe_ref(ref: str) -> Any:
     return ref_to_obj(ref)
 
 
-def check_callable_args(func, args: Any, kwargs: Dict[Any, Any]) -> None:
+def check_callable_args(func: Callable[..., Any], args: Any, kwargs: Any) -> None:
     """
     Ensures that the given callable can be called with the given arguments.
     """
@@ -350,7 +352,7 @@ def normalize(value: datetime) -> datetime:
     return datetime.fromtimestamp(value.timestamp(), value.tzinfo)
 
 
-def localize(value: datetime, tzinfo: tzinfo) -> datetime:
+def localize(value: datetime, tzinfo: tzinfo) -> Any:
     if hasattr(tzinfo, "localize"):
         return tzinfo.localize(value)
 

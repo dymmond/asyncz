@@ -29,7 +29,7 @@ class AllExpression(BaseExpression):
             if self.step == 0:
                 raise ValueError("Increment must be higher than 0.")
 
-    def validate_range(self, field_name: str):
+    def validate_range(self, field_name: str) -> None:
         value_range = MAX_VALUES[field_name] - MIN_VALUES[field_name]
         if self.step and self.step > value_range:
             raise ValueError(
@@ -37,10 +37,10 @@ class AllExpression(BaseExpression):
                 f"expression ({value_range})."
             )
 
-    def get_next_value(self, date: Union[date, datetime], field: "FieldType"):
-        start = field.get_value(date)
-        min_value = field.get_min(date)
-        max_value = field.get_max(date)
+    def get_next_value(self, date: Union[date, datetime], field: "FieldType") -> Any:
+        start = field.get_value(date)  # type: ignore
+        min_value = field.get_min(date)  # type: ignore
+        max_value = field.get_max(date)  # type: ignore
         start = max(start, min_value)
 
         if not self.step:
@@ -55,7 +55,7 @@ class AllExpression(BaseExpression):
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, self.__class__) and self.step == other.step
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.step:
             return "*/%d" % self.step
         return "*"
@@ -79,7 +79,7 @@ class RangeExpression(AllExpression):
     ):
         super().__init__(step=step, **kwargs)
         first = to_int(first)
-        last = to_int(last)
+        last = to_int(last)  # type: ignore
 
         if last is None and self.step is None:
             last = first
@@ -111,9 +111,9 @@ class RangeExpression(AllExpression):
             )
 
     def get_next_value(self, date: Union[date, datetime], field: "FieldType"):
-        start_value = field.get_value(date)
-        min_value = field.get_min(date)
-        max_value = field.get_max(date)
+        start_value = field.get_value(date)  # type: ignore
+        min_value = field.get_min(date)  # type: ignore
+        max_value = field.get_max(date)  # type: ignore
 
         min_value = max(min_value, self.first)
         max_value = min(max_value, self.last) if self.last is not None else max_value
