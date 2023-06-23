@@ -1,5 +1,11 @@
 # Release Notes
 
+## 0.3.1
+
+### Fixed
+
+- `EsmeraldScheduler` attribute update (configurations and timezone).
+
 ## 0.3.0
 
 ### Changed

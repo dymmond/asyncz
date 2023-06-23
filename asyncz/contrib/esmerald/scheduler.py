@@ -1,7 +1,7 @@
 import warnings
 from datetime import datetime
 from datetime import timezone as dtimezone
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
 from asyncz.schedulers.types import SchedulerType
 from asyncz.triggers.types import TriggerType
@@ -38,8 +38,8 @@ class EsmeraldScheduler:
         app: Optional["Esmerald"] = None,
         scheduler_class: Optional["SchedulerType"] = None,
         tasks: Optional[Dict[str, str]] = None,
-        timezone: Optional[dtimezone] = None,
-        configurations: Optional[Dict[str, str]] = None,
+        timezone: Optional[Union[dtimezone, str]] = None,
+        configurations: Optional[Dict[str, Dict[str, str]]] = None,
     ) -> None:
         self.app = app
         self.tasks = tasks
