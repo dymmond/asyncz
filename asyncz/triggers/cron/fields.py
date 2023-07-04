@@ -1,9 +1,9 @@
 import re
 from calendar import monthrange
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from asyncz.triggers.cron.constants import MAX_VALUES, MIN_VALUES
 from asyncz.triggers.cron.expressions import (
@@ -19,12 +19,13 @@ SEPARATOR = re.compile(" *, *")
 
 
 class BaseField(BaseModel):
-    name: Optional[str]
-    exprs: Optional[Any]
-    is_default: Optional[bool]
-    expressions: Optional[List[Any]]
-    compilers: Optional[List[Any]]
-    real: Optional[bool]
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    name: Optional[str] = None
+    exprs: Optional[Any] = None
+    is_default: Optional[bool] = False
+    expressions: Optional[List[Any]] = None
+    compilers: Optional[List[Any]] = None
+    real: Optional[bool] = False
 
     def __init__(
         self,
@@ -32,7 +33,7 @@ class BaseField(BaseModel):
         exprs: Any,
         is_default: Optional[bool] = False,
         compilers: Optional[List[Any]] = None,
-        **kwargs: Dict[str, Any]
+        **kwargs: Any
     ):
         super().__init__(**kwargs)
         self.name = name
@@ -95,14 +96,9 @@ class BaseField(BaseModel):
     def __repr__(self):
         return "{}('{}', '{}')".format(self.__class__.__name__, self.name, self)
 
-    class Config:
-        arbitrary_types_allowed = True
-
 
 class WeekField(BaseField):
-    def __init__(
-        self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Dict[str, Any]
-    ):
+    def __init__(self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any):
         super().__init__(name, exprs, is_default, **kwargs)
         self.real: bool = False
 
@@ -111,9 +107,7 @@ class WeekField(BaseField):
 
 
 class DayOfMonthField(BaseField):
-    def __init__(
-        self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Dict[str, Any]
-    ):
+    def __init__(self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any):
         compilers = [WeekdayPositionExpression, LastDayOfMonthExpression]
         super().__init__(name, exprs, is_default, compilers=compilers, **kwargs)
 
@@ -122,9 +116,7 @@ class DayOfMonthField(BaseField):
 
 
 class DayOfWeekField(BaseField):
-    def __init__(
-        self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Dict[str, Any]
-    ):
+    def __init__(self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any):
         compilers = [WeekdayRangeExpression]
         super().__init__(name, exprs, is_default, compilers=compilers, **kwargs)
         self.real: bool = False
@@ -134,8 +126,6 @@ class DayOfWeekField(BaseField):
 
 
 class MonthField(BaseField):
-    def __init__(
-        self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Dict[str, Any]
-    ):
+    def __init__(self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any):
         compilers = [MonthRangeExpression]
         super().__init__(name, exprs, is_default, compilers=compilers, **kwargs)

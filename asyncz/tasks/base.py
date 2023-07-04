@@ -1,12 +1,11 @@
 import inspect
 from datetime import datetime
-from typing import Any, Iterable, List, Mapping, Optional
+from typing import TYPE_CHECKING, Any, Callable, Iterable, List, Mapping, Optional, Union
 from uuid import uuid4
 
 from asyncz.datastructures import TaskState
 from asyncz.state import BaseStateExtra
 from asyncz.triggers.base import BaseTrigger
-from asyncz.typing import DictAny
 from asyncz.utils import (
     check_callable_args,
     datetime_repr,
@@ -18,6 +17,13 @@ from asyncz.utils import (
 )
 
 object_setattr = object.__setattr__
+
+if TYPE_CHECKING:
+    from asyncz.stores.types import StoreType
+    from asyncz.triggers.types import TriggerType
+else:
+    StoreType = Any
+    TriggerType = Any
 
 
 class Task(BaseStateExtra):
@@ -42,12 +48,19 @@ class Task(BaseStateExtra):
         next_run_time: The next scheduled run time of this task.
     """
 
+    name: Optional[str] = None
+    fn: Optional[Union[Callable[..., Any], str]] = None
+    fn_reference: Optional[str] = None
+    args: Optional[Any] = None
+    kwargs: Optional[Any] = None
+    next_run_time: Optional[datetime] = None
+
     def __init__(
         self,
         scheduler: Any,
         id: Optional[str] = None,
         store_alias: Optional[str] = None,
-        **kwargs: "DictAny",
+        **kwargs: Any,
     ):
         super().__init__(**kwargs)
         self.scheduler = scheduler
@@ -62,7 +75,7 @@ class Task(BaseStateExtra):
         """
         return self.store_alias is None
 
-    def update(self, **updates: "DictAny") -> "Task":
+    def update(self, **updates: Any) -> "Task":
         """
         Makes the given updates to this jon and save it in the associated store.
         Accepted keyword args are the same as the class variables.
@@ -107,7 +120,7 @@ class Task(BaseStateExtra):
             next_run_time = self.trigger.get_next_trigger_time(next_run_time, now)
         return run_times
 
-    def _update(self, **updates: "DictAny") -> None:
+    def _update(self, **updates: Any) -> None:
         """
         Validates the updates to the Task and makes the modifications if and only if all of them
         validate.
@@ -206,7 +219,7 @@ class Task(BaseStateExtra):
 
     def __setstate__(self, state):
         object_setattr(self, "__dict__", state.__dict__)
-        object_setattr(self, "__fields_set__", state.__fields_set__)
+        object_setattr(self, "__pydantic_fields_set__", state.__pydantic_fields_set__)
 
         for name, value in self.__dict__.items():
             if name == "fn":

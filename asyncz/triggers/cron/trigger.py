@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, tzinfo
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 from tzlocal import get_localzone
 
@@ -13,7 +13,6 @@ from asyncz.triggers.cron.fields import (
     MonthField,
     WeekField,
 )
-from asyncz.typing import DictAny
 from asyncz.utils import (
     datetime_ceil,
     datetime_repr,
@@ -72,7 +71,7 @@ class CronTrigger(BaseTrigger):
         end_at: Optional[Union[datetime, str]] = None,
         timezone: Optional[Union[tzinfo, str]] = None,
         jitter: Optional[int] = None,
-        **kwargs: Dict[str, Any],
+        **kwargs: Any,
     ):
         super().__init__(**kwargs)
         self.year = year
@@ -255,7 +254,7 @@ class CronTrigger(BaseTrigger):
             next_date = self.apply_jitter(next_date, self.jitter, now)
             return min(next_date, self.end_at) if self.end_at else next_date
 
-    def __getstate__(self) -> "DictAny":
+    def __getstate__(self) -> Any:
         state = CronState(
             timezone=self.timezone,
             start_at=self.start_at,
@@ -265,7 +264,7 @@ class CronTrigger(BaseTrigger):
         )
         return state
 
-    def __setstate__(self, state: "DictAny") -> Any:
+    def __setstate__(self, state: Any) -> Any:
         if isinstance(state, tuple):
             return state[1]
         super().__setstate__(state)

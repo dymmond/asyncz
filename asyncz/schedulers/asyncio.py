@@ -4,7 +4,6 @@ from typing import Any, Optional
 from asyncz.executors.asyncio import AsyncIOExecutor
 from asyncz.schedulers.base import BaseScheduler
 from asyncz.schedulers.utils import run_in_event_loop
-from asyncz.typing import DictAny
 from asyncz.utils import maybe_ref
 
 
@@ -20,7 +19,7 @@ class AsyncIOScheduler(BaseScheduler):
     """
 
     def __init__(
-        self, event_loop: Optional[Any] = None, timeout: Optional[int] = None, **kwargs: "DictAny"
+        self, event_loop: Optional[Any] = None, timeout: Optional[int] = None, **kwargs: Any
     ) -> None:
         super().__init__(**kwargs)
         self.event_loop = event_loop
@@ -36,7 +35,7 @@ class AsyncIOScheduler(BaseScheduler):
         super().shutdown(wait)
         self.stop_timer()
 
-    def _setup(self, config: "DictAny") -> None:
+    def _setup(self, config: Any) -> None:
         self.event_loop = maybe_ref(config.pop("event_loop", None))
         super()._setup(config)
 

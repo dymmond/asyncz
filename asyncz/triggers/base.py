@@ -1,11 +1,10 @@
 import random
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Union
 
 from asyncz.datastructures import CombinationState
 from asyncz.state import BaseStateExtra
-from asyncz.typing import DictAny
 from asyncz.utils import obj_to_ref, ref_to_obj
 
 if TYPE_CHECKING:
@@ -61,7 +60,7 @@ class BaseCombinationTrigger(BaseTrigger):
         self,
         triggers: List["TriggerType"],
         jitter: Optional[int] = None,
-        **kwargs: "DictAny",
+        **kwargs: Any,
     ):
         super().__init__(**kwargs)
         self.triggers = triggers
