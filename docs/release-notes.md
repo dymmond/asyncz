@@ -2,7 +2,7 @@
 
 ## 0.4.0
 
-## Changed
+### Changed
 
 - Move internal procedure to pydantic 2.0. This process speeds up the internal processing
 by leveraging pydantic 2.0 performance.
