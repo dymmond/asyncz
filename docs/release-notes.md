@@ -7,6 +7,9 @@
 - Move internal procedure to pydantic 2.0. This process speeds up the internal processing
 by leveraging pydantic 2.0 performance.
 
+!!! Warning
+    To use this version of Asyncz with Esmerald, until it is announced compatibility with pydantic 2.0 with Esmerald, it is recommended to use Asyncz prior to this release.
+
 ## 0.3.1
 
 ### Fixed
