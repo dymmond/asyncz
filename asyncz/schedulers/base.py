@@ -79,7 +79,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         state: current running state of the scheduler.
     """
 
-    def __init__(self, global_config: Optional["DictAny"] = None, **kwargs: "DictAny") -> None:
+    def __init__(self, global_config: Optional[Any] = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         mapping = AsynczObjectMapping()
         self.global_config = global_config or {}
@@ -109,9 +109,9 @@ class BaseScheduler(BaseStateExtra, ABC):
 
     def setup(
         self,
-        global_config: Optional["DictAny"] = None,
+        global_config: Optional[Any] = None,
         prefix: Optional[str] = "asyncz.",
-        **options: "DictAny",
+        **options: Any,
     ):
         """
         Reconfigures the scheduler with the given options.
@@ -245,7 +245,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         return self.state != SchedulerState.STATE_STOPPED
 
     def add_executor(
-        self, executor: "ExecutorType", alias: str = "default", **executor_options: "DictAny"
+        self, executor: "ExecutorType", alias: str = "default", **executor_options: Any
     ):
         with self.executor_lock:
             if alias in self.executors:
@@ -282,7 +282,7 @@ class BaseScheduler(BaseStateExtra, ABC):
 
         self.dispatch_event(SchedulerEvent(code=EXECUTOR_REMOVED, alias=alias))
 
-    def add_store(self, store: "StoreType", alias: str = "default", **store_options: "DictAny"):
+    def add_store(self, store: "StoreType", alias: str = "default", **store_options: Any):
         """
         Adds a task store to this scheduler.
 
@@ -358,7 +358,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         fn: Optional[Callable[..., Any]],
         trigger: Optional[Union["TriggerType", str]] = None,
         args: Optional[Any] = None,
-        kwargs: Optional["DictAny"] = None,
+        kwargs: Optional[Any] = None,
         id: Optional[str] = None,
         name: Optional[str] = None,
         mistrigger_grace_time: Optional[int] = undefined,
@@ -368,7 +368,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         store: str = "default",
         executor: str = "default",
         replace_existing: bool = False,
-        **trigger_args: "DictAny",
+        **trigger_args: Any,
     ) -> "TaskType":
         """
         Adds the given task to the task list and wakes up the scheduler if it's already running.
@@ -436,7 +436,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         self,
         trigger: Optional[Union["TriggerType", str]] = None,
         args: Optional[Any] = None,
-        kwargs: Optional["DictAny"] = None,
+        kwargs: Optional[Any] = None,
         id: Optional[str] = None,
         name: Optional[str] = None,
         mistrigger_grace_time: Optional[int] = undefined,
@@ -445,7 +445,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         next_run_time: Optional[Union[datetime, str]] = undefined,
         store: str = "default",
         executor: str = "default",
-        **trigger_args: "DictAny",
+        **trigger_args: Any,
     ):
         """
         Functionality that can be used as a decorator for any function to schedule a task with a difference that replace_existing is always True.
@@ -489,7 +489,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         return wrap
 
     def update_task(
-        self, task_id: Union[int, str], store: Optional[str] = None, **updates: "DictAny"
+        self, task_id: Union[int, str], store: Optional[str] = None, **updates: Any
     ) -> "TaskType":
         """
         Modifies the propertues of a single task.
@@ -518,7 +518,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         task_id: Union[int, str],
         store: Optional[str] = None,
         trigger: Optional[str] = None,
-        **trigger_args: "DictAny",
+        **trigger_args: Any,
     ) -> "TaskType":
         """
         Constructs a new trigger for a task and updates its next run time.
@@ -664,7 +664,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         """
         ...
 
-    def _setup(self, config: "DictAny") -> None:
+    def _setup(self, config: Any) -> None:
         """
         Applies initial configurations called by the Base constructor.
         """
@@ -870,7 +870,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         except AttributeError as exc:
             raise ImportError(str(exc)) from exc
 
-    def create_plugin_instance(self, _type: str, alias: str, constructor_args: "DictAny"):
+    def create_plugin_instance(self, _type: str, alias: str, constructor_args: Any):
         """
         Creates an instance of the given plugin type, loading the plugin first if necessary.
         """
@@ -897,7 +897,7 @@ class BaseScheduler(BaseStateExtra, ABC):
 
         return plugin_cls(**constructor_args)
 
-    def create_trigger(self, trigger: "TriggerType", trigger_args: "DictAny") -> Any:
+    def create_trigger(self, trigger: "TriggerType", trigger_args: Any) -> Any:
         """
         Creates a trigger.
         """

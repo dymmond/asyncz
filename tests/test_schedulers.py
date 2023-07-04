@@ -455,7 +455,6 @@ class TestBaseScheduler:
 
     @pytest.mark.parametrize("pending", [True, False], ids=["pending task", "scheduled task"])
     def test_update_task(self, scheduler, pending, timezone):
-
         task = MagicMock()
         scheduler.dispatch_event = MagicMock()
         scheduler.lookup_task = MagicMock(return_value=(task, None if pending else "default"))
@@ -627,11 +626,12 @@ class TestBaseScheduler:
         scheduler._setup(config)
 
         assert scheduler.timezone is utc
-        assert scheduler.task_defaults == {
+        assert scheduler.task_defaults.model_dump() == {
             "mistrigger_grace_time": 5,
             "coalesce": False,
             "max_instances": 9,
         }
+
         assert set(scheduler.executors.keys()) == {"default", "alter"}
         assert scheduler.executors["default"].args == {"arg1": "3", "arg2": "a"}
         assert scheduler.executors["alter"].args == {"arg": "true"}

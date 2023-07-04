@@ -1,12 +1,11 @@
 from datetime import datetime, timedelta, tzinfo
 from math import ceil
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 from tzlocal import get_localzone
 
 from asyncz.datastructures import IntervalState
 from asyncz.triggers.base import BaseTrigger
-from asyncz.typing import DictAny
 from asyncz.utils import datetime_repr, normalize, timedelta_seconds, to_datetime, to_timezone
 
 
@@ -39,7 +38,7 @@ class IntervalTrigger(BaseTrigger):
         end_at: Optional[Union[datetime, str]] = None,
         timezone: Optional[Union[tzinfo, str]] = None,
         jitter: Optional[int] = None,
-        **kwargs: Dict[str, Any],
+        **kwargs: Any,
     ):
         super().__init__(**kwargs)
         self.interval = timedelta(
@@ -68,7 +67,6 @@ class IntervalTrigger(BaseTrigger):
     def get_next_trigger_time(
         self, previous_time: datetime, now: datetime
     ) -> Union[datetime, None]:
-
         if previous_time:
             next_trigger_time = previous_time + self.interval
         elif self.start_at > now:
@@ -96,7 +94,7 @@ class IntervalTrigger(BaseTrigger):
         )
         return state
 
-    def __setstate__(self, state: "DictAny") -> None:
+    def __setstate__(self, state: Any) -> None:
         trigger = super().__setstate__(state)
         trigger.interval_size = timedelta_seconds(self.interval)
 

@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Any, List, Optional, Union
 from loguru import logger
 
 from asyncz.state import BaseStateExtra
-from asyncz.typing import DictAny
 
 if TYPE_CHECKING:
     from asyncz.tasks.types import TaskType
@@ -17,7 +16,7 @@ class BaseStore(BaseStateExtra, ABC):
     """
 
     def __init__(
-        self, scheduler: Optional[Any] = None, alias: Optional[str] = None, **kwargs: "DictAny"
+        self, scheduler: Optional[Any] = None, alias: Optional[str] = None, **kwargs: Any
     ) -> None:
         super().__init__(**kwargs)
         self.logger = logger

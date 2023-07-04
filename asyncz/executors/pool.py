@@ -4,16 +4,19 @@ from concurrent.futures.process import BrokenProcessPool
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, List, Optional
 
+from pydantic import ConfigDict
+
 from asyncz.executors.base import BaseExecutor, run_task
-from asyncz.typing import DictAny
 
 if TYPE_CHECKING:
     from asyncz.tasks.types import TaskType
 
 
 class BasePoolExecutor(BaseExecutor):
+    model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True, populate_by_name=True)
+
     @abstractmethod
-    def __init__(self, pool: Any, **kwargs: "DictAny"):
+    def __init__(self, pool: Any, **kwargs: Any):
         super().__init__(**kwargs)
         self.pool = pool
 
@@ -41,9 +44,6 @@ class BasePoolExecutor(BaseExecutor):
     def shutdown(self, wait=True):
         self.pool.shutdown(wait)
 
-    class Config(BaseExecutor.Config):
-        allow_population_by_field_name = True
-
 
 class ThreadPoolExecutor(BasePoolExecutor):
     """
@@ -54,10 +54,7 @@ class ThreadPoolExecutor(BasePoolExecutor):
         pool_kwargs: Dict of keyword arguments to pass to the underlying ThreadPoolExecutor constructor.
     """
 
-    max_workers: Optional[int]
-    pool_kwargs: Optional["DictAny"]
-
-    def __init__(self, max_workers: int = 10, pool_kwargs: Optional["DictAny"] = None):
+    def __init__(self, max_workers: int = 10, pool_kwargs: Optional[Any] = None):
         pool_kwargs = pool_kwargs or {}
         pool = concurrent.futures.ThreadPoolExecutor(int(max_workers), **pool_kwargs)
         super().__init__(pool)
@@ -73,10 +70,7 @@ class ProcessPoolExecutor(BasePoolExecutor):
             ProcessPoolExecutor constructor.
     """
 
-    max_workers: Optional[int]
-    pool_kwargs: Optional["DictAny"]
-
-    def __init__(self, max_workers: int = 10, pool_kwargs: Optional["DictAny"] = None):
+    def __init__(self, max_workers: int = 10, pool_kwargs: Optional[Any] = None):
         pool_kwargs = pool_kwargs or {}
         pool = concurrent.futures.ProcessPoolExecutor(int(max_workers), **pool_kwargs)
         super().__init__(pool)

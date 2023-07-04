@@ -1,9 +1,9 @@
 import re
 from calendar import monthrange
 from datetime import date, datetime
-from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any, ClassVar, Optional, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from asyncz.triggers.cron.constants import MAX_VALUES, MIN_VALUES, MONTHS, OPTIONS, WEEKDAYS
 from asyncz.utils import to_int
@@ -13,16 +13,14 @@ if TYPE_CHECKING:
 
 
 class BaseExpression(BaseModel):
-    class Config:
-        arbitrary_types_allowed = True
-        extra = "allow"
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="allow")
 
 
 class AllExpression(BaseExpression):
     regex: ClassVar[re.Pattern] = re.compile(r"\*(?:/(?P<step>\d+))?$")
-    step: Optional[Union[int, float]]
+    step: Optional[Union[int, float]] = None
 
-    def __init__(self, step: Optional[Union[int, float]] = None, **kwargs: Dict[str, Any]):
+    def __init__(self, step: Optional[Union[int, float]] = None, **kwargs: Any):
         super().__init__(**kwargs)
         if step:
             self.step = to_int(step)
@@ -68,14 +66,14 @@ class RangeExpression(AllExpression):
     regex: ClassVar[re.Pattern] = re.compile(
         r"(?P<first>\d+)(?:-(?P<last>\d+))?(?:/(?P<step>\d+))?$"
     )
-    step: Optional[Union[int, float]]
+    step: Optional[Union[int, float]] = None
 
     def __init__(
         self,
         first: Union[str, float],
         last: Optional[Union[str, float]] = None,
         step: Optional[Union[int, float]] = None,
-        **kwargs: Dict[str, Any],
+        **kwargs: Any,
     ):
         super().__init__(step=step, **kwargs)
         first = to_int(first)
@@ -155,7 +153,7 @@ class MonthRangeExpression(RangeExpression):
     regex: ClassVar[re.Pattern] = re.compile(
         r"(?P<first>[a-z]+)(?:-(?P<last>[a-z]+))?", re.IGNORECASE
     )
-    step: Optional[Union[int, float]]
+    step: Optional[Union[int, float]] = None
 
     def __init__(
         self,
@@ -244,7 +242,7 @@ class WeekdayPositionExpression(AllExpression):
         r"(?P<option_name>%s) +(?P<weekday_name>(?:\d+|\w+))" % "|".join(OPTIONS), re.IGNORECASE
     )
 
-    def __init__(self, option_name: str, weekday_name: str, **kwargs: Dict[str, Any]):
+    def __init__(self, option_name: str, weekday_name: str, **kwargs: Any):
         super().__init__(step=None, **kwargs)
         try:
             self.option_number = OPTIONS.index(option_name.lower())
@@ -293,7 +291,7 @@ class WeekdayPositionExpression(AllExpression):
 class LastDayOfMonthExpression(AllExpression):
     regex: ClassVar[re.Pattern] = re.compile(r"last", re.IGNORECASE)
 
-    def __init__(self, **kwargs: Dict[str, Any]) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(step=None, **kwargs)
 
     def get_next_value(self, date: Union[date, datetime], field: "FieldType"):  # type: ignore

@@ -18,8 +18,8 @@ from asyncz.triggers import (
 
 
 class DummyTriggerWithJitter(BaseTrigger):
-    dt: Optional[datetime]
-    jitter: Optional[int]
+    dt: Optional[datetime] = None
+    jitter: Optional[int] = None
 
     def __init__(self, dt: datetime, jitter: int, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -67,7 +67,6 @@ class TestDateTrigger:
     def test_get_next_trigger_time(
         self, run_at, alter_tz, previous, now, expected, timezone, freeze_time
     ):
-
         tz = alter_tz or timezone
         trigger = DateTrigger(run_at=run_at, timezone=tz)
         previous = timezone.localize(previous) if previous else None

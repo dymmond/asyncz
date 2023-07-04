@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, List, Optional, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class SchedulerEvent(BaseModel):
@@ -13,11 +13,9 @@ class SchedulerEvent(BaseModel):
         alias: The alias given to store or executor.
     """
 
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     code: Union[int, int]
-    alias: Optional[str]
-
-    class Config:
-        arbitrary_types_allowed = True
+    alias: Optional[str] = None
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} (code={self.code})>"
@@ -33,7 +31,7 @@ class TaskEvent(SchedulerEvent):
     """
 
     task_id: Union[str, int]
-    store: Union[str, Any]
+    store: Union[str, Any] = None
 
 
 class TaskSubmissionEvent(TaskEvent):
@@ -59,6 +57,6 @@ class TaskExecutionEvent(TaskEvent):
     """
 
     scheduled_run_time: Union[int, str, Any]
-    return_value: Any
-    exception: Optional[Exception]
-    traceback: Optional[str]
+    return_value: Any = None
+    exception: Optional[Exception] = None
+    traceback: Optional[str] = None

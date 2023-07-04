@@ -1,9 +1,7 @@
 from datetime import datetime, timedelta, timezone, tzinfo
 from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
 
-from pydantic import BaseModel
-
-from asyncz.typing import DictAny
+from pydantic import BaseModel, ConfigDict
 
 if TYPE_CHECKING:
     from asyncz.stores.types import StoreType
@@ -14,8 +12,7 @@ else:
 
 
 class BaseDatastructureState(BaseModel):
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class DateState(BaseDatastructureState):
@@ -33,8 +30,8 @@ class IntervalState(BaseDatastructureState):
 
     timezone: Union[timezone, str, tzinfo]
     start_at: datetime
-    end_at: Optional[datetime]
-    interval: Optional[Union[timezone, timedelta]]
+    end_at: Optional[datetime] = None
+    interval: Optional[Union[timezone, timedelta]] = None
     jitter: int
 
 
@@ -44,7 +41,7 @@ class CombinationState(BaseDatastructureState):
     """
 
     triggers: List[Any]
-    jitter: Optional[int]
+    jitter: Optional[int] = None
 
 
 class CronState(BaseDatastructureState):
@@ -52,26 +49,26 @@ class CronState(BaseDatastructureState):
     Handles the state of the CronTrigger.
     """
 
-    timezone: Optional[Union[timezone, str, tzinfo]]
-    start_at: Optional[datetime]
-    end_at: Optional[datetime]
-    fields: Optional[List[Any]]
-    jitter: Optional[int]
+    timezone: Optional[Union[timezone, str, tzinfo]] = None
+    start_at: Optional[datetime] = None
+    end_at: Optional[datetime] = None
+    fields: Optional[List[Any]] = None
+    jitter: Optional[int] = None
 
 
 class TaskState(BaseDatastructureState):
-    id: Optional[str]
-    name: Optional[str]
-    fn: Optional[Union[Callable[..., Any], str]]
-    fn_reference: Optional[str]
-    args: Optional[Any]
-    kwargs: Optional["DictAny"]
-    coalesce: Optional[bool]
-    trigger: Optional[Union[str, TriggerType]]
-    executor: Optional[str]
-    mistrigger_grace_time: Optional[int]
-    max_instances: Optional[int]
+    id: Optional[str] = None
+    name: Optional[str] = None
+    fn: Optional[Union[Callable[..., Any], str]] = None
+    fn_reference: Optional[str] = None
+    args: Optional[Any] = None
+    kwargs: Optional[Any] = None
+    coalesce: Optional[bool] = None
+    trigger: Optional[Union[str, TriggerType]] = None
+    executor: Optional[str] = None
+    mistrigger_grace_time: Optional[int] = None
+    max_instances: Optional[int] = None
     next_run_time: Optional[datetime]
-    scheduler: Optional[Any]
-    store_alias: Optional[str]
-    store: Optional[Union[str, StoreType]]
+    scheduler: Optional[Any] = None
+    store_alias: Optional[str] = None
+    store: Optional[Union[str, StoreType]] = None

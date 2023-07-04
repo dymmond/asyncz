@@ -1,15 +1,14 @@
 from datetime import datetime
 from typing import Any, Callable, Optional, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from asyncz.triggers.types import TriggerType
-from asyncz.typing import DictAny, UndefinedType
+from asyncz.typing import UndefinedType
 
 
 class BaseStruct(BaseModel):
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class TaskStruct(BaseStruct):
@@ -35,7 +34,7 @@ class TaskStruct(BaseStruct):
     executor: Optional[str]
     fn: Optional[Callable[..., Any]]
     args: Optional[Any]
-    kwargs: Optional["DictAny"]
+    kwargs: Optional[Any]
     id: Optional[str]
     name: Optional[str]
     mistrigger_grace_time: Optional[Union[int, "UndefinedType"]]

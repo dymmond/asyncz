@@ -1,11 +1,10 @@
 from datetime import datetime, tzinfo
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 from tzlocal import get_localzone
 
 from asyncz.datastructures import DateState
 from asyncz.triggers.base import BaseTrigger
-from asyncz.typing import DictAny
 from asyncz.utils import datetime_repr, to_datetime, to_timezone
 
 
@@ -24,7 +23,7 @@ class DateTrigger(BaseTrigger):
         self,
         run_at: Optional[Union[datetime, str]] = None,
         timezone: Optional[Union[tzinfo, str]] = None,
-        **kwargs: Dict[str, Any],
+        **kwargs: Any,
     ):
         super().__init__(**kwargs)
         timezone = to_timezone(timezone) or get_localzone()
@@ -40,7 +39,7 @@ class DateTrigger(BaseTrigger):
             return self.run_at
         return None
 
-    def __getstate__(self) -> "DictAny":
+    def __getstate__(self) -> Any:
         """
         Handles the conversion to a dict to be able to pickle.
         """
