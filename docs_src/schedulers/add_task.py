@@ -47,5 +47,18 @@ scheduler.add_task(
     coalesce=False,
 )
 
+# Run every 10 minutes collect_www_info before sending the newsletter
+feed_data = collect_www_info()
+
+scheduler.add_task(
+    fn=send_email_newsletter,
+    args=[feed_data],
+    trigger=IntervalTrigger(minutes=10),
+    max_instances=1,
+    replace_existing=True,
+    coalesce=False,
+)
+
+
 # Start the scheduler
 scheduler.start()
