@@ -40,7 +40,7 @@ classifiers = [
 dependencies = [
     "asyncio>=3.4.3,<4.0.0",
     "loguru>=0.7.0,<0.8.0",
-    "pydantic>=2.0.0,<3.0.0",
+    "pydantic>=2.1.0,<3.0.0",
     "pytz>=2022.6",
     "tzlocal>=4.2,<5.0",
 ]
