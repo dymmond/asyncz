@@ -61,7 +61,6 @@ class BaseExecutor(BaseStateExtra, ABC):
             run_times: A list of datetimes specifying when the task should have been run.
         """
         assert self.lock is not None, "This executor has not been started yet."
-
         with self.lock:
             if self.instances[task.id] >= task.max_instances:
                 raise MaximumInstancesError(task.id, task.max_instances)

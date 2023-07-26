@@ -54,6 +54,8 @@ class Task(BaseStateExtra):
     args: Optional[Any] = None
     kwargs: Optional[Any] = None
     next_run_time: Optional[datetime] = None
+    scheduler: Any = None
+    store_alias: Optional[str] = None
 
     def __init__(
         self,
@@ -220,6 +222,8 @@ class Task(BaseStateExtra):
     def __setstate__(self, state):
         object_setattr(self, "__dict__", state.__dict__)
         object_setattr(self, "__pydantic_fields_set__", state.__pydantic_fields_set__)
+        object_setattr(self, "__pydantic_extra__", state.__pydantic_extra__)
+        state.model_config.update(self.model_config)
 
         for name, value in self.__dict__.items():
             if name == "fn":
