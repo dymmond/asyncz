@@ -1,5 +1,20 @@
 # Release Notes
 
+## 0.5.0
+
+### Changed
+
+- Updated internal `__setstate__` of `Task` to accept also `__pydantic_extra__` and `model_config`.
+
+### Added
+
+- Support for Python 3.12.
+
+### Fixed
+
+- Pydantic 2.0 `__pydantic_extra__` pickling errors.
+- Internal issues with MagicMock and Pydantic 2.0
+
 ## 0.4.0
 
 ### Changed
