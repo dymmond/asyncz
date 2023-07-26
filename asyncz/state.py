@@ -14,12 +14,15 @@ class BaseState(BaseModel):
         """
         Retrives the data pickled and sets the state for Pydantic compatible fashion.
         """
+        state.model_config.update(self.model_config)
         object_setattr(self, "__dict__", state.__dict__)
         object_setattr(self, "__pydantic_fields_set__", state.__pydantic_fields_set__)
+        object_setattr(self, "__pydantic_extra__", state.__pydantic_extra__)
         for name, value in state.__private_attributes__.items():
             if callable(value) or inspect.iscoroutinefunction(value):
                 value = value.__name__
             object_setattr(self, name, value)
+
         return self
 
 

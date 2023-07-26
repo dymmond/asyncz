@@ -94,10 +94,6 @@ class IntervalTrigger(BaseTrigger):
         )
         return state
 
-    def __setstate__(self, state: Any) -> None:
-        trigger = super().__setstate__(state)
-        trigger.interval_size = timedelta_seconds(self.interval)
-
     def __str__(self) -> str:
         return f"interval[{self.interval}]"
 

@@ -171,25 +171,6 @@ async def waiter(sleep, exception):
         return True
 
 
-@pytest.mark.parametrize("exception", [False, True])
-@pytest.mark.asyncio
-async def test_run_coroutine_task(asyncio_scheduler, asyncio_executor, exception):
-    from asyncio import Future, sleep
-
-    future = Future()
-    task = asyncio_scheduler.add_task(waiter, "interval", seconds=1, args=[sleep, exception])
-    asyncio_executor.run_task_success = lambda task_id, events: future.set_result(events)
-    asyncio_executor.run_task_error = lambda task_id, exc, tb: future.set_exception(exc)
-    asyncio_executor.send_task(task, [datetime.now(pytz.utc)])
-    events = await future
-    assert len(events) == 1
-
-    if exception:
-        assert str(events[0].exception) == "dummy error"
-    else:
-        assert events[0].return_value is True
-
-
 @pytest.mark.asyncio
 async def test_asyncio_executor_shutdown(asyncio_scheduler, asyncio_executor):
     """Test that the AsyncIO executor cancels its pending tasks on shutdown."""

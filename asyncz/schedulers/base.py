@@ -263,7 +263,6 @@ class BaseScheduler(BaseStateExtra, ABC):
                 raise TypeError(
                     f"Expected an executor instance or a string, got {executor.__class__.__name__} instead."
                 )
-
             if self.state != SchedulerState.STATE_STOPPED:
                 executor.start(self, alias)
 

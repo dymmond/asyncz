@@ -136,12 +136,6 @@ class TestIntervalTrigger:
         now = datetime.now(timezone)
         assert (trigger.get_next_trigger_time(None, now) - now) <= timedelta(seconds=2)
 
-    # def test_different_tz(self, trigger, timezone):
-    #     alter_tz = pytz.FixedOffset(-60)
-    #     start_at = alter_tz.localize(datetime(2022, 11, 2, 22, second=2, microsecond=1000))
-    #     correct_next_date = timezone.localize(datetime(2022, 11, 3, 1, second=3))
-    #     assert trigger.get_next_trigger_time(None, start_at) == correct_next_date
-
     def test_end_at(self, timezone):
         """Tests that the interval trigger won't return any datetimes past the set end time."""
         start_at = timezone.localize(datetime(2022, 11, 4))

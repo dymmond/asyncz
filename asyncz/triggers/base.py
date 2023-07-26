@@ -56,6 +56,8 @@ class BaseCombinationTrigger(BaseTrigger):
         jitter: he maximum number of second to add to the next_trigger_time.
     """
 
+    triggers: Any = []
+
     def __init__(
         self,
         triggers: List["TriggerType"],
