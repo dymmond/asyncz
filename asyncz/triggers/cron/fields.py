@@ -33,7 +33,7 @@ class BaseField(BaseModel):
         exprs: Any,
         is_default: Optional[bool] = False,
         compilers: Optional[List[Any]] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ):
         super().__init__(**kwargs)
         self.name = name
