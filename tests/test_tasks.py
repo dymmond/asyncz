@@ -13,8 +13,7 @@ from asyncz.tasks import Task
 from asyncz.triggers import DateTrigger
 
 
-def dummyfn():
-    ...
+def dummyfn(): ...
 
 
 @pytest.fixture
