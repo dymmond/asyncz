@@ -31,7 +31,7 @@ outside of the Esmerald context.
 
     <sup>Default: `None`</sup>
 
-* **max_intances** - Maximum number of concurrently running instances allowed for this
+* **max_instances** - Maximum number of concurrently running instances allowed for this
     task.
 
     <sup>Default: `None`</sup>
@@ -76,7 +76,7 @@ Let us assume:
 
 * You have some tasks living inside a file `src/accounts/tasks.py`.
 * You want to import them inside your Esmerald application.
-  
+
 ```python hl_lines="8 14 20 29-33"
 {!> ../docs_src/contrib/esmerald/decorator.py !}
 ```

@@ -145,7 +145,7 @@ class Task:
         id: Optional[str] = None,
         mistrigger_grace_time: Optional[int] = None,
         coalesce: Optional[bool] = None,
-        max_intances: Optional[int] = None,
+        max_instances: Optional[int] = None,
         next_run_time: Optional[datetime] = None,
         store: Optional[str] = "default",
         executor: Optional[str] = "default",
@@ -163,7 +163,7 @@ class Task:
             mistrigger_grace_time: Seconds after the designated runtime that the task is still allowed to be run (or None to allow the task to run no
                 matter  how late it is).
             coalesce: Run once instead of many times if the scheduler determines that the task should be run more than once in succession.
-            max_intances: Maximum number of concurrently running instances allowed for this task.
+            max_instances: Maximum number of concurrently running instances allowed for this task.
             next_run_time: When to first run the task, regardless of the trigger (pass None to add the task as paused).
             store: Alias of the task store to store the task in.
             executor: Alias of the executor to run the task with.
@@ -178,7 +178,7 @@ class Task:
         self.id = id
         self.mistrigger_grace_time = mistrigger_grace_time or undefined
         self.coalesce = coalesce or undefined
-        self.max_intances = max_intances or undefined
+        self.max_instances = max_instances or undefined
         self.next_run_time = next_run_time or undefined
         self.store = store
         self.executor = executor
@@ -199,7 +199,7 @@ class Task:
                 name=self.name,
                 mistrigger_grace_time=self.mistrigger_grace_time,
                 coalesce=self.coalesce,
-                max_instances=self.max_intances,
+                max_instances=self.max_instances,
                 next_run_time=self.next_run_time,
                 store=self.store,
                 executor=self.executor,

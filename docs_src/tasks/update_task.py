@@ -25,6 +25,6 @@ task = Task(
 # Update the task
 task.update(
     name="my-new-task-id",
-    max_intances=5,
+    max_instances=5,
     coalesce=False,
 )
