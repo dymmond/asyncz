@@ -143,7 +143,7 @@ ignore = ["E501", "B008", "C901", "B026"]
 exclude = ["docs_src/*"]
 
 [tool.ruff.lint.isort]
-known-third-party = ["asyncz", "pydantic", "starlette"]
+known-third-party = ["esmerald", "pydantic", "starlette"]
 
 [[tool.mypy.overrides]]
 module = "asyncz.tests.*"
