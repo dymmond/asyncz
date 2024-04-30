@@ -97,11 +97,10 @@ dependencies = [
     "pytest-asyncio >=0.19.0,<1.0.0",
     "pytest-loguru>=0.2.0,<1",
     "redis>=4.4.0,<6.0.0",
-    "ruff>=0.0.256,<1.0.0",
 ]
 
-
 [tool.hatch.envs.test.scripts]
+# needs docker services running
 test = "pytest --disable-pytest-warnings -s -vv"
 coverage = "pytest --cov=asyncz --cov=tests --cov-report=term-missing:skip-covered --cov-report=html tests"
 
