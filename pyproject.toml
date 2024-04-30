@@ -72,33 +72,42 @@ Changelog = "https://asyncz.tarsild.io/release-notes/"
 Funding = "https://github.com/sponsors/tarsil"
 Source = "https://github.com/tarsil/asyncz"
 
-[project.optional-dependencies]
-test = [
-    # "esmerald==0.4.2",
-    "mock>=4.0.3",
+
+[tool.hatch.envs.default]
+dependencies = [
+    "ruff",
+    "mypy>=0.982,<2.0.0",
+    "pre-commit>=2.17.0,<3.0.0",
+    "watchfiles>=0.16.1,<0.22.0",
+    "build",
+    "twine"
+]
+
+[tool.hatch.envs.default.scripts]
+clean_pyc = "find . -type f -name \"*.pyc\" -delete"
+clean_pycache = "find . -type d -name \"*__pycache__*\" -delete"
+lint = "ruff check asyncz tests docs_src --fix --line-length 99"
+build = "python -m build; twine check dist/*"
+
+[tool.hatch.envs.test]
+dependencies = [
     "pymongo>=4.3.3,<5.0.0",
     "pytest>=7.1.3,<9.0.0",
     "pytest-cov >=2.12.0,<6.0.0",
     "pytest-asyncio >=0.19.0,<1.0.0",
     "pytest-loguru>=0.2.0,<1",
     "redis>=4.4.0,<6.0.0",
-    "requests >=2.27.0,<3.0.0",
     "ruff>=0.0.256,<1.0.0",
 ]
 
-dev = [
-    "autoflake>=1.4.0,<3.0.0",
-    "black==24.4.2",
-    "flake8>=3.8.3,<8.0.0",
-    "ipdb>=0.13.13",
-    "pdbpp",
-    "isort>=5.0.6,<6.0.0",
-    "mypy>=0.982,<2.0.0",
-    "pre-commit>=2.17.0,<3.0.0",
-    "watchfiles>=0.16.1,<0.22.0",
-]
 
-doc = [
+[tool.hatch.envs.test.scripts]
+test = "pytest --disable-pytest-warnings -s -vv"
+coverage = "pytest --cov=asyncz --cov=tests --cov-report=term-missing:skip-covered --cov-report=html tests"
+
+
+[tool.hatch.envs.docs]
+dependencies = [
     "mkautodoc >=0.2.0,<0.3.0",
     "mkdocs >=1.1.2,<2.0.0",
     "mkdocs-material >=9.0.13,<10.0.0",
@@ -107,15 +116,12 @@ doc = [
     "mkdocstrings>=0.20.0,<0.30.0",
     "pyyaml >=6.0,<7.0.0",
 ]
-
-all = ["asyncio>=3.4.3,<4.0.0", "pytz>=2022.6", "tzlocal>=4.2,<5.0"]
+[tool.hatch.envs.docs.scripts]
+build = "mkdocs build"
+serve = "mkdocs serve --dev-addr localhost:8000"
 
 [tool.hatch.version]
 path = "asyncz/__init__.py"
-
-[tool.isort]
-profile = "black"
-known_third_party = ["asyncz", "pydantic", "starlette"]
 
 [tool.mypy]
 warn_unused_configs = true
@@ -136,6 +142,9 @@ select = ["E", "W", "F", "C", "B", "I"]
 ignore = ["E501", "B008", "C901", "B026"]
 
 exclude = ["docs_src/*"]
+
+[tool.ruff.lint.isort]
+known-third-party = ["asyncz", "pydantic", "starlette"]
 
 [[tool.mypy.overrides]]
 module = "asyncz.tests.*"
