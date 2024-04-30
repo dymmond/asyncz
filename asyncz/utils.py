@@ -7,14 +7,16 @@ from datetime import timezone as dttz
 from functools import partial
 from typing import Any, Callable, Union
 
-from zoneinfo import ZoneInfo
-
 from asyncz.exceptions import AsynczException, AsynczLookupError
 
 try:
     from threading import TIMEOUT_MAX
 except ImportError:
     TIMEOUT_MAX = 4294967
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    from backports.zoneinfo import ZoneInfo
 
 BOOL_VALIDATION = {
     "true": ["true", "yes", "on", "y", "t", "1", True],

@@ -42,6 +42,7 @@ dependencies = [
     "loguru>=0.7.0,<0.8.0",
     "pydantic>=2.5.3,<3.0.0",
     "tzlocal>=4.0,<6.0",
+    'backports.zoneinfo;python_version<"3.9"'
 ]
 keywords = [
     "api",

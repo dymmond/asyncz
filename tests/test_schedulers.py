@@ -6,7 +6,6 @@ from typing import Any, List, Optional, Union
 from unittest.mock import MagicMock, patch
 
 import pytest
-from zoneinfo import ZoneInfo
 
 from asyncz.enums import SchedulerState
 from asyncz.events.base import SchedulerEvent
@@ -44,6 +43,11 @@ from asyncz.tasks import Task
 from asyncz.tasks.types import TaskType
 from asyncz.triggers.base import BaseTrigger
 from asyncz.typing import undefined
+
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    from backports.zoneinfo import ZoneInfo
 
 object_setter = object.__setattr__
 
