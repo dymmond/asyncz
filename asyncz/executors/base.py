@@ -3,12 +3,12 @@ import traceback
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from datetime import datetime, timedelta
+from datetime import timezone as tz
 from traceback import format_tb
 from typing import TYPE_CHECKING, Any, List, Optional, Union
 
 from loguru import logger
 from loguru._logger import Logger
-from pytz import utc
 
 from asyncz.events import TaskExecutionEvent
 from asyncz.events.constants import TASK_ERROR, TASK_EXECUTED, TASK_MISSED
@@ -97,7 +97,9 @@ class BaseExecutor(BaseStateExtra, ABC):
             if self.instances[task_id] == 0:
                 del self.instances[task_id]
 
-        self.logger.opt(exception=True).error(f"Error running task {task_id}", exc_info=True)
+        self.logger.opt(exception=True).error(
+            f"Error running task {task_id}", exc_info=True
+        )
 
 
 def run_task(
@@ -118,7 +120,7 @@ def run_task(
     events = []
     for run_time in run_times:
         if getattr(task, "mistrigger_grace_time", None) is not None:
-            difference = datetime.now(utc) - run_time
+            difference = datetime.now(tz.utc) - run_time
             grace_time = timedelta(seconds=task.mistrigger_grace_time)
             if difference > grace_time:
                 events.append(
@@ -182,7 +184,7 @@ async def run_coroutine_task(
     events = []
     for run_time in run_times:
         if getattr(task, "mistrigger_grace_time", None) is not None:
-            difference = datetime.now(utc) - run_time
+            difference = datetime.now(tz.utc) - run_time
             grace_time = timedelta(seconds=task.mistrigger_grace_time)
             if difference > grace_time:
                 events.append(

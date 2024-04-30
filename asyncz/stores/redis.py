@@ -1,8 +1,7 @@
 import pickle
 from datetime import datetime
+from datetime import timezone as tz
 from typing import Any, List, Optional, Union
-
-from pytz import utc
 
 from asyncz.exceptions import AsynczException, ConflictIdError, TaskLookupError
 from asyncz.stores.base import BaseStore
@@ -79,7 +78,9 @@ class RedisStore(BaseStore):
             try:
                 tasks.append(self.rebuild_task(state))
             except BaseException:
-                self.logger.exception(f"Unable to restore task '{task_id}'. Removing it...")
+                self.logger.exception(
+                    f"Unable to restore task '{task_id}'. Removing it..."
+                )
                 failed_task_ids.append(task_id)
 
         if failed_task_ids:
@@ -98,7 +99,7 @@ class RedisStore(BaseStore):
     def get_all_tasks(self) -> List["TaskType"]:
         states = self.redis.hgetall(self.tasks_key)
         tasks = self.rebuild_tasks(states.items())
-        paused_sort_key = datetime(9999, 12, 31, tzinfo=utc)
+        paused_sort_key = datetime(9999, 12, 31, tzinfo=tz.utc)
         return sorted(tasks, key=lambda task: task.next_run_time or paused_sort_key)
 
     def add_task(self, task: "TaskType"):
@@ -108,12 +109,15 @@ class RedisStore(BaseStore):
         with self.redis.pipeline() as pipe:
             pipe.multi()
             pipe.hset(
-                self.tasks_key, task.id, pickle.dumps(task.__getstate__(), self.pickle_protocol)
+                self.tasks_key,
+                task.id,
+                pickle.dumps(task.__getstate__(), self.pickle_protocol),
             )
 
             if task.next_run_time:
                 pipe.zadd(
-                    self.run_times_key, {task.id: datetime_to_utc_timestamp(task.next_run_time)}
+                    self.run_times_key,
+                    {task.id: datetime_to_utc_timestamp(task.next_run_time)},
                 )
             pipe.execute()
 
@@ -123,11 +127,14 @@ class RedisStore(BaseStore):
 
         with self.redis.pipeline() as pipe:
             pipe.hset(
-                self.tasks_key, task.id, pickle.dumps(task.__getstate__(), self.pickle_protocol)
+                self.tasks_key,
+                task.id,
+                pickle.dumps(task.__getstate__(), self.pickle_protocol),
             )
             if task.next_run_time:
                 pipe.zadd(
-                    self.run_times_key, {task.id: datetime_to_utc_timestamp(task.next_run_time)}
+                    self.run_times_key,
+                    {task.id: datetime_to_utc_timestamp(task.next_run_time)},
                 )
             else:
                 pipe.zrem(self.run_times_key, task.id)

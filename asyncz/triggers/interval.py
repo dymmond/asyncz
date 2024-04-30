@@ -6,7 +6,13 @@ from tzlocal import get_localzone
 
 from asyncz.datastructures import IntervalState
 from asyncz.triggers.base import BaseTrigger
-from asyncz.utils import datetime_repr, normalize, timedelta_seconds, to_datetime, to_timezone
+from asyncz.utils import (
+    datetime_repr,
+    normalize,
+    timedelta_seconds,
+    to_datetime,
+    to_timezone,
+)
 
 
 class IntervalTrigger(BaseTrigger):
@@ -73,7 +79,9 @@ class IntervalTrigger(BaseTrigger):
             next_trigger_time = self.start_at
         else:
             time_difference_seconds = timedelta_seconds(now - self.start_at)
-            next_interval_number = int(ceil(time_difference_seconds / self.interval_size))
+            next_interval_number = int(
+                ceil(time_difference_seconds / self.interval_size)
+            )
             next_trigger_time = self.start_at + self.interval * next_interval_number
 
         if self.jitter is not None:
@@ -98,7 +106,10 @@ class IntervalTrigger(BaseTrigger):
         return f"interval[{self.interval}]"
 
     def __repr__(self) -> str:
-        options = ["interval=%r" % self.interval, "start_at=%r" % datetime_repr(self.start_at)]
+        options = [
+            "interval=%r" % self.interval,
+            "start_at=%r" % datetime_repr(self.start_at),
+        ]
         if self.end_at:
             options.append("end_at=%r" % datetime_repr(self.end_at))
         if self.jitter:

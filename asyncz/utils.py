@@ -3,10 +3,11 @@ import re
 from asyncio import iscoroutinefunction
 from calendar import timegm
 from datetime import date, datetime, time, timedelta, tzinfo
+from datetime import timezone as dttz
 from functools import partial
 from typing import Any, Callable, Union
 
-from pytz import FixedOffset, timezone, utc
+from zoneinfo import ZoneInfo
 
 from asyncz.exceptions import AsynczException, AsynczLookupError
 
@@ -61,22 +62,13 @@ def to_bool(value: str) -> bool:
     return False
 
 
-def to_timezone(value: Any) -> timezone:
+def to_timezone(value: Any) -> tzinfo:
     """
     Converts a value to timezone object.
     """
     if isinstance(value, str):
-        return timezone(value)
+        return ZoneInfo(value)
     if isinstance(value, tzinfo):
-        if not hasattr(value, "localize") or not hasattr(value, "normalize"):
-            raise TypeError("Only timezones from the pytz library are supported.")
-        if value.tzname(None) == "local":
-            raise ValueError(
-                "Unable to determine the name of the local timezone -- you must explicitly "
-                "specify the name of the local timezone. Please refrain from using timezones like "
-                "BST to prevent problems with daylight saving time. Instead, use a locale based "
-                "timezone name (such as Europe/London)."
-            )
         return value
     if value is not None:
         raise TypeError("Expected tzinfo, got %s instead" % value.__class__.__name__)
@@ -109,11 +101,11 @@ def to_datetime(
         tzname = values.pop("timezone")
 
         if tzname == "Z":
-            tz = utc
+            tz = dttz.utc
         elif tzname:
             hours, minutes = (int(x) for x in tzname[1:].split(":"))
             sign = 1 if tzname[0] == "+" else -1
-            tz = FixedOffset(sign * (hours * 60 + minutes))
+            tz = dttz(sign * timedelta(hours=hours, minutes=minutes))
 
         values = {k: int(v or 0) for k, v in values.items()}
         _datetime = datetime(**values)  # type: ignore
@@ -132,7 +124,7 @@ def to_datetime(
         )
 
     if isinstance(tz, str):
-        tz = timezone(tz)
+        tz = ZoneInfo(tz)
 
     return localize(_datetime, tz)
 
@@ -150,7 +142,7 @@ def utc_timestamp_to_datetime(timestamp: Union[int, float]) -> datetime:
     Converts the given timestamp to a datetime instance.
     """
     if timestamp is not None:
-        return datetime.fromtimestamp(timestamp, utc)
+        return datetime.fromtimestamp(timestamp, dttz.utc)
 
 
 def timedelta_seconds(delta: Any) -> Any:
@@ -196,7 +188,9 @@ def get_callable_name(func: Any) -> Any:
             return func.__name__
         return func.__class__.__name__
 
-    raise TypeError("Unable to determine a name for %r -- maybe it is not a callable?" % func)
+    raise TypeError(
+        "Unable to determine a name for %r -- maybe it is not a callable?" % func
+    )
 
 
 def obj_to_ref(obj: Any) -> str:
@@ -320,7 +314,8 @@ def check_callable_args(func: Callable[..., Any], args: Any, kwargs: Any) -> Non
 
     if unsatisfied_args:
         raise ValueError(
-            "The following arguments have not been supplied: %s" % ", ".join(unsatisfied_args)
+            "The following arguments have not been supplied: %s"
+            % ", ".join(unsatisfied_args)
         )
 
     if unsatisfied_kwargs:
@@ -332,7 +327,8 @@ def check_callable_args(func: Callable[..., Any], args: Any, kwargs: Any) -> Non
     if not has_varargs and unmatched_args:
         raise ValueError(
             "The list of positional arguments is longer than the target callable can handle "
-            "(allowed: %d, given in args: %d)" % (len(args) - len(unmatched_args), len(args))
+            "(allowed: %d, given in args: %d)"
+            % (len(args) - len(unmatched_args), len(args))
         )
 
     if not has_var_kwargs and unmatched_kwargs:

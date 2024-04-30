@@ -39,11 +39,9 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP",
 ]
 dependencies = [
-    "asyncio>=3.4.3,<4.0.0",
     "loguru>=0.7.0,<0.8.0",
     "pydantic>=2.5.3,<3.0.0",
-    "pytz>=2022.6",
-    "tzlocal>=4.2,<5.0",
+    "tzlocal>=4.0,<6.0",
 ]
 keywords = [
     "api",
@@ -95,7 +93,8 @@ dependencies = [
     "pytest-loguru>=0.2.0,<1",
     "redis>=4.4.0,<6.0.0",
     "mypy>=0.982,<2.0.0",
-    "esmerald"
+    "esmerald",
+    "pytz>=2022.6"
 ]
 
 [tool.hatch.envs.test.scripts]
