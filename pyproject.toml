@@ -78,16 +78,15 @@ dependencies = [
     "ruff",
     "mypy>=0.982,<2.0.0",
     "pre-commit>=2.17.0,<3.0.0",
-    "build",
     "twine"
 ]
 
 [tool.hatch.envs.default.scripts]
 clean_pyc = "find . -type f -name \"*.pyc\" -delete"
 clean_pycache = "find . -type d -name \"*__pycache__*\" -delete"
-lint = "ruff check asyncz tests docs_src --fix --line-length 99"
+lint = "ruff check --fix --line-length 99  asyncz tests docs_src {args}"
 check_types = "mypy -p asyncz"
-build = "python -m build; twine check dist/*"
+build_with_check = "hatch build; twine check dist/*"
 
 [tool.hatch.envs.test]
 dependencies = [
@@ -101,8 +100,8 @@ dependencies = [
 
 [tool.hatch.envs.test.scripts]
 # needs docker services running
-test = "pytest --disable-pytest-warnings -s -vv"
-coverage = "pytest --cov=asyncz --cov=tests --cov-report=term-missing:skip-covered --cov-report=html tests"
+test = "pytest --disable-pytest-warnings -s -vv {args}"
+coverage = "pytest --cov=asyncz --cov=tests --cov-report=term-missing:skip-covered --cov-report=html tests {args}"
 
 
 [tool.hatch.envs.docs]
