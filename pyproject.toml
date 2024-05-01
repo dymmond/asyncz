@@ -76,7 +76,6 @@ Source = "https://github.com/tarsil/asyncz"
 [tool.hatch.envs.default]
 dependencies = [
     "ruff",
-    "mypy>=0.982,<2.0.0",
     "pre-commit>=2.17.0,<3.0.0",
     "twine"
 ]
@@ -85,7 +84,6 @@ dependencies = [
 clean_pyc = "find . -type f -name \"*.pyc\" -delete"
 clean_pycache = "find . -type d -name \"*__pycache__*\" -delete"
 lint = "ruff check --fix --line-length 99  asyncz tests docs_src {args}"
-check_types = "mypy -p asyncz"
 build_with_check = "hatch build; twine check dist/*"
 
 [tool.hatch.envs.test]
@@ -96,12 +94,15 @@ dependencies = [
     "pytest-asyncio >=0.19.0,<1.0.0",
     "pytest-loguru>=0.2.0,<1",
     "redis>=4.4.0,<6.0.0",
+    "mypy>=0.982,<2.0.0",
+    "esmerald"
 ]
 
 [tool.hatch.envs.test.scripts]
 # needs docker services running
 test = "pytest --disable-pytest-warnings -s -vv {args}"
 coverage = "pytest --cov=asyncz --cov=tests --cov-report=term-missing:skip-covered --cov-report=html tests {args}"
+check_types = "mypy -p asyncz"
 
 
 [tool.hatch.envs.docs]
