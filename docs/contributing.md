@@ -47,9 +47,22 @@ $ git clone https://github.com/YOUR-USERNAME/asyncz
 
 ### Install the project dependencies
 
+Not necessary because the dependencies are automatically installed by hatch.
+But if environments should be pre-initialized it can be done with `hatch env`
+
 ```shell
 $ cd asyncz
-$ scripts/install
+$ hatch env create
+$ hatch env create test
+$ hatch env create docs
+```
+
+### Enable pre-commit
+
+The project comes with a pre-commit hook configuration. To enable it, just run inside the clone:
+
+```shell
+$ hatch run pre-commit install
 ```
 
 ### Run the tests
@@ -57,7 +70,7 @@ $ scripts/install
 To run the tests, use:
 
 ```shell
-$ scripts/test
+$ hatch run test:test
 ```
 
 Because Asyncz uses pytest, any additional arguments will be passed. More info within the
@@ -66,13 +79,13 @@ Because Asyncz uses pytest, any additional arguments will be passed. More info w
 For example, to run a single test_script:
 
 ```shell
-$ scripts/test tests/test_apiviews.py
+$ hatch run test:test tests/test_apiviews.py
 ```
 
 To run the linting, use:
 
 ```shell
-$ scripts/lint
+$ hatch run lint
 ```
 
 ### Documentation
@@ -82,7 +95,7 @@ Improving the documentation is quite easy and it is placed inside the `asyncz/do
 To start the docs, run:
 
 ```shell
-$ scripts/docs
+$ hatch run docs:serve
 ```
 
 ## Building Asyncz
@@ -90,16 +103,17 @@ $ scripts/docs
 To build a package locally, run:
 
 ```shell
-$ scripts/build
+$ hatch run build_with_check
 ```
 
 Alternatively running:
 
 ```
-$ scripts/install
+$ hatch shell
 ```
 
-It will install the requirements and create a local build in your virtual environment.
+It will install the requirements and switch to a virtual environment.
+
 
 ## Releasing
 

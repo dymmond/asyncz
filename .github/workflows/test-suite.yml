@@ -33,6 +33,6 @@ jobs:
         run: docker-compose up -d
       - name: "Install dependencies"
         if: steps.cache.outputs.cache-hit != 'true'
-        run: "scripts/install"
+        run: "pip install hatch"
       - name: "Run tests"
-        run: "scripts/test"
+        run: "hatch run test:test"
