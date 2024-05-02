@@ -1,9 +1,9 @@
-import pytz
+from datetime import timezone as tz
 
 from asyncz.schedulers.asyncio import AsyncIOScheduler
 
 # Create the scheduler
-scheduler = AsyncIOScheduler(timezone=pytz.utc)
+scheduler = AsyncIOScheduler(timezone=tz.utc)
 
 
 def send_email_newsletter():
