@@ -3,7 +3,6 @@ import sys
 from datetime import date, datetime, timedelta, tzinfo
 from functools import partial, wraps
 from types import ModuleType
-from unittest.mock import Mock
 
 import pytest
 import pytz
@@ -77,7 +76,14 @@ class TestToBool:
     @pytest.mark.parametrize(
         "value",
         [" True", "true ", "Yes", " yes ", "1  ", True],
-        ids=["capital true", "lowercase true", "capital yes", "lowercase yes", "one", "True"],
+        ids=[
+            "capital true",
+            "lowercase true",
+            "capital yes",
+            "lowercase yes",
+            "one",
+            "True",
+        ],
     )
     def test_true(self, value):
         assert to_bool(value) is True
@@ -85,7 +91,14 @@ class TestToBool:
     @pytest.mark.parametrize(
         "value",
         [" False", "false ", "No", " no ", "0  ", False],
-        ids=["capital", "lowercase false", "capital no", "lowercase no", "zero", "False"],
+        ids=[
+            "capital",
+            "lowercase false",
+            "capital no",
+            "lowercase no",
+            "zero",
+            "False",
+        ],
     )
     def test_false(self, value):
         assert to_bool(value) is False
@@ -106,15 +119,6 @@ class TestToTimezone:
 
     def test_none(self):
         assert to_timezone(None) is None
-
-    def test_bad_timezone_type(self):
-        exc = pytest.raises(TypeError, to_timezone, tzinfo())
-        assert "Only timezones from the pytz library are supported" in str(exc.value)
-
-    def test_bad_local_timezone(self):
-        zone = Mock(tzinfo, localize=None, normalize=None, tzname=lambda dt: "local")
-        exc = pytest.raises(ValueError, to_timezone, zone)
-        assert "Unable to determine the name of the local timezone" in str(exc.value)
 
     def test_bad_value(self):
         exc = pytest.raises(TypeError, to_timezone, 4)
@@ -230,10 +234,15 @@ class TestGetCallableName:
             (to_int, "to_int"),
             (
                 DummyClass.staticmeth,
-                "DummyClass.staticmeth" if hasattr(DummyClass, "__qualname__") else "staticmeth",
+                "DummyClass.staticmeth"
+                if hasattr(DummyClass, "__qualname__")
+                else "staticmeth",
             ),
             (DummyClass.classmeth, "DummyClass.classmeth"),
-            (DummyClass.meth, "meth" if sys.version_info[:2] == (3, 2) else "DummyClass.meth"),
+            (
+                DummyClass.meth,
+                "meth" if sys.version_info[:2] == (3, 2) else "DummyClass.meth",
+            ),
             (DummyClass().meth, "DummyClass.meth"),
             (DummyClass, "DummyClass"),
             (DummyClass(), "DummyClass"),
@@ -288,7 +297,8 @@ class TestObjToRef:
                 "tests.test_utils:DummyClass.InnerDummyClass.innerclassmeth",
                 marks=[
                     pytest.mark.skipif(
-                        sys.version_info < (3, 3), reason="Requires __qualname__ (Python 3.3+)"
+                        sys.version_info < (3, 3),
+                        reason="Requires __qualname__ (Python 3.3+)",
                     )
                 ],
             ),
@@ -297,7 +307,8 @@ class TestObjToRef:
                 "tests.test_utils:DummyClass.staticmeth",
                 marks=[
                     pytest.mark.skipif(
-                        sys.version_info < (3, 3), reason="Requires __qualname__ (Python 3.3+)"
+                        sys.version_info < (3, 3),
+                        reason="Requires __qualname__ (Python 3.3+)",
                     )
                 ],
             ),
@@ -332,7 +343,11 @@ class TestRefToObj:
 
     @pytest.mark.parametrize(
         "input,error",
-        [(object(), TypeError), ("module", AsynczException), ("module:blah", LookupError)],
+        [
+            (object(), TypeError),
+            ("module", AsynczException),
+            ("module:blah", LookupError),
+        ],
         ids=["raw object", "module", "module attribute"],
     )
     def test_lookup_error(self, input, error):
@@ -376,19 +391,25 @@ class TestCheckCallableArgs:
         exception.
 
         """
-        exc = pytest.raises(ValueError, check_callable_args, lambda x: None, [], {"x": 0, "y": 1})
+        exc = pytest.raises(
+            ValueError, check_callable_args, lambda x: None, [], {"x": 0, "y": 1}
+        )
         assert str(exc.value) == (
             "The target callable does not accept the following keyword " "arguments: y"
         )
 
     def test_missing_callable_args(self):
         """Tests that attempting to schedule a task with missing arguments raises an exception."""
-        exc = pytest.raises(ValueError, check_callable_args, lambda x, y, z: None, [1], {"y": 0})
+        exc = pytest.raises(
+            ValueError, check_callable_args, lambda x, y, z: None, [1], {"y": 0}
+        )
         assert str(exc.value) == "The following arguments have not been supplied: z"
 
     def test_default_args(self):
         """Tests that default values for arguments are properly taken into account."""
-        exc = pytest.raises(ValueError, check_callable_args, lambda x, y, z=1: None, [1], {})
+        exc = pytest.raises(
+            ValueError, check_callable_args, lambda x, y, z=1: None, [1], {}
+        )
         assert str(exc.value) == "The following arguments have not been supplied: y"
 
     def test_conflicting_callable_args(self):
@@ -397,8 +418,13 @@ class TestCheckCallableArgs:
         conflict raises an exception.
 
         """
-        exc = pytest.raises(ValueError, check_callable_args, lambda x, y: None, [1, 2], {"y": 1})
-        assert str(exc.value) == "The following arguments are supplied in both args and kwargs: y"
+        exc = pytest.raises(
+            ValueError, check_callable_args, lambda x, y: None, [1, 2], {"y": 1}
+        )
+        assert (
+            str(exc.value)
+            == "The following arguments are supplied in both args and kwargs: y"
+        )
 
     def test_signature_positional_only(self):
         """Tests that a function where signature() fails is accepted."""
@@ -430,7 +456,8 @@ class TestCheckCallableArgs:
         func = eval("lambda x, *, y, z=1: None")
         exc = pytest.raises(ValueError, check_callable_args, func, [1], {})
         assert str(exc.value) == (
-            "The following keyword-only arguments have not been supplied in " "kwargs: y"
+            "The following keyword-only arguments have not been supplied in "
+            "kwargs: y"
         )
 
     def test_wrapped_func(self):

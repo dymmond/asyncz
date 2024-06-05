@@ -39,11 +39,10 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP",
 ]
 dependencies = [
-    "asyncio>=3.4.3,<4.0.0",
     "loguru>=0.7.0,<0.8.0",
     "pydantic>=2.5.3,<3.0.0",
-    "pytz>=2022.6",
-    "tzlocal>=4.2,<5.0",
+    "tzlocal>=4.0,<6.0",
+    'backports.zoneinfo;python_version<"3.9"',
 ]
 keywords = [
     "api",
@@ -74,10 +73,19 @@ Source = "https://github.com/tarsil/asyncz"
 
 
 [tool.hatch.envs.default]
-dependencies = [
-    "ruff",
-    "pre-commit>=2.17.0,<3.0.0",
-    "twine"
+dependencies = ["ruff", "pre-commit>=2.17.0,<3.0.0", "twine"]
+
+[project.optional-dependencies]
+testing = [
+    "pymongo>=4.3.3,<5.0.0",
+    "pytest>=7.1.3,<9.0.0",
+    "pytest-cov >=2.12.0,<6.0.0",
+    "pytest-asyncio >=0.19.0,<1.0.0",
+    "pytest-loguru>=0.2.0,<1",
+    "redis>=4.4.0,<6.0.0",
+    "mypy>=0.982,<2.0.0",
+    "esmerald",
+    "pytz>=2022.6",
 ]
 
 [tool.hatch.envs.default.scripts]
@@ -87,16 +95,7 @@ lint = "ruff check --fix --line-length 99  asyncz tests docs_src {args}"
 build_with_check = "hatch build; twine check dist/*"
 
 [tool.hatch.envs.test]
-dependencies = [
-    "pymongo>=4.3.3,<5.0.0",
-    "pytest>=7.1.3,<9.0.0",
-    "pytest-cov >=2.12.0,<6.0.0",
-    "pytest-asyncio >=0.19.0,<1.0.0",
-    "pytest-loguru>=0.2.0,<1",
-    "redis>=4.4.0,<6.0.0",
-    "mypy>=0.982,<2.0.0",
-    "esmerald"
-]
+dependencies = ["asyncz[testing]"]
 
 [tool.hatch.envs.test.scripts]
 # needs docker services running

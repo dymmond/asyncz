@@ -1,11 +1,11 @@
-import pytz
+from datetime import timezone as tz
 from loguru import logger
 
 from asyncz.events.constants import TASK_ADDED, TASK_REMOVED
 from asyncz.schedulers.asyncio import AsyncIOScheduler
 
 # Create the scheduler
-scheduler = AsyncIOScheduler(timezone=pytz.utc)
+scheduler = AsyncIOScheduler(timezone=tz.utc)
 
 
 def my_custom_listener(event):

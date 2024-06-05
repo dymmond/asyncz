@@ -1,10 +1,10 @@
-import pytz
+from datetime import timezone as tz
 
 from asyncz.schedulers.asyncio import AsyncIOScheduler
 from asyncz.triggers import CronTrigger, IntervalTrigger
 
 # Create the scheduler
-scheduler = AsyncIOScheduler(timezone=pytz.utc)
+scheduler = AsyncIOScheduler(timezone=tz.utc)
 
 
 def send_email_newsletter():
@@ -36,7 +36,9 @@ scheduler.add_task(
 )
 
 # Reschedule the tasks
-scheduler.reschedule_task("send_email_newsletter", trigger="cron", day_of_week="mon", hour="1")
+scheduler.reschedule_task(
+    "send_email_newsletter", trigger="cron", day_of_week="mon", hour="1"
+)
 scheduler.reschedule_task("check_status", trigger="interval", minutes=20)
 
 # Start the scheduler
