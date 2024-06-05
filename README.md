@@ -24,7 +24,7 @@
 
 ---
 
-**Documentation**: [https://asyncz.tarsild.io](https://asyncz.tarsild.io) 📚
+**Documentation**: [https://asyncz.dymmond.com](https://asyncz.dymmond.com) 📚
 
 **Source Code**: [https://github.com/tarsil/asyncz](https://github.com/tarsil/asyncz)
 
@@ -68,16 +68,16 @@ completely indepent from any framework as well as inside ASGI frameworks such as
 
 Asyncz comes with special support to [Esmerald](https://esmerald.dymmond.com) for the simple reason that the author is
 the same but it can be added more support. If you are interested in adding support to your favourite frameworks then
-see the [contributing](https://asyncz.tarsild.io/contributing.md) section.
+see the [contributing](https://asyncz.dymmond.com/contributing.md) section.
 
 ## Concepts
 
 Like APScheduler, Asyncz also brings four kinds of components:
 
-* [Schedulers](https://asyncz.tarsild.io/schedulers.md)
-* [Triggers](https://asyncz.tarsild.io/triggers.md)
-* [Stores](https://asyncz.tarsild.io/stores.md)
-* [Executors](https://asyncz.tarsild.io/executors.md)
+* [Schedulers](https://asyncz.dymmond.com/schedulers.md)
+* [Triggers](https://asyncz.dymmond.com/triggers.md)
+* [Stores](https://asyncz.dymmond.com/stores.md)
+* [Executors](https://asyncz.dymmond.com/executors.md)
 
 ## Requirements
 
@@ -96,28 +96,28 @@ $ pip install asyncz
 
 ## The right decisions
 
-How do you know if you are choosing the right [scheduler](https://asyncz.tarsild.io/schedulers.md),
-[triggers](https://asyncz.tarsild.io/triggers.md), [stores](https://asyncz.tarsild.io/stores.md)
-and [executors](https://asyncz.tarsild.io/executors.md)?
+How do you know if you are choosing the right [scheduler](https://asyncz.dymmond.com/schedulers.md),
+[triggers](https://asyncz.dymmond.com/triggers.md), [stores](https://asyncz.dymmond.com/stores.md)
+and [executors](https://asyncz.dymmond.com/executors.md)?
 
 Well, Asyncz is intentionally designed for specific systems and already helps you out with some of
 those questions.
 
-* **Schedulers** - Natively only supports the [AsyncIOScheduler](https://asyncz.tarsild.io/schedulers.md#asyncioscheduler).
+* **Schedulers** - Natively only supports the [AsyncIOScheduler](https://asyncz.dymmond.com/schedulers.md#asyncioscheduler).
 * **Triggers** - Here it will depend of the periocidity of our tasks. Example:
-    * [CronTrigger](https://asyncz.tarsild.io/triggers.md#crontrigger) - UNIX like cron and gives you the same feeling as
+    * [CronTrigger](https://asyncz.dymmond.com/triggers.md#crontrigger) - UNIX like cron and gives you the same feeling as
 scheduling a task on a native UNIX like based system.
-    * [DateTrigger](https://asyncz.tarsild.io/triggers.md#datetrigger) - When you need to run a task once on a specific
+    * [DateTrigger](https://asyncz.dymmond.com/triggers.md#datetrigger) - When you need to run a task once on a specific
 point of time.
-    * [IntervalTrigger](https://asyncz.tarsild.io/triggers.md#intervaltrigger) - When you need to run tasks in specific
+    * [IntervalTrigger](https://asyncz.dymmond.com/triggers.md#intervaltrigger) - When you need to run tasks in specific
 intervals of time.
-    * [OrTrigger](https://asyncz.tarsild.io/triggers.md#ortrigger)/[AndTrigger](https://asyncz.tarsild.io/triggers.md#andtrigger) - If you would
+    * [OrTrigger](https://asyncz.dymmond.com/triggers.md#ortrigger)/[AndTrigger](https://asyncz.dymmond.com/triggers.md#andtrigger) - If you would
 like to combine more than one trigger (cron, interval and date) together.
-* **Stores** - Natively only supports [redis](https://asyncz.tarsild.io/stores.md#redisstore),
-[mongo](https://asyncz.tarsild.io/stores.md#mongodbstore) and [memory](https://asyncz.tarsild.io/stores.md#memorystore).
-* **Executors** - Natively only supports [AsyncIOExecutor](https://asyncz.tarsild.io/executors.md#asyncioexecutor),
-[ThreadPoolExecutor](https://asyncz.tarsild.io/executors.md#threadpoolexecutor) and
-[ProcessPoolExecutor](https://asyncz.tarsild.io/executors.md#processpoolexecutor).
+* **Stores** - Natively only supports [redis](https://asyncz.dymmond.com/stores.md#redisstore),
+[mongo](https://asyncz.dymmond.com/stores.md#mongodbstore) and [memory](https://asyncz.dymmond.com/stores.md#memorystore).
+* **Executors** - Natively only supports [AsyncIOExecutor](https://asyncz.dymmond.com/executors.md#asyncioexecutor),
+[ThreadPoolExecutor](https://asyncz.dymmond.com/executors.md#threadpoolexecutor) and
+[ProcessPoolExecutor](https://asyncz.dymmond.com/executors.md#processpoolexecutor).
 
 Sometimes having a lot of options makes the decision making very hard and Asyncz is intentionally
 designed and driven to simplify and for specific use cases but is not limited to those. In every
@@ -144,7 +144,7 @@ scheduler = AsyncIOScheduler()
 ```
 
 Initialize the rest of the application after the `scheduler` initialisation.
-More [details](https://asyncz.tarsild.io/schedulers.md) can be found with more thorough explanations.
+More [details](https://asyncz.dymmond.com/schedulers.md) can be found with more thorough explanations.
 
 This is in simple terms and in a nutshell how to start with Asyncz quickly. For more information,
 details and examples how to leverage Asyncz simply navigate through the documentation and have
@@ -152,11 +152,11 @@ fun 😁🎉.
 
 ## ASGI support
 
-Asyncz currently supports the [Esmerald framework](https://asyncz.tarsild.io/contrib/esmerald/index.md)
+Asyncz currently supports the [Esmerald framework](https://asyncz.dymmond.com/contrib/esmerald/index.md)
 and brings some batteries that are currently used by the framework and leveraging Asyncz.
 
 If you wish to have support to any other framework such as FastAPI, Starlite, Starlette or
-literally any other, check the [contributing](https://asyncz.tarsild.io/contributing.md) section and see how you can
+literally any other, check the [contributing](https://asyncz.dymmond.com/contributing.md) section and see how you can
 do it.
 
 ## Sponsors

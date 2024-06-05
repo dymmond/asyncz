@@ -1,6 +1,6 @@
 site_name: Asyncz
 site_description: The scheduler that simply works.
-site_url: https://asyncz.tarsild.io
+site_url: https://asyncz.dymmond.com
 
 theme:
   name: "material"
