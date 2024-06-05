@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-<a href="https://github.com/tarsil/asyncz/workflows/Test%20Suite/badge.svg?event=push&branch=main" target="_blank">
-    <img src="https://github.com/tarsil/asyncz/workflows/Test%20Suite/badge.svg?event=push&branch=main" alt="Test Suite">
+<a href="https://github.com/dymmond/asyncz/workflows/Test%20Suite/badge.svg?event=push&branch=main" target="_blank">
+    <img src="https://github.com/dymmond/asyncz/workflows/Test%20Suite/badge.svg?event=push&branch=main" alt="Test Suite">
 </a>
 
 <a href="https://pypi.org/project/asyncz" target="_blank">
@@ -26,7 +26,7 @@
 
 **Documentation**: [https://asyncz.dymmond.com](https://asyncz.dymmond.com) 📚
 
-**Source Code**: [https://github.com/tarsil/asyncz](https://github.com/tarsil/asyncz)
+**Source Code**: [https://github.com/dymmond/asyncz](https://github.com/dymmond/asyncz)
 
 ---
 

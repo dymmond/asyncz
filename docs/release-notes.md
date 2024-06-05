@@ -7,7 +7,7 @@
 #### Breaking change
 
 - In the past, `asyncz` had a typo in `max_intances`. This was changed to `max_instances` instead.
-This addresses the Discusson [#49](https://github.com/tarsil/asyncz/discussions/49) raised by [@devkral](https://github.com/devkral).
+This addresses the Discusson [#49](https://github.com/dymmond/asyncz/discussions/49) raised by [@devkral](https://github.com/devkral).
 
 ## 0.5.0
 

@@ -12,7 +12,7 @@ Giving a start to Asyncz is very simple and helps promoting the work across the 
 
 The button is located at the top right.
 
-[https://github.com/tarsil/asyncz](https://github.com/tarsil/asyncz).
+[https://github.com/dymmond/asyncz](https://github.com/dymmond/asyncz).
 
 This will help spreading the word about the tool and how helpful has been.
 

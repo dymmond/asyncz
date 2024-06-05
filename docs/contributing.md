@@ -3,9 +3,9 @@
 Thank you for showing interes in contributing to Asyncz. There are many ways you can help and contribute to the
 project.
 
-* Try Asyncz and [report bugs and issues](https://github.com/tarsil/asyncz/issues/new) you find.
-* [Implement new features](https://github.com/tarsil/asyncz/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
-* Help othes by [reviewing pull requests](https://github.com/tarsil/asyncz/pulls)
+* Try Asyncz and [report bugs and issues](https://github.com/dymmond/asyncz/issues/new) you find.
+* [Implement new features](https://github.com/dymmond/asyncz/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+* Help othes by [reviewing pull requests](https://github.com/dymmond/asyncz/pulls)
 * Help writting documentation
 * Use the discussions and actively participate on them.
 * Become an contributor by helping Asyncz growing and spread the words across small, medium, large or any company
@@ -17,7 +17,7 @@ It is natural that you might find something that Asyncz should support or even e
 behaviour that needs addressing.
 
 The way we love doing things is very simple, contributions should start out with a
-[discussion](https://github.com/tarsil/asyncz/discussions). The potential bugs shall be raised as "Potential Issue"
+[discussion](https://github.com/dymmond/asyncz/discussions). The potential bugs shall be raised as "Potential Issue"
 in the discussions, the feature requests may be raised as "Ideas".
 
 We can then decide if the discussion needs to be escalated into an "Issue" or not.
@@ -37,7 +37,7 @@ it clear to understand and get the required help.
 
 ## Development
 
-To develop for Asyncz, create a fork of the [Asyncz repository](https://github.com/tarsil/asyncz) on GitHub.
+To develop for Asyncz, create a fork of the [Asyncz repository](https://github.com/dymmond/asyncz) on GitHub.
 
 After, clone your fork with the follow command replacing `YOUR-USERNAME` wih your GitHub username:
 
@@ -125,7 +125,7 @@ Before releasing a new package into production some considerations need to be ta
 
 * **Changelog**
     * Like many projects, we follow the format from [keepchangelog](https://keepachangelog.com/en/1.0.0/).
-    * [Compare](https://github.com/tarsil/asyncz/compare/) `main` with the release tag and list of the entries
+    * [Compare](https://github.com/dymmond/asyncz/compare/) `main` with the release tag and list of the entries
 that are of interest to the users of the framework.
         * What **must** go in the changelog? added, changed, removed or deprecated features and the bug fixes.
         * What is **should not go** in the changelog? Documentation changes, tests or anything not specified in the
@@ -138,7 +138,7 @@ point above.
 
 #### Releasing
 
-Once the `release` PR is merged, create a new [release](https://github.com/tarsil/asyncz/releases/new)
+Once the `release` PR is merged, create a new [release](https://github.com/dymmond/asyncz/releases/new)
 that includes:
 
 Example:
