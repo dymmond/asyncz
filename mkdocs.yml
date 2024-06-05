@@ -28,7 +28,7 @@ theme:
     - search.highlight
     - content.tabs.link
 
-repo_name: tarsil/asyncz
+repo_name: dymmond/asyncz
 repo_url: https://github.com/dymmond/asyncz
 edit_uri: ""
 plugins:

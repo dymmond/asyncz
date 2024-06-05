@@ -65,11 +65,11 @@ keywords = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/tarsil/asyncz"
+Homepage = "https://github.com/dymmond/asyncz"
 Documentation = "https://asyncz.dymmond.com/"
 Changelog = "https://asyncz.dymmond.com/release-notes/"
 Funding = "https://github.com/sponsors/tarsil"
-Source = "https://github.com/tarsil/asyncz"
+Source = "https://github.com/dymmond/asyncz"
 
 
 [tool.hatch.envs.default]
