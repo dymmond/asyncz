@@ -66,8 +66,8 @@ keywords = [
 
 [project.urls]
 Homepage = "https://github.com/tarsil/asyncz"
-Documentation = "https://asyncz.tarsild.io/"
-Changelog = "https://asyncz.tarsild.io/release-notes/"
+Documentation = "https://asyncz.dymmond.com/"
+Changelog = "https://asyncz.dymmond.com/release-notes/"
 Funding = "https://github.com/sponsors/tarsil"
 Source = "https://github.com/tarsil/asyncz"
 
