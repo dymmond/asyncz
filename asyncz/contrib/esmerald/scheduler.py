@@ -18,7 +18,6 @@ except ImportError:
 
 if TYPE_CHECKING:
     from esmerald.applications import Esmerald
-    from pydantic.typing import AnyCallable
 
 
 class EsmeraldScheduler:
@@ -93,14 +92,15 @@ class EsmeraldScheduler:
         """
         Registers the scheduler events in the Esmerald application.
         """
+        if app.on_startup is not None:
+            app.on_startup.append(self.handler.start)
+        else:
+            app.on_startup = [self.handler.start]
 
-        @app.on_event("startup")
-        def start_scheduler() -> None:
-            self.handler.start()
-
-        @app.on_event("shutdown")
-        def stop_scheduler() -> None:
-            self.handler.shutdown()
+        if app.on_shutdown is not None:
+            app.on_shutdown.append(self.handler.shutdown)
+        else:
+            app.on_shutdown = [self.handler.shutdown]
 
     def get_scheduler(
         self,
@@ -208,7 +208,7 @@ class Task:
         except Exception as e:
             raise ImproperlyConfigured(str(e)) from e
 
-    def __call__(self, fn: "AnyCallable") -> None:
+    def __call__(self, fn: Any) -> None:
         """
         Tricking the object into think it's being instantiated by in reality
         is just returning itself.
