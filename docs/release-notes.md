@@ -1,5 +1,11 @@
 # Release Notes
 
+## 0.7.0
+
+### Changed
+
+- `EsmeraldScheduler` contrib register events to match the new Esmerald implementation.
+
 ## 0.6.0
 
 ### Fixed
