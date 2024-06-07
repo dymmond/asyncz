@@ -18,11 +18,16 @@ class AsyncIOScheduler(BaseScheduler):
         event_loop: AsyncOP event loop to use. Default to the global event loop.
     """
 
+    event_loop: Optional[Any] = None
+    timeout: Optional[int] = None
+    timezone: Optional[str] = None
+
     def __init__(
         self, event_loop: Optional[Any] = None, timeout: Optional[int] = None, **kwargs: Any
     ) -> None:
         super().__init__(**kwargs)
-        self.event_loop = event_loop
+        if self.event_loop is None:
+            self.event_loop = event_loop
         self.timeout = timeout
 
     def start(self, paused: bool = False):
@@ -36,7 +41,7 @@ class AsyncIOScheduler(BaseScheduler):
         self.stop_timer()
 
     def _setup(self, config: Any) -> None:
-        self.event_loop = maybe_ref(config.pop("event_loop", None))
+        self.event_loop = maybe_ref(config.pop("event_loop", asyncio.get_event_loop()))
         super()._setup(config)
 
     def start_timer(self, wait_seconds: Optional[int] = None):

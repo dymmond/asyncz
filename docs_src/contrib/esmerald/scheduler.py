@@ -1,9 +1,9 @@
-from esmerald import Esmerald
 from loguru import logger
 
 from asyncz.contrib.esmerald.decorator import scheduler
 from asyncz.schedulers import AsyncIOScheduler
 from asyncz.triggers import IntervalTrigger
+from esmerald import Esmerald
 
 
 # Run every 2 minutes
@@ -23,11 +23,11 @@ configurations = (
     {
         "asyncz.stores.mongo": {"type": "mongodb"},
         "asyncz.stores.default": {"type": "redis", "database": "0"},
-        "asyncz.executors.threadpool": {
+        "asyncz.executors.pool": {
             "max_workers": "20",
-            "class": "asyncz.executors.threadpool:ThreadPoolExecutor",
+            "class": "asyncz.executors.pool:ThreadPoolExecutor",
         },
-        "asyncz.executors.default": {"class": "asyncz.executors.asyncio::AsyncIOExecutor"},
+        "asyncz.executors.default": {"class": "asyncz.executors.asyncio:AsyncIOExecutor"},
         "asyncz.task_defaults.coalesce": "false",
         "asyncz.task_defaults.max_instances": "3",
         "asyncz.task_defaults.timezone": "UTC",

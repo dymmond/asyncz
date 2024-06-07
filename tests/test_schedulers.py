@@ -228,12 +228,8 @@ class TestBaseScheduler:
         """
         pytest.raises(SchedulerNotRunningError, method, scheduler)
 
-    @patch(
-        "asyncz.schedulers.base.BaseScheduler.dispatch_event", side_effect=MagicMock()
-    )
-    @patch(
-        "asyncz.schedulers.base.BaseScheduler.real_add_task", side_effect=MagicMock()
-    )
+    @patch("asyncz.schedulers.base.BaseScheduler.dispatch_event", side_effect=MagicMock())
+    @patch("asyncz.schedulers.base.BaseScheduler.real_add_task", side_effect=MagicMock())
     def test_start(self, real_add_task, dispatch_events, scheduler, create_task):
         scheduler.executors = {
             "exec1": MagicMock(BaseExecutor),
@@ -344,8 +340,7 @@ class TestBaseScheduler:
         scheduler.add_executor(executor)
         exc = pytest.raises(ValueError, scheduler.add_executor, executor)
         assert (
-            str(exc.value)
-            == "This scheduler already has an executor by the alias of 'default'."
+            str(exc.value) == "This scheduler already has an executor by the alias of 'default'."
         )
 
     def test_remove_executor_nonexistent(self, scheduler):
@@ -375,8 +370,7 @@ class TestBaseScheduler:
         scheduler.add_store(store)
         exc = pytest.raises(ValueError, scheduler.add_store, store)
         assert (
-            str(exc.value)
-            == "This scheduler already has a task store by the alias of 'default'."
+            str(exc.value) == "This scheduler already has a task store by the alias of 'default'."
         )
 
     def test_remove_store(self, scheduler, scheduler_events):
@@ -493,9 +487,7 @@ class TestBaseScheduler:
             run_at="2022-06-01 08:41:00",
         )
 
-    @pytest.mark.parametrize(
-        "pending", [True, False], ids=["pending task", "scheduled task"]
-    )
+    @pytest.mark.parametrize("pending", [True, False], ids=["pending task", "scheduled task"])
     def test_update_task(self, scheduler, pending, timezone):
         task = MagicMock()
         object_setter(scheduler, "dispatch_event", MagicMock())
@@ -535,9 +527,7 @@ class TestBaseScheduler:
         object_setter(scheduler, "update_task", MagicMock())
         trigger = MagicMock(get_next_trigger_time=lambda previous, now: 1)
         object_setter(scheduler, "create_trigger", MagicMock(return_value=trigger))
-        scheduler.reschedule_task(
-            "my-id", "store", "date", run_at="2022-06-01 08:41:00"
-        )
+        scheduler.reschedule_task("my-id", "store", "date", run_at="2022-06-01 08:41:00")
 
         assert scheduler.update_task.call_count == 1
         assert scheduler.update_task.call_args[0] == ("my-id", "store")
@@ -550,22 +540,14 @@ class TestBaseScheduler:
         object_setter(scheduler, "update_task", MagicMock())
         scheduler.pause_task("task_id", "store")
 
-        scheduler.update_task.assert_called_once_with(
-            "task_id", "store", next_run_time=None
-        )
+        scheduler.update_task.assert_called_once_with("task_id", "store", next_run_time=None)
 
     @pytest.mark.parametrize("dead_task", [True, False], ids=["dead task", "live task"])
     def test_resume_task(self, scheduler, freeze_time, dead_task):
-        next_trigger_time = (
-            None if dead_task else freeze_time.current + timedelta(seconds=1)
-        )
-        trigger = MagicMock(
-            BaseTrigger, get_next_trigger_time=lambda prev, now: next_trigger_time
-        )
+        next_trigger_time = None if dead_task else freeze_time.current + timedelta(seconds=1)
+        trigger = MagicMock(BaseTrigger, get_next_trigger_time=lambda prev, now: next_trigger_time)
         returned_task = MagicMock(Task, id="foo", trigger=trigger)
-        object_setter(
-            scheduler, "lookup_task", MagicMock(return_value=(returned_task, "bar"))
-        )
+        object_setter(scheduler, "lookup_task", MagicMock(return_value=(returned_task, "bar")))
         object_setter(scheduler, "update_task", MagicMock())
         object_setter(scheduler, "delete_task", MagicMock())
         scheduler.resume_task("foo")
@@ -577,18 +559,12 @@ class TestBaseScheduler:
                 "foo", "bar", next_run_time=next_trigger_time
             )
 
-    @pytest.mark.parametrize(
-        "scheduler_started", [True, False], ids=["running", "stopped"]
-    )
-    @pytest.mark.parametrize(
-        "store", [None, "other"], ids=["all stores", "specific store"]
-    )
+    @pytest.mark.parametrize("scheduler_started", [True, False], ids=["running", "stopped"])
+    @pytest.mark.parametrize("store", [None, "other"], ids=["all stores", "specific store"])
     def test_get_tasks(self, scheduler, scheduler_started, store):
         scheduler.add_store(MemoryStore(), "other")
         scheduler.add_task(lambda: None, "interval", seconds=1, id="task1")
-        scheduler.add_task(
-            lambda: None, "interval", seconds=1, id="task2", store="other"
-        )
+        scheduler.add_task(lambda: None, "interval", seconds=1, id="task2", store="other")
         if scheduler_started:
             scheduler.start(paused=True)
 
@@ -599,31 +575,23 @@ class TestBaseScheduler:
         task_ids = {task.id for task in scheduler.get_tasks(store)}
         assert task_ids == expected_task_ids
 
-    @pytest.mark.parametrize(
-        "store", [None, "bar"], ids=["any store", "specific store"]
-    )
+    @pytest.mark.parametrize("store", [None, "bar"], ids=["any store", "specific store"])
     def test_get_task(self, scheduler, store):
         returned_task = object()
-        object_setter(
-            scheduler, "lookup_task", MagicMock(return_value=(returned_task, "bar"))
-        )
+        object_setter(scheduler, "lookup_task", MagicMock(return_value=(returned_task, "bar")))
         task = scheduler.get_task("foo", store)
 
         assert task is returned_task
 
     def test_get_task_nonexistent_task(self, scheduler):
-        object_setter(
-            scheduler, "lookup_task", MagicMock(side_effect=TaskLookupError("foo"))
-        )
+        object_setter(scheduler, "lookup_task", MagicMock(side_effect=TaskLookupError("foo")))
         assert scheduler.get_task("foo") is None
 
     def test_get_task_nonexistent_store(self, scheduler):
         assert scheduler.get_task("foo", "bar") is None
 
     @pytest.mark.parametrize("start_scheduler", [True, False])
-    @pytest.mark.parametrize(
-        "store", [None, "other"], ids=["any store", "specific store"]
-    )
+    @pytest.mark.parametrize("store", [None, "other"], ids=["any store", "specific store"])
     def test_remove_task(self, scheduler, scheduler_events, start_scheduler, store):
         scheduler.add_store(MemoryStore(), "other")
         scheduler.add_task(lambda: None, id="task1")
@@ -646,9 +614,7 @@ class TestBaseScheduler:
 
     @pytest.mark.parametrize("start_scheduler", [True, False])
     @pytest.mark.parametrize("store", [None, "other"], ids=["all", "single store"])
-    def test_remove_all_tasks(
-        self, scheduler, start_scheduler, scheduler_events, store
-    ):
+    def test_remove_all_tasks(self, scheduler, start_scheduler, scheduler_events, store):
         scheduler.add_store(MemoryStore(), "other")
         scheduler.add_task(lambda: None, id="task1")
         scheduler.add_task(lambda: None, id="task2")
@@ -731,8 +697,7 @@ class TestBaseScheduler:
     def test_configure_private_invalid_executor(self, scheduler):
         exc = pytest.raises(TypeError, scheduler._setup, {"executors": {"default": 6}})
         assert str(exc.value) == (
-            "Expected executor instance or dict for executors['default'], "
-            "got int instead."
+            "Expected executor instance or dict for executors['default'], " "got int instead."
         )
 
     def test_configure_private_invalid_store(self, scheduler):
@@ -777,9 +742,7 @@ class TestBaseScheduler:
         assert not scheduler.listeners[0][0].called
         scheduler.listeners[1][0].assert_called_once_with(event)
 
-    @pytest.mark.parametrize(
-        "load_plugin", [True, False], ids=["load plugin", "plugin loaded"]
-    )
+    @pytest.mark.parametrize("load_plugin", [True, False], ids=["load plugin", "plugin loaded"])
     @patch("asyncz.schedulers.base.BaseScheduler.resolve_load_plugin")
     def test_create_trigger(self, mocked_plugin, scheduler, load_plugin):
         mocked_plugin.return_value = DummyTrigger
@@ -812,10 +775,7 @@ class TestBaseScheduler:
 
     def test_create_trigger_bad_trigger_type(self, scheduler):
         exc = pytest.raises(TypeError, scheduler.create_trigger, 1, {})
-        assert (
-            str(exc.value)
-            == "Expected a trigger instance or string, got 'int' instead."
-        )
+        assert str(exc.value) == "Expected a trigger instance or string, got 'int' instead."
 
     @patch("asyncz.schedulers.base.BaseScheduler.resolve_load_plugin")
     def test_create_trigger_bad_plugin_type(self, mocked_plugin, scheduler):
@@ -826,10 +786,7 @@ class TestBaseScheduler:
         scheduler.trigger_classes = {}
         scheduler.trigger_plugins = {"dummy": mock_plugin}
         exc = pytest.raises(TypeError, scheduler.create_trigger, "dummy", {})
-        assert (
-            str(exc.value)
-            == "The trigger entry point does not point to a trigger class."
-        )
+        assert str(exc.value) == "The trigger entry point does not point to a trigger class."
 
     def test_create_trigger_nonexisting_plugin(self, scheduler):
         exc = pytest.raises(LookupError, scheduler.create_trigger, "dummy", {})
@@ -867,22 +824,16 @@ class TestBaseScheduler:
         scheduler.process_tasks()
 
         assert len(scheduler_events) == 1
-        assert scheduler_events[0].scheduled_run_times == [
-            freeze_time.get(scheduler.timezone)
-        ]
+        assert scheduler_events[0].scheduled_run_times == [freeze_time.get(scheduler.timezone)]
 
     def test_serialize_scheduler(self, scheduler):
-        pytest.raises(TypeError, pickle.dumps, scheduler).match(
-            "Schedulers cannot be serialized."
-        )
+        pytest.raises(TypeError, pickle.dumps, scheduler).match("Schedulers cannot be serialized.")
 
 
 class TestProcessTasks:
     @pytest.fixture
     def task(self):
-        task = MagicMock(
-            Task, id=999, executor="default", coalesce=False, max_instances=1
-        )
+        task = MagicMock(Task, id=999, executor="default", coalesce=False, max_instances=1)
         task.trigger = MagicMock(get_next_trigger_time=MagicMock(return_value=None))
         task.__str__ = lambda x: "task 999"
         return task
@@ -965,13 +916,9 @@ class SchedulerImpBaseTest:
     def wait_event(self, queue):
         return queue.get(True, 1)
 
-    def test_add_pending_task(
-        self, scheduler, freeze_time, eventqueue, start_scheduler
-    ):
+    def test_add_pending_task(self, scheduler, freeze_time, eventqueue, start_scheduler):
         freeze_time.set_increment(timedelta(seconds=0.2))
-        scheduler.add_task(
-            lambda x, y: x + y, "date", args=[1, 2], run_date=freeze_time.next()
-        )
+        scheduler.add_task(lambda x, y: x + y, "date", args=[1, 2], run_date=freeze_time.next())
         start_scheduler()
 
         assert self.wait_event(eventqueue).code == STORE_ADDED

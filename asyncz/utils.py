@@ -190,9 +190,7 @@ def get_callable_name(func: Any) -> Any:
             return func.__name__
         return func.__class__.__name__
 
-    raise TypeError(
-        "Unable to determine a name for %r -- maybe it is not a callable?" % func
-    )
+    raise TypeError("Unable to determine a name for %r -- maybe it is not a callable?" % func)
 
 
 def obj_to_ref(obj: Any) -> str:
@@ -316,8 +314,7 @@ def check_callable_args(func: Callable[..., Any], args: Any, kwargs: Any) -> Non
 
     if unsatisfied_args:
         raise ValueError(
-            "The following arguments have not been supplied: %s"
-            % ", ".join(unsatisfied_args)
+            "The following arguments have not been supplied: %s" % ", ".join(unsatisfied_args)
         )
 
     if unsatisfied_kwargs:
@@ -329,8 +326,7 @@ def check_callable_args(func: Callable[..., Any], args: Any, kwargs: Any) -> Non
     if not has_varargs and unmatched_args:
         raise ValueError(
             "The list of positional arguments is longer than the target callable can handle "
-            "(allowed: %d, given in args: %d)"
-            % (len(args) - len(unmatched_args), len(args))
+            "(allowed: %d, given in args: %d)" % (len(args) - len(unmatched_args), len(args))
         )
 
     if not has_var_kwargs and unmatched_kwargs:

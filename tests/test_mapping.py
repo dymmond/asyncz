@@ -87,7 +87,7 @@ def test_default_mapping_triggers(trigger):
     assert trigger in mapping.triggers.keys()
 
 
-@pytest.mark.parametrize("store", ["memory", "mongo", "redis"])
+@pytest.mark.parametrize("store", ["memory", "mongodb", "redis"])
 def test_default_mapping_stores(store):
     mapping = AsynczObjectMapping()
 
@@ -109,7 +109,7 @@ def test_custom_mapping_triggers(trigger):
     assert trigger in mapping.triggers.keys()
 
 
-@pytest.mark.parametrize("store", ["memory", "mongo", "redis", "dummy"])
+@pytest.mark.parametrize("store", ["memory", "mongodb", "redis", "dummy"])
 def test_custom_mapping_stores(store):
     mapping = DummyMapping()
 
