@@ -1,5 +1,12 @@
 # Release Notes
 
+## 0.8.0
+
+### Fix
+
+- `AsyncIOScheduler` was not pulling the event loop appropriately.
+- Fix `mongodb` store finder.
+
 ## 0.7.0
 
 ### Changed
