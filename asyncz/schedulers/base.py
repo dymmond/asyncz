@@ -45,14 +45,7 @@ from asyncz.stores.memory import MemoryStore
 from asyncz.tasks import Task
 from asyncz.triggers.base import BaseTrigger
 from asyncz.typing import undefined
-from asyncz.utils import (
-    TIMEOUT_MAX,
-    maybe_ref,
-    timedelta_seconds,
-    to_bool,
-    to_int,
-    to_timezone,
-)
+from asyncz.utils import TIMEOUT_MAX, maybe_ref, timedelta_seconds, to_bool, to_int, to_timezone
 
 DictAny = Dict[Any, Any]
 
@@ -181,16 +174,13 @@ class BaseScheduler(BaseStateExtra, ABC):
                 self.real_add_task(task, store_alias, replace_existing)
             del self.pending_tasks[:]
 
-        self.state = (
-            SchedulerState.STATE_PAUSED if paused else SchedulerState.STATE_RUNNING
-        )
+        self.state = SchedulerState.STATE_PAUSED if paused else SchedulerState.STATE_RUNNING
         self.logger.info("Scheduler started.")
         self.dispatch_event(SchedulerEvent(code=SCHEDULER_START))
 
         if not paused:
             self.wakeup()
 
-    @abstractmethod
     def shutdown(self, wait: bool = True):
         """
         Shuts down the scheduler, along with its executors and task stores.
@@ -285,9 +275,7 @@ class BaseScheduler(BaseStateExtra, ABC):
 
         self.dispatch_event(SchedulerEvent(code=EXECUTOR_REMOVED, alias=alias))
 
-    def add_store(
-        self, store: "StoreType", alias: str = "default", **store_options: Any
-    ):
+    def add_store(self, store: "StoreType", alias: str = "default", **store_options: Any):
         """
         Adds a task store to this scheduler.
 
@@ -424,9 +412,7 @@ class BaseScheduler(BaseStateExtra, ABC):
             "max_instances": max_instances,
             "next_run_time": next_run_time,
         }
-        task_kwargs = {
-            key: value for key, value in task_struct.items() if value is not undefined
-        }
+        task_kwargs = {key: value for key, value in task_struct.items() if value is not undefined}
         task = Task(self, **task_kwargs)
 
         with self.store_lock:
@@ -540,13 +526,9 @@ class BaseScheduler(BaseStateExtra, ABC):
         trigger = self.create_trigger(trigger, trigger_args)
         now = datetime.now(self.timezone)
         next_run_time = trigger.get_next_trigger_time(None, now)
-        return self.update_task(
-            task_id, store, trigger=trigger, next_run_time=next_run_time
-        )
+        return self.update_task(task_id, store, trigger=trigger, next_run_time=next_run_time)
 
-    def pause_task(
-        self, task_id: Union[int, str], store: Optional[str] = None
-    ) -> "TaskType":
+    def pause_task(self, task_id: Union[int, str], store: Optional[str] = None) -> "TaskType":
         """
         Causes the given task not to be executed until it is explicitly resumed.
 
@@ -600,9 +582,7 @@ class BaseScheduler(BaseStateExtra, ABC):
 
             return tasks
 
-    def get_task(
-        self, task_id: str, store: Optional[str] = None
-    ) -> Union["TaskType", None]:
+    def get_task(self, task_id: str, store: Optional[str] = None) -> Union["TaskType", None]:
         """
         Returms the Task that matches the given task_id.
 
@@ -835,15 +815,13 @@ class BaseScheduler(BaseStateExtra, ABC):
             replace_existing: The flag indicating the replacement of the task.
         """
         replacements = {}
-        for key, value in self.task_defaults.dict(exclude_none=True).items():
+        for key, value in self.task_defaults.model_dump(exclude_none=True).items():
             replacements[key] = value
 
         # Calculate the next run time if there is none defined
         if not getattr(task, "next_run_time", None):
             now = datetime.now(self.timezone)
-            replacements["next_run_time"] = task.trigger.get_next_trigger_time(
-                None, now
-            )
+            replacements["next_run_time"] = task.trigger.get_next_trigger_time(None, now)
 
         # Apply replacements
         task._update(**replacements)
@@ -876,9 +854,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         try:
             module_path, class_name = module_name.rsplit(":", 1)
         except ValueError as err:
-            raise ImportError(
-                "%s doesn't look like a module path" % module_name
-            ) from err
+            raise ImportError("%s doesn't look like a module path" % module_name) from err
 
         module = import_module(module_path)
 
@@ -910,9 +886,7 @@ class BaseScheduler(BaseStateExtra, ABC):
                         f"The {format(_type)} entry point does not point to a {format(_type)} class."
                     ) from None
             else:
-                raise LookupError(
-                    f"No {_type} by the name '{alias}' was found."
-                ) from None
+                raise LookupError(f"No {_type} by the name '{alias}' was found.") from None
 
         return plugin_cls(**constructor_args)
 
@@ -964,9 +938,7 @@ class BaseScheduler(BaseStateExtra, ABC):
                     self.logger.warning(
                         f"Error getting due tasks from the store {store_alias}: {e}."
                     )
-                    retry_wakeup_time = now + timedelta(
-                        seconds=self.store_retry_interval
-                    )
+                    retry_wakeup_time = now + timedelta(seconds=self.store_retry_interval)
                     if not next_wakeup_time or next_wakeup_time > retry_wakeup_time:
                         next_wakeup_time = retry_wakeup_time
                     continue
@@ -982,9 +954,7 @@ class BaseScheduler(BaseStateExtra, ABC):
                         continue
 
                     run_times = task.get_run_times(now)
-                    run_times = (
-                        run_times[-1:] if run_times and task.coalesce else run_times
-                    )
+                    run_times = run_times[-1:] if run_times and task.coalesce else run_times
 
                     if run_times:
                         try:
@@ -1014,9 +984,7 @@ class BaseScheduler(BaseStateExtra, ABC):
                             )
                             events.append(event)
 
-                        next_run = task.trigger.get_next_trigger_time(
-                            run_times[-1], now
-                        )
+                        next_run = task.trigger.get_next_trigger_time(run_times[-1], now)
                         if next_run:
                             task._update(next_run_time=next_run)
                             store.update_task(task)
@@ -1039,9 +1007,7 @@ class BaseScheduler(BaseStateExtra, ABC):
             wait_seconds = None
             self.logger.debug("No tasks. Waiting until task is added.")
         else:
-            wait_seconds = min(
-                max(timedelta_seconds(next_wakeup_time - now), 0), TIMEOUT_MAX
-            )
+            wait_seconds = min(max(timedelta_seconds(next_wakeup_time - now), 0), TIMEOUT_MAX)
             self.logger.debug(
                 f"Next wakeup is due at {next_wakeup_time} (in {wait_seconds} seconds)."
             )

@@ -27,6 +27,6 @@ class AsynczObjectMapping(BaseModel):
     def stores(self) -> Dict[str, str]:
         return {
             "memory": "asyncz.stores.memory:MemoryTaskStore",
-            "mongo": "asyncz.stores.mongo:MongoDBStore",
+            "mongodb": "asyncz.stores.mongo:MongoDBStore",
             "redis": "asyncz.stores.redis:RedisStore",
         }

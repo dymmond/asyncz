@@ -9,14 +9,14 @@ from asyncz.schedulers.base import BaseScheduler
 from asyncz.tasks import Task
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def timezone(monkeypatch):
     tz = pytz.timezone("Europe/London")
     monkeypatch.setattr("asyncz.schedulers.base.get_localzone", Mock(return_value=tz))
     return tz
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def freeze_time(monkeypatch, timezone):
     class TimeFreezer:
         def __init__(self, initial):
@@ -49,7 +49,7 @@ def freeze_time(monkeypatch, timezone):
     return freezer
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def task_defaults(timezone):
     run_at = timezone.localize(datetime(2022, 11, 3, 18, 40))
     return {
@@ -66,7 +66,7 @@ def task_defaults(timezone):
     }
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def create_task(task_defaults, timezone):
     def create(**kwargs):
         kwargs.setdefault("scheduler", Mock(BaseScheduler, timezone=timezone))
