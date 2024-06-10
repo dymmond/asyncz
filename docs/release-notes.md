@@ -1,5 +1,11 @@
 # Release Notes
 
+## 0.8.1
+
+### Added
+
+- `threadpool` to the internal mapping.
+
 ## 0.8.0
 
 ### Fix
