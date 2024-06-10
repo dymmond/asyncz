@@ -18,6 +18,7 @@ class AsynczObjectMapping(BaseModel):
     def executors(self) -> Dict[str, str]:
         return {
             "debug": "asyncz.executors.debug:DebugExecutor",
+            "pool": "asyncz.executors.pool:ThreadPoolExecutor",
             "threadpool": "asyncz.executors.pool:ThreadPoolExecutor",
             "processpool": "asyncz.executors.pool:ProcessPoolExecutor",
             "asyncio": "asyncz.executors.asyncio:AsyncIOExecutor",

@@ -81,3 +81,22 @@ def test_config():
     scheduler = AsyncIOScheduler(global_config=global_config, stores=stores)
     scheduler.start()
     scheduler.shutdown()
+
+
+def test_config_with_esmerald():
+    global_config = {
+        "asyncz.stores.mongo": {"type": "mongodb"},
+        "asyncz.stores.default": {"type": "redis", "database": "0"},
+        "asyncz.executors.pool": {
+            "max_workers": "20",
+            "class": "asyncz.executors.pool:ThreadPoolExecutor",
+        },
+        "asyncz.executors.default": {"class": "asyncz.executors.asyncio:AsyncIOExecutor"},
+        "asyncz.task_defaults.coalesce": "false",
+        "asyncz.task_defaults.max_instances": "3",
+        "asyncz.task_defaults.timezone": "UTC",
+    }
+    stores = {"mongodb": MongoDBStore()}
+    scheduler = AsyncIOScheduler(global_config=global_config, stores=stores)
+    scheduler.start()
+    scheduler.shutdown()
