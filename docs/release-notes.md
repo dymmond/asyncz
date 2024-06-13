@@ -1,5 +1,12 @@
 # Release Notes
 
+## 0.8.2
+
+### Fixed
+
+- `mistrigger_grace_time` from `_setup` was not creating a default.
+- Typing clash in the datastructures.
+
 ## 0.8.1
 
 ### Added
