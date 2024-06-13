@@ -98,5 +98,5 @@ def test_config_with_esmerald():
     }
     stores = {"mongodb": MongoDBStore()}
     scheduler = AsyncIOScheduler(global_config=global_config, stores=stores)
-    scheduler.start()
-    scheduler.shutdown()
+
+    Esmerald(on_startup=[scheduler.start], on_shutdown=[scheduler.shutdown])

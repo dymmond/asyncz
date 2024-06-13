@@ -414,7 +414,6 @@ class BaseScheduler(BaseStateExtra, ABC):
         }
         task_kwargs = {key: value for key, value in task_struct.items() if value is not undefined}
         task = Task(self, **task_kwargs)
-
         with self.store_lock:
             if self.state == SchedulerState.STATE_STOPPED:
                 self.pending_tasks.append((task, store, replace_existing))
@@ -667,7 +666,7 @@ class BaseScheduler(BaseStateExtra, ABC):
 
         task_defaults = config.get("task_defaults", {})
         self.task_defaults = TaskDefaultStruct(
-            mistrigger_grace_time=to_int(task_defaults.get("mistrigger_grace_time")),
+            mistrigger_grace_time=to_int(task_defaults.get("mistrigger_grace_time", 1)),
             coalesce=to_bool(task_defaults.get("coalesce", True)),
             max_instances=to_int(task_defaults.get("max_instances", 1)),
         )
