@@ -155,7 +155,6 @@ class BaseScheduler(BaseStateExtra, ABC):
             raise SchedulerAlreadyRunningError()
 
         self.check_uwsgi()
-
         with self.executor_lock:
             if "default" not in self.executors:
                 self.add_executor(self.create_default_executor(), "default")
@@ -824,7 +823,6 @@ class BaseScheduler(BaseStateExtra, ABC):
 
         # Apply replacements
         task._update(**replacements)
-
         # Add the task to the given store
         store = self.lookup_store(store_alias)
         try:

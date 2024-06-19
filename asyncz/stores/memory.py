@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 class MemoryStore(BaseStore):
     """
-    Stores tasks in an arrat in RAM. Provides no persistance support.
+    Stores tasks in an array in RAM. Provides no persistance support.
     """
 
     def __init__(self, **kwargs):

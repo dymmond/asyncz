@@ -97,9 +97,7 @@ class BaseExecutor(BaseStateExtra, ABC):
             if self.instances[task_id] == 0:
                 del self.instances[task_id]
 
-        self.logger.opt(exception=True).error(
-            f"Error running task {task_id}", exc_info=True
-        )
+        self.logger.opt(exception=True).error(f"Error running task {task_id}", exc_info=True)
 
 
 def run_task(
