@@ -234,10 +234,14 @@ def ref_to_obj(ref: str) -> Any:
         raise AsynczLookupError(
             "Error resolving reference %s: could not import module" % ref
         ) from None
-
     try:
         for name in rest.split("."):
             obj = getattr(obj, name)
+
+        # It might come from a class containing the fn attribute
+        # implementation of the __call__ method
+        if hasattr(obj, "fn"):
+            obj = obj.fn
         return obj
     except Exception:
         raise AsynczLookupError(
