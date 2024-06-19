@@ -1,5 +1,11 @@
 # Release Notes
 
+## 0.8.3
+
+### Fixed
+
+- `ref_to_obj` was not considering any functionality that could come from a decorator implementing the `fn`.
+
 ## 0.8.2
 
 ### Fixed
