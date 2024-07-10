@@ -35,4 +35,4 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: "pip install hatch"
       - name: "Run tests"
-        run: "hatch run test:test"
+        run: "hatch test"
