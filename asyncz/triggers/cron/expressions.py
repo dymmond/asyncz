@@ -45,7 +45,7 @@ class AllExpression(BaseExpression):
             next = start
         else:
             distance_to_next = (self.step - (start - min_value)) % self.step
-            next = start + distance_to_next  # type: ignore
+            next = start + distance_to_next
 
         if next <= max_value:
             return next

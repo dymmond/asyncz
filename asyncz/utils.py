@@ -5,7 +5,7 @@ from calendar import timegm
 from datetime import date, datetime, time, timedelta, tzinfo
 from datetime import timezone as dttz
 from functools import partial
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional, Union
 
 from asyncz.exceptions import AsynczException, AsynczLookupError
 
@@ -14,9 +14,9 @@ try:
 except ImportError:
     TIMEOUT_MAX = 4294967
 try:
-    from zoneinfo import ZoneInfo
+    from zoneinfo import ZoneInfo  # type: ignore[import-not-found,unused-ignore]
 except ImportError:
-    from backports.zoneinfo import ZoneInfo
+    from backports.zoneinfo import ZoneInfo  # type: ignore[no-redef,unused-ignore]
 
 BOOL_VALIDATION = {
     "true": ["true", "yes", "on", "y", "t", "1", True],
@@ -31,24 +31,22 @@ DATE_REGEX = re.compile(
 )
 
 
-def repr_escape(string: str) -> str:
-    return string
-
-
-def to_int(value: Union[str, float]) -> int:
+def to_int(value: Union[str, float, None]) -> Optional[int]:
     """
     Safely converts a value to integer.
     """
     if value is not None:
         return int(value)
+    return None
 
 
-def to_float(value: Union[str, int]) -> float:
+def to_float(value: Union[str, int, None]) -> Optional[float]:
     """
     Safely converts a value to float.
     """
     if value is not None:
         return float(value)
+    return None
 
 
 def to_bool(value: str) -> bool:
@@ -64,7 +62,7 @@ def to_bool(value: str) -> bool:
     return False
 
 
-def to_timezone(value: Any) -> tzinfo:
+def to_timezone(value: Any) -> Optional[tzinfo]:
     """
     Converts a value to timezone object.
     """
@@ -74,6 +72,7 @@ def to_timezone(value: Any) -> tzinfo:
         return value
     if value is not None:
         raise TypeError(f"Expected tzinfo, got {value.__class__.__name__} instead")
+    return None
 
 
 def to_datetime(

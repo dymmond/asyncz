@@ -12,7 +12,6 @@ from asyncz.utils import (
     get_callable_name,
     obj_to_ref,
     ref_to_obj,
-    repr_escape,
     to_datetime,
 )
 
@@ -275,12 +274,9 @@ class Task(BaseStateExtra):
         return NotImplemented
 
     def __repr__(self):
-        return f"<Task (id={repr_escape(self.id)} name={repr_escape(self.name)})>"
+        return f"<Task (id={self.id} name={self.name})>"
 
     def __str__(self):
-        return repr_escape(self.__unicode__())
-
-    def __unicode__(self):
         if hasattr(self, "next_run_time"):
             status = (
                 "next run at: " + datetime_repr(self.next_run_time)
