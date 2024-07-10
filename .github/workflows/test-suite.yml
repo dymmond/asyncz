@@ -34,5 +34,9 @@ jobs:
       - name: "Install dependencies"
         if: steps.cache.outputs.cache-hit != 'true'
         run: "pip install hatch"
+      - name: "Run linting"
+        run: "hatch fmt --check"
+      # - name: "Run mypy"
+      #  run: "hatch run test:check_types"
       - name: "Run tests"
         run: "hatch test"
