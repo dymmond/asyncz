@@ -396,7 +396,8 @@ class BaseScheduler(BaseStateExtra, ABC):
                 None to add the task as paused).
             store: Alias of the task store to store the task in.
             executor: Alias of the executor to run the task with.
-            replace_existing: True to replace an existing task with the same id (but retain the number of runs from the existing one).
+            replace_existing: True to replace an existing task with the same id
+                              (but retain the number of runs from the existing one).
         """
         task_struct = {
             "trigger": self.create_trigger(trigger, trigger_args),
@@ -439,7 +440,8 @@ class BaseScheduler(BaseStateExtra, ABC):
         **trigger_args: Any,
     ):
         """
-        Functionality that can be used as a decorator for any function to schedule a task with a difference that replace_existing is always True.
+        Functionality that can be used as a decorator for any function to schedule a task
+        with a difference that replace_existing is always True.
 
         Args:
             trigger: Trigger that determines when fn is called.
@@ -851,7 +853,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         try:
             module_path, class_name = module_name.rsplit(":", 1)
         except ValueError as err:
-            raise ImportError("%s doesn't look like a module path" % module_name) from err
+            raise ImportError(f"{module_name} doesn't look like a module path") from err
 
         module = import_module(module_path)
 
@@ -930,7 +932,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         with self.store_lock:
             for store_alias, store in self.stores.items():
                 try:
-                    due_tasks: List["TaskType"] = store.get_due_tasks(now)
+                    due_tasks: List[TaskType] = store.get_due_tasks(now)
                 except Exception as e:
                     self.logger.warning(
                         f"Error getting due tasks from the store {store_alias}: {e}."

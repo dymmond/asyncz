@@ -47,10 +47,7 @@ class DateTrigger(BaseTrigger):
         return state
 
     def __str__(self) -> str:
-        return "date[%s]" % datetime_repr(self.run_at)
+        return f"date[{datetime_repr(self.run_at)}]"
 
     def __repr__(self) -> str:
-        return "<{} (run_at='{}')>".format(
-            self.__class__.__name__,
-            datetime_repr(self.run_at),
-        )
+        return f"<{self.__class__.__name__} (run_at='{datetime_repr(self.run_at)}')>"

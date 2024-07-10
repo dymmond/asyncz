@@ -122,7 +122,7 @@ class TestBaseScheduler:
         return events
 
     def test_constructor(self):
-        with patch("%s.DummyScheduler.setup" % __name__) as setup:
+        with patch(f"{__name__}.DummyScheduler.setup") as setup:
             global_config = {"asyncz.foo": "bar", "asyncz.x": "y"}
             options = {"bar": "baz", "xyz": 123}
             DummyScheduler(global_config, **options)
@@ -137,15 +137,15 @@ class TestBaseScheduler:
                 "asyncz.task_defaults.mistrigger_grace_time": "5",
                 "asyncz.task_defaults.coalesce": "false",
                 "asyncz.task_defaults.max_instances": "9",
-                "asyncz.executors.default.class": "%s:DummyExecutor" % __name__,
+                "asyncz.executors.default.class": f"{__name__}:DummyExecutor",
                 "asyncz.executors.default.arg1": "3",
                 "asyncz.executors.default.arg2": "a",
-                "asyncz.executors.alter.class": "%s:DummyExecutor" % __name__,
+                "asyncz.executors.alter.class": f"{__name__}:DummyExecutor",
                 "asyncz.executors.alter.arg": "true",
-                "asyncz.stores.default.class": "%s:DummyStore" % __name__,
+                "asyncz.stores.default.class": f"{__name__}:DummyStore",
                 "asyncz.stores.default.arg1": "3",
                 "asyncz.stores.default.arg2": "a",
-                "asyncz.stores.bar.class": "%s:DummyStore" % __name__,
+                "asyncz.stores.bar.class": f"{__name__}:DummyStore",
                 "asyncz.stores.bar.arg": "false",
             },
             {
@@ -157,19 +157,19 @@ class TestBaseScheduler:
                 },
                 "asyncz.executors": {
                     "default": {
-                        "class": "%s:DummyExecutor" % __name__,
+                        "class": f"{__name__}:DummyExecutor",
                         "arg1": "3",
                         "arg2": "a",
                     },
-                    "alter": {"class": "%s:DummyExecutor" % __name__, "arg": "true"},
+                    "alter": {"class": f"{__name__}:DummyExecutor", "arg": "true"},
                 },
                 "asyncz.stores": {
                     "default": {
-                        "class": "%s:DummyStore" % __name__,
+                        "class": f"{__name__}:DummyStore",
                         "arg1": "3",
                         "arg2": "a",
                     },
-                    "bar": {"class": "%s:DummyStore" % __name__, "arg": "false"},
+                    "bar": {"class": f"{__name__}:DummyStore", "arg": "false"},
                 },
             },
         ],
@@ -189,19 +189,19 @@ class TestBaseScheduler:
                 },
                 "executors": {
                     "default": {
-                        "class": "%s:DummyExecutor" % __name__,
+                        "class": f"{__name__}:DummyExecutor",
                         "arg1": "3",
                         "arg2": "a",
                     },
-                    "alter": {"class": "%s:DummyExecutor" % __name__, "arg": "true"},
+                    "alter": {"class": f"{__name__}:DummyExecutor", "arg": "true"},
                 },
                 "stores": {
                     "default": {
-                        "class": "%s:DummyStore" % __name__,
+                        "class": f"{__name__}:DummyStore",
                         "arg1": "3",
                         "arg2": "a",
                     },
-                    "bar": {"class": "%s:DummyStore" % __name__, "arg": "false"},
+                    "bar": {"class": f"{__name__}:DummyStore", "arg": "false"},
                 },
             }
         )
@@ -643,19 +643,19 @@ class TestBaseScheduler:
                 },
                 "executors": {
                     "default": {
-                        "class": "%s:DummyExecutor" % __name__,
+                        "class": f"{__name__}:DummyExecutor",
                         "arg1": "3",
                         "arg2": "a",
                     },
-                    "alter": {"class": "%s:DummyExecutor" % __name__, "arg": "true"},
+                    "alter": {"class": f"{__name__}:DummyExecutor", "arg": "true"},
                 },
                 "stores": {
                     "default": {
-                        "class": "%s:DummyStore" % __name__,
+                        "class": f"{__name__}:DummyStore",
                         "arg1": "3",
                         "arg2": "a",
                     },
-                    "bar": {"class": "%s:DummyStore" % __name__, "arg": "false"},
+                    "bar": {"class": f"{__name__}:DummyStore", "arg": "false"},
                 },
             },
             {
@@ -962,11 +962,6 @@ class SchedulerImpBaseTest:
 
 
 class TestAsyncIOScheduler(SchedulerImpBaseTest):
-    @pytest.fixture
-    def event_loop(self):
-        asyncio = pytest.importorskip("asyncz.schedulers.asyncio")
-        return asyncio.asyncio.new_event_loop()
-
     @pytest.fixture
     def scheduler(self, event_loop):
         asyncio = pytest.importorskip("asyncz.schedulers.asyncio")

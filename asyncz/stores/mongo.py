@@ -75,7 +75,7 @@ class MongoDBStore(BaseStore):
         return self.get_tasks({"next_run_time": {"$lte": timestamp}})
 
     def get_tasks(self, conditions: DictAny) -> List["Task"]:
-        tasks: List["Task"] = []
+        tasks: List[Task] = []
         failed_task_ids = []
 
         for document in self.collection.find(
@@ -139,4 +139,4 @@ class MongoDBStore(BaseStore):
         self.client.close()
 
     def __repr__(self):
-        return "<{} (client={})>".format(self.__class__.__name__, self.client)
+        return f"<{self.__class__.__name__} (client={self.client})>"

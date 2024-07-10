@@ -236,8 +236,8 @@ def test_eq(create_task):
     task2 = create_task(fn=lambda: None, id="foo")
     task3 = create_task(fn=lambda: None, id="bar")
     assert task == task2
-    assert not task == task3
-    assert not task == "foo"
+    assert task != task3
+    assert task != "foo"
 
 
 def test_repr(task):

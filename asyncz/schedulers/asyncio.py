@@ -22,17 +22,16 @@ class AsyncIOScheduler(BaseScheduler):
     timeout: Optional[int] = None
     timezone: Optional[str] = None
 
-    def __init__(
-        self, event_loop: Optional[Any] = None, timeout: Optional[int] = None, **kwargs: Any
-    ) -> None:
+    def __init__(self, timeout: Optional[int] = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        if self.event_loop is None:
-            self.event_loop = event_loop
         self.timeout = timeout
 
     def start(self, paused: bool = False):
         if not self.event_loop:
-            self.event_loop = asyncio.get_event_loop()
+            try:
+                self.event_loop = asyncio.get_running_loop()
+            except RuntimeError:
+                self.event_loop = asyncio.new_event_loop()
         super().start(paused)
 
     @run_in_event_loop
@@ -41,7 +40,7 @@ class AsyncIOScheduler(BaseScheduler):
         self.stop_timer()
 
     def _setup(self, config: Any) -> None:
-        self.event_loop = maybe_ref(config.pop("event_loop", asyncio.get_event_loop()))
+        self.event_loop = maybe_ref(config.pop("event_loop", None))
         super()._setup(config)
 
     def start_timer(self, wait_seconds: Optional[int] = None):
