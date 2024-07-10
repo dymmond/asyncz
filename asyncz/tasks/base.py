@@ -238,9 +238,9 @@ class Task(BaseStateExtra):
     def __getstate__(self) -> "TaskState":
         if not self.fn_reference:
             raise ValueError(
-                "This Task cannot be serialized since the reference to its callable (%r) could not "
+                f"This Task cannot be serialized since the reference to its callable ({self.func!r}) could not "
                 "be determined. Consider giving a textual reference (module:function name) "
-                "instead." % (self.func,)
+                "instead."
             )
 
         fn = self.fn

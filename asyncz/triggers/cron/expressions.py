@@ -184,13 +184,13 @@ class MonthRangeExpression(RangeExpression):
 
     def __str__(self) -> str:
         if self.last != self.first and self.last is not None:
-            return "{}-{}".format(MONTHS[self.first - 1], MONTHS[self.last - 1])
+            return f"{MONTHS[self.first - 1]}-{MONTHS[self.last - 1]}"
         return MONTHS[self.first - 1]
 
     def __repr__(self) -> str:
-        args = ["'%s'" % MONTHS[self.first]]
+        args = [f"'{MONTHS[self.first]}'"]
         if self.last != self.first and self.last is not None:
-            args.append("'%s'" % MONTHS[self.last - 1])
+            args.append(f"'{MONTHS[self.last - 1]}'")
         return f"{self.__class__.__name__}({', '.join(args)})"
 
 
@@ -227,19 +227,20 @@ class WeekdayRangeExpression(RangeExpression):
 
     def __str__(self) -> str:
         if self.last != self.first and self.last is not None:
-            return "{}-{}".format(WEEKDAYS[self.first], WEEKDAYS[self.last])
+            return f"{WEEKDAYS[self.first]}-{WEEKDAYS[self.last]}"
         return WEEKDAYS[self.first]
 
     def __repr__(self) -> str:
-        args = ["'%s'" % WEEKDAYS[self.first]]
+        args = [f"'{WEEKDAYS[self.first]}'"]
         if self.last != self.first and self.last is not None:
-            args.append("'%s'" % WEEKDAYS[self.last])
+            args.append(f"'{WEEKDAYS[self.last]}'")
         return f"{self.__class__.__name__}({', '.join(args)})"
 
 
 class WeekdayPositionExpression(AllExpression):
     regex: ClassVar[re.Pattern] = re.compile(
-        r"(?P<option_name>%s) +(?P<weekday_name>(?:\d+|\w+))" % "|".join(OPTIONS), re.IGNORECASE
+        r"(?P<option_name>{}) +(?P<weekday_name>(?:\d+|\w+))".format("|".join(OPTIONS)),
+        re.IGNORECASE,
     )
 
     def __init__(self, option_name: str, weekday_name: str, **kwargs: Any):
@@ -279,7 +280,7 @@ class WeekdayPositionExpression(AllExpression):
         )
 
     def __str__(self) -> str:
-        return "{} {}".format(OPTIONS[self.option_number], WEEKDAYS[self.weekday])
+        return f"{OPTIONS[self.option_number]} {WEEKDAYS[self.weekday]}"
 
     def __repr__(self) -> str:
         return (

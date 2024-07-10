@@ -302,7 +302,7 @@ def test_mongodb_client_ref():
     mongodb = pytest.importorskip("asyncz.stores.mongo")
     mongodb_client = mongodb.MongoClient()
     try:
-        mongodb.MongoDBStore(client="%s:mongodb_client" % __name__)
+        mongodb.MongoDBStore(client=f"{__name__}:mongodb_client")
     finally:
         mongodb_client.close()
         del mongodb_client

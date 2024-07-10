@@ -84,40 +84,39 @@ class DummyMapping(AsynczObjectMapping):
 def test_default_mapping_triggers(trigger):
     mapping = AsynczObjectMapping()
 
-    assert trigger in mapping.triggers.keys()
+    assert trigger in mapping.triggers
 
 
 @pytest.mark.parametrize("store", ["memory", "mongodb", "redis"])
 def test_default_mapping_stores(store):
     mapping = AsynczObjectMapping()
 
-    assert store in mapping.stores.keys()
+    assert store in mapping.stores
 
 
 @pytest.mark.parametrize("executor", ["debug", "threadpool", "processpool", "asyncio"])
 def test_default_mapping_executors(executor):
     mapping = AsynczObjectMapping()
 
-    assert executor in mapping.executors.keys()
+    assert executor in mapping.executors
 
 
 @pytest.mark.parametrize("trigger", ["date", "cron", "or", "and", "interval", "dummy"])
 def test_custom_mapping_triggers(trigger):
-
     mapping = DummyMapping()
 
-    assert trigger in mapping.triggers.keys()
+    assert trigger in mapping.triggers
 
 
 @pytest.mark.parametrize("store", ["memory", "mongodb", "redis", "dummy"])
 def test_custom_mapping_stores(store):
     mapping = DummyMapping()
 
-    assert store in mapping.stores.keys()
+    assert store in mapping.stores
 
 
 @pytest.mark.parametrize("executor", ["debug", "threadpool", "processpool", "asyncio", "dummy"])
 def test_custom_mapping_executors(executor):
     mapping = DummyMapping()
 
-    assert executor in mapping.executors.keys()
+    assert executor in mapping.executors

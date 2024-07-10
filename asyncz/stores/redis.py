@@ -22,7 +22,7 @@ class RedisStore(BaseStore):
     instance.
 
     Args:
-        datababe - The database number to store tasks in.
+        database - The database number to store tasks in.
         tasks_key - The key to store tasks in.
         run_times_key - The key to store the tasks run times in.
         pickle_protocol - Pickle protocol level to use (for serialization), defaults to the
@@ -78,9 +78,7 @@ class RedisStore(BaseStore):
             try:
                 tasks.append(self.rebuild_task(state))
             except BaseException:
-                self.logger.exception(
-                    f"Unable to restore task '{task_id}'. Removing it..."
-                )
+                self.logger.exception(f"Unable to restore task '{task_id}'. Removing it...")
                 failed_task_ids.append(task_id)
 
         if failed_task_ids:
@@ -160,4 +158,4 @@ class RedisStore(BaseStore):
         self.redis.connection_pool.disconnect()
 
     def __repr__(self):
-        return "<%s>" % self.__class__.__name__
+        return f"<{self.__class__.__name__}>"

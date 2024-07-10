@@ -73,7 +73,7 @@ def to_timezone(value: Any) -> tzinfo:
     if isinstance(value, tzinfo):
         return value
     if value is not None:
-        raise TypeError("Expected tzinfo, got %s instead" % value.__class__.__name__)
+        raise TypeError(f"Expected tzinfo, got {value.__class__.__name__} instead")
 
 
 def to_datetime(
@@ -121,8 +121,7 @@ def to_datetime(
 
     if tz is None:
         raise AsynczException(
-            detail='The "tz" argument must be specified if %s has no timezone information'
-            % arg_name
+            detail=f'The "tz" argument must be specified if {arg_name} has no timezone information'
         )
 
     if isinstance(tz, str):
@@ -183,14 +182,14 @@ def get_callable_name(func: Any) -> Any:
         f_class = getattr(func, "im_class", None)
 
     if f_class and hasattr(func, "__name__"):
-        return "{}.{}".format(f_class.__name__, func.__name__)
+        return f"{f_class.__name__}.{func.__name__}"
 
     if hasattr(func, "__call__"):  # noqa
         if hasattr(func, "__name__"):
             return func.__name__
         return func.__class__.__name__
 
-    raise TypeError("Unable to determine a name for %r -- maybe it is not a callable?" % func)
+    raise TypeError(f"Unable to determine a name for {func!r} -- maybe it is not a callable?")
 
 
 def obj_to_ref(obj: Any) -> str:
@@ -215,7 +214,7 @@ def obj_to_ref(obj: Any) -> str:
             module = obj.__module__
     else:
         module = obj.__module__
-    return "{}:{}".format(module, name)
+    return f"{module}:{name}"
 
 
 def ref_to_obj(ref: str) -> Any:
@@ -232,7 +231,7 @@ def ref_to_obj(ref: str) -> Any:
         obj = __import__(modulename, fromlist=[rest])
     except ImportError:
         raise AsynczLookupError(
-            "Error resolving reference %s: could not import module" % ref
+            f"Error resolving reference {ref}: could not import module"
         ) from None
     try:
         for name in rest.split("."):
@@ -245,7 +244,7 @@ def ref_to_obj(ref: str) -> Any:
         return obj
     except Exception:
         raise AsynczLookupError(
-            "Error resolving reference %s: error looking up object" % ref
+            f"Error resolving reference {ref}: error looking up object"
         ) from None
 
 
@@ -306,25 +305,30 @@ def check_callable_args(func: Callable[..., Any], args: Any, kwargs: Any) -> Non
 
     if pos_kwargs_conflicts:
         raise ValueError(
-            "The following arguments are supplied in both args and kwargs: %s"
-            % ", ".join(pos_kwargs_conflicts)
+            "The following arguments are supplied in both args and kwargs: {}".format(
+                ", ".join(pos_kwargs_conflicts)
+            )
         )
 
     if positional_only_kwargs:
         raise ValueError(
-            "The following arguments cannot be given as keyword arguments: %s"
-            % ", ".join(positional_only_kwargs)
+            "The following arguments cannot be given as keyword arguments: {}".format(
+                ", ".join(positional_only_kwargs)
+            )
         )
 
     if unsatisfied_args:
         raise ValueError(
-            "The following arguments have not been supplied: %s" % ", ".join(unsatisfied_args)
+            "The following arguments have not been supplied: {}".format(
+                ", ".join(unsatisfied_args)
+            )
         )
 
     if unsatisfied_kwargs:
         raise ValueError(
-            "The following keyword-only arguments have not been supplied in kwargs: %s"
-            % ", ".join(unsatisfied_kwargs)
+            "The following keyword-only arguments have not been supplied in kwargs: {}".format(
+                ", ".join(unsatisfied_kwargs)
+            )
         )
 
     if not has_varargs and unmatched_args:
@@ -335,8 +339,9 @@ def check_callable_args(func: Callable[..., Any], args: Any, kwargs: Any) -> Non
 
     if not has_var_kwargs and unmatched_kwargs:
         raise ValueError(
-            "The target callable does not accept the following keyword arguments: %s"
-            % ", ".join(unmatched_kwargs)
+            "The target callable does not accept the following keyword arguments: {}".format(
+                ", ".join(unmatched_kwargs)
+            )
         )
 
 

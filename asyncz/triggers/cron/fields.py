@@ -79,12 +79,12 @@ class BaseField(BaseModel):
                 try:
                     compiled_expr.validate_range(self.name)
                 except ValueError as e:
-                    message = "Error validating expression {!r}: {}".format(expr, e)
+                    message = f"Error validating expression {expr!r}: {e}"
                     raise ValueError(message) from e
                 self.expressions.append(compiled_expr)
                 return
 
-        raise ValueError('Unrecognized expression "{}" for field "{}"'.format(expr, self.name))
+        raise ValueError(f'Unrecognized expression "{expr}" for field "{self.name}"')
 
     def __eq__(self, other):
         return isinstance(self, self.__class__) and self.expressions == other.expressions
@@ -94,7 +94,7 @@ class BaseField(BaseModel):
         return ",".join(expr_strings)
 
     def __repr__(self):
-        return "{}('{}', '{}')".format(self.__class__.__name__, self.name, self)
+        return f"{self.__class__.__name__}('{self.name}', '{self}')"
 
 
 class WeekField(BaseField):

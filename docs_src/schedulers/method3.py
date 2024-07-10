@@ -26,6 +26,4 @@ scheduler.add_task(...)
 scheduler.add_task(...)
 scheduler.add_task(...)
 
-scheduler.setup(
-    stores=stores, executors=executors, task_defaults=task_defaults, timezone=tz.utc
-)
+scheduler.setup(stores=stores, executors=executors, task_defaults=task_defaults, timezone=tz.utc)
