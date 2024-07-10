@@ -36,9 +36,9 @@ class AllExpression(BaseExpression):
             )
 
     def get_next_value(self, date: Union[date, datetime], field: "FieldType") -> Any:
-        start = field.get_value(date)  # type: ignore
-        min_value = field.get_min(date)  # type: ignore
-        max_value = field.get_max(date)  # type: ignore
+        start = field.get_value(date)
+        min_value = field.get_min(date)
+        max_value = field.get_max(date)
         start = max(start, min_value)
 
         if not self.step:
@@ -76,16 +76,16 @@ class RangeExpression(AllExpression):
         **kwargs: Any,
     ):
         super().__init__(step=step, **kwargs)
-        first = to_int(first)
-        last = to_int(last)  # type: ignore
+        first: Optional[int] = to_int(first)  # type: ignore
+        last: Optional[int] = to_int(last)  # type: ignore
 
         if last is None and self.step is None:
             last = first
         if last is not None and first > last:  # type: ignore
             raise ValueError("The minimum value in a range must not be higher than the maximum.")
 
-        self.first: int = first
-        self.last: int = last
+        self.first: int = first  # type: ignore
+        self.last: int = last  # type: ignore
 
     def validate_range(self, field_name: str) -> None:
         super().validate_range(field_name)
@@ -110,8 +110,8 @@ class RangeExpression(AllExpression):
 
     def get_next_value(self, date: Union[date, datetime], field: "FieldType") -> Union[int, None]:
         start_value = field.get_value(date)  # type: ignore
-        min_value = field.get_min(date)  # type: ignore
-        max_value = field.get_max(date)  # type: ignore
+        min_value = field.get_min(date)
+        max_value = field.get_max(date)
 
         min_value = max(min_value, self.first)
         max_value = min(max_value, self.last) if self.last is not None else max_value
@@ -119,7 +119,7 @@ class RangeExpression(AllExpression):
 
         if self.step:
             distance_to_next = (self.step - (next_value - min_value)) % self.step
-            next_value += distance_to_next  # type: ignore
+            next_value += distance_to_next
 
         return next_value if next_value <= max_value else None
 

@@ -91,11 +91,11 @@ class BaseScheduler(BaseStateExtra, ABC):
         self.listeners = []
         self.listeners_lock = self.create_lock()
         self.pending_tasks = []
-        self.state = SchedulerState.STATE_STOPPED
+        self.state: SchedulerState = SchedulerState.STATE_STOPPED
         self.logger = logger
         self.setup(self.global_config, **kwargs)
 
-    def __getstate__(self):
+    def __getstate__(self) -> None:
         raise TypeError(
             "Schedulers cannot be serialized. Ensure that you are not passing a "
             "scheduler instance as an argument to a task, or scheduling an instance "
@@ -107,7 +107,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         global_config: Optional[Any] = None,
         prefix: Optional[str] = "asyncz.",
         **options: Any,
-    ):
+    ) -> None:
         """
         Reconfigures the scheduler with the given options.
         Can only be done when the scheduler isn't running.
@@ -144,7 +144,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         config.update(options)
         self._setup(config)
 
-    def start(self, paused: bool = False):
+    def start(self, paused: bool = False) -> None:
         """
         Start the configured executors and task stores and begin processing scheduled tasks.
 
@@ -180,7 +180,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         if not paused:
             self.wakeup()
 
-    def shutdown(self, wait: bool = True):
+    def shutdown(self, wait: bool = True) -> None:
         """
         Shuts down the scheduler, along with its executors and task stores.
         Does not interrupt any currently running tasks.
@@ -203,7 +203,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         self.logger.info("Scheduler has been shutdown.")
         self.dispatch_event(SchedulerEvent(code=SCHEDULER_SHUTDOWN))
 
-    def pause(self):
+    def pause(self) -> None:
         """
         Pause task processing in the scheduler.
 
@@ -217,7 +217,7 @@ class BaseScheduler(BaseStateExtra, ABC):
             self.logger.info("Paused scheduler task processing.")
             self.dispatch_event(SchedulerEvent(code=SCHEDULER_PAUSED))
 
-    def resume(self):
+    def resume(self) -> None:
         """
         Resume task processing in the scheduler.
         """
@@ -230,7 +230,7 @@ class BaseScheduler(BaseStateExtra, ABC):
             self.wakeup()
 
     @property
-    def running(self):
+    def running(self) -> bool:
         """
         Return True if the scheduler has been started. This is a shortcut
         for scheduler.state != SchedulerState.STATE_STOPPED.
@@ -239,7 +239,7 @@ class BaseScheduler(BaseStateExtra, ABC):
 
     def add_executor(
         self, executor: "ExecutorType", alias: str = "default", **executor_options: Any
-    ):
+    ) -> None:
         with self.executor_lock:
             if alias in self.executors:
                 raise ValueError(
@@ -261,7 +261,7 @@ class BaseScheduler(BaseStateExtra, ABC):
 
         self.dispatch_event(SchedulerEvent(code=EXECUTOR_ADDED, alias=alias))
 
-    def remove_executor(self, alias: str, shutdown: bool = True):
+    def remove_executor(self, alias: str, shutdown: bool = True) -> None:
         """
         Removes the executor by the given alias from this scheduler.
         """
@@ -274,7 +274,7 @@ class BaseScheduler(BaseStateExtra, ABC):
 
         self.dispatch_event(SchedulerEvent(code=EXECUTOR_REMOVED, alias=alias))
 
-    def add_store(self, store: "StoreType", alias: str = "default", **store_options: Any):
+    def add_store(self, store: "StoreType", alias: str = "default", **store_options: Any) -> None:
         """
         Adds a task store to this scheduler.
 
@@ -306,7 +306,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         if self.state == SchedulerState.STATE_STOPPED:
             self.wakeup()
 
-    def remove_store(self, alias: str, shutdown: bool = True):
+    def remove_store(self, alias: str, shutdown: bool = True) -> None:
         """
         Removes the task store by the given alias from this scheduler.
         """
@@ -319,7 +319,7 @@ class BaseScheduler(BaseStateExtra, ABC):
 
         self.dispatch_event(SchedulerEvent(code=STORE_REMOVED, alias=alias))
 
-    def add_listener(self, callback: Any, mask: Union[int, str] = ALL_EVENTS):
+    def add_listener(self, callback: Any, mask: Union[int, str] = ALL_EVENTS) -> None:
         """
         add_listener(callback, mask=EVENT_ALL)
 
@@ -336,7 +336,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         with self.listeners_lock:
             self.listeners.append((callback, mask))
 
-    def remove_listener(self, callback: Any):
+    def remove_listener(self, callback: Any) -> bool:
         """
         Removes a previously added event listener.
         """
@@ -344,6 +344,8 @@ class BaseScheduler(BaseStateExtra, ABC):
             for index, (_callback, _) in enumerate(self.listeners):
                 if callback == _callback:
                     del self.listeners[index]
+                    return True
+        return False
 
     def add_task(
         self,
@@ -438,7 +440,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         store: str = "default",
         executor: str = "default",
         **trigger_args: Any,
-    ):
+    ) -> Any:
         """
         Functionality that can be used as a decorator for any function to schedule a task
         with a difference that replace_existing is always True.
@@ -460,7 +462,7 @@ class BaseScheduler(BaseStateExtra, ABC):
             executor: Alias of the executor to run the task with.
         """
 
-        def wrap(fn):
+        def wrap(fn) -> Any:
             self.add_task(
                 fn=fn,
                 trigger=trigger,
@@ -557,6 +559,7 @@ class BaseScheduler(BaseStateExtra, ABC):
                 return self.update_task(task_id, store, next_run_time=next_run_time)
             else:
                 self.delete_task(task.id, store)
+                return None
 
     def get_tasks(self, store: Optional[str] = None) -> List["TaskType"]:
         """
@@ -650,7 +653,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         self.dispatch_event(SchedulerEvent(code=ALL_TASKS_REMOVED, alias=store))
 
     @abstractmethod
-    def wakeup(self):
+    def wakeup(self) -> None:
         """
         Notifies the scheduler that there may be tasks due for execution.
         Triggers process_tasks to be run in an implementation specific manner.
@@ -717,13 +720,13 @@ class BaseScheduler(BaseStateExtra, ABC):
                     f"Expected store instance or dict for stores['{alias}'], got {value.__class__.__name__} instead."
                 )
 
-    def create_default_executor(self):
+    def create_default_executor(self) -> BaseExecutor:
         """
         Creates a default executor store, specific to the articular scheduler type.
         """
         return ThreadPoolExecutor()
 
-    def create_default_store(self):
+    def create_default_store(self) -> BaseStore:
         """
         Creates a default store, specific to the particular scheduler type.
         """
@@ -776,7 +779,7 @@ class BaseScheduler(BaseStateExtra, ABC):
 
         raise TaskLookupError(task_id)
 
-    def dispatch_event(self, event: "SchedulerEvent"):
+    def dispatch_event(self, event: "SchedulerEvent") -> None:
         """
         Dispatches the given event to interested listeners.
 
@@ -793,7 +796,7 @@ class BaseScheduler(BaseStateExtra, ABC):
                 except BaseException:
                     self.logger.exception("Error notifying listener.")
 
-    def check_uwsgi(self):
+    def check_uwsgi(self) -> None:
         """
         Check if we are running under uWSGI with threads disabled.
         """
@@ -805,7 +808,7 @@ class BaseScheduler(BaseStateExtra, ABC):
                 "option for the scheduler to work."
             )
 
-    def real_add_task(self, task: "TaskType", store_alias: str, replace_existing: bool):
+    def real_add_task(self, task: "TaskType", store_alias: str, replace_existing: bool) -> None:
         """
         Adds the task.
 
@@ -846,7 +849,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         if self.state == SchedulerState.STATE_RUNNING:
             self.wakeup()
 
-    def resolve_load_plugin(self, module_name: str):
+    def resolve_load_plugin(self, module_name: str)  -> Any:
         """
         Resolve the plugin from its module and attrs.
         """
@@ -862,7 +865,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         except AttributeError as exc:
             raise ImportError(str(exc)) from exc
 
-    def create_plugin_instance(self, _type: str, alias: str, constructor_args: Any):
+    def create_plugin_instance(self, _type: str, alias: str, constructor_args: Any) -> Any:
         """
         Creates an instance of the given plugin type, loading the plugin first if necessary.
         """
@@ -906,13 +909,13 @@ class BaseScheduler(BaseStateExtra, ABC):
 
         return self.create_plugin_instance("trigger", trigger, trigger_args)
 
-    def create_lock(self):
+    def create_lock(self) -> RLock:
         """
         Creates a reentrant lock object.
         """
         return RLock()
 
-    def process_tasks(self):
+    def process_tasks(self) -> Optional[int]:
         """
         Iterates through tasks in every store, starts tasks that are due and figures out how long
         to wait for the next round.

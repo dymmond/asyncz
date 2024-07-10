@@ -218,7 +218,7 @@ class Task(BaseStateExtra):
         for key, value in approved.items():
             setattr(self, key, value)
 
-    def __setstate__(self, state):
+    def __setstate__(self, state) -> "Task":
         object_setattr(self, "__dict__", state.__dict__)
         object_setattr(self, "__pydantic_fields_set__", state.__pydantic_fields_set__)
         object_setattr(self, "__pydantic_extra__", state.__pydantic_extra__)

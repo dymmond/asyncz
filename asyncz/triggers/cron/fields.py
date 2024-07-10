@@ -1,6 +1,6 @@
 import re
 from calendar import monthrange
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, List, Optional
 
 from pydantic import BaseModel, ConfigDict
@@ -47,16 +47,18 @@ class BaseField(BaseModel):
         self.real: bool = True
         self.compile_expressions(exprs)
 
-    def get_min(self, dateval: datetime):
+    def get_min(self, dateval: datetime | date) -> int:
+        # We need dateval for calculation the limits of e.g. the current month
         return MIN_VALUES[self.name]
 
-    def get_max(self, dateval: datetime):
+    def get_max(self, dateval: datetime | date) -> int:
+        # We need dateval for calculation the limits of e.g. the current month
         return MAX_VALUES[self.name]
 
-    def get_value(self, dateval: datetime):
+    def get_value(self, dateval: datetime | date) -> int:
         return getattr(dateval, self.name)
 
-    def get_next_value(self, dateval: datetime):
+    def get_next_value(self, dateval: datetime) -> Any :
         smallest = None
         for expr in self.expressions:
             value = expr.get_next_value(dateval, self)
@@ -65,13 +67,13 @@ class BaseField(BaseModel):
 
         return smallest
 
-    def compile_expressions(self, exprs: Any):
+    def compile_expressions(self, exprs: Any) -> None:
         self.expressions = []
 
         for expr in SEPARATOR.split(str(exprs).strip()):
             self.compile_expression(expr)
 
-    def compile_expression(self, expr: Any):
+    def compile_expression(self, expr: Any) -> None:
         for compiler in self.compilers or []:
             match = compiler.regex.match(expr)
             if match:
@@ -86,46 +88,46 @@ class BaseField(BaseModel):
 
         raise ValueError(f'Unrecognized expression "{expr}" for field "{self.name}"')
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         return isinstance(self, self.__class__) and self.expressions == other.expressions
 
-    def __str__(self):
+    def __str__(self) -> str:
         expr_strings = (str(e) for e in self.expressions)
         return ",".join(expr_strings)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}('{self.name}', '{self}')"
 
 
 class WeekField(BaseField):
-    def __init__(self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any):
+    def __init__(self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any) -> None:
         super().__init__(name, exprs, is_default, **kwargs)
         self.real: bool = False
 
-    def get_value(self, dateval: datetime):
+    def get_value(self, dateval: datetime | date) -> int:
         return dateval.isocalendar()[1]
 
 
 class DayOfMonthField(BaseField):
-    def __init__(self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any):
+    def __init__(self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any) -> None:
         compilers = [WeekdayPositionExpression, LastDayOfMonthExpression]
         super().__init__(name, exprs, is_default, compilers=compilers, **kwargs)
 
-    def get_max(self, dateval: datetime):
+    def get_max(self, dateval: datetime) -> int:
         return monthrange(dateval.year, dateval.month)[1]
 
 
 class DayOfWeekField(BaseField):
-    def __init__(self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any):
+    def __init__(self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any) -> None:
         compilers = [WeekdayRangeExpression]
         super().__init__(name, exprs, is_default, compilers=compilers, **kwargs)
         self.real: bool = False
 
-    def get_value(self, dateval: datetime):
+    def get_value(self, dateval: datetime | date) -> int:
         return dateval.weekday()
 
 
 class MonthField(BaseField):
-    def __init__(self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any):
+    def __init__(self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any) -> None:
         compilers = [MonthRangeExpression]
         super().__init__(name, exprs, is_default, compilers=compilers, **kwargs)

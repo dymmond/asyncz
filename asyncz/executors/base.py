@@ -26,11 +26,11 @@ class BaseExecutor(BaseStateExtra, ABC):
     Asyncz uses loguru for its logging as it is more descriptive and intuitive.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.instances = defaultdict(lambda: 0)
 
-    def start(self, scheduler: Any, alias: str):
+    def start(self, scheduler: Any, alias: str) -> None:
         """
         Called by the scheduler when the scheduler is being started or when the executor is being
         added to an already running scheduler.
@@ -44,7 +44,7 @@ class BaseExecutor(BaseStateExtra, ABC):
         self.logger = logger
         self.logger.bind(logger_name=f"asyncz.executors.{alias}")
 
-    def shutdown(self, wait: bool = True):
+    def shutdown(self, wait: bool = True) -> None:
         """
         Shuts down the executor.
 
@@ -52,7 +52,7 @@ class BaseExecutor(BaseStateExtra, ABC):
             wait - Boolean indicating to wait until all submitted tasks have been executed.
         """
 
-    def send_task(self, task: "TaskType", run_times: List[datetime]):
+    def send_task(self, task: "TaskType", run_times: List[datetime]) -> None:
         """
         Sends the task for execution.
 
@@ -75,7 +75,7 @@ class BaseExecutor(BaseStateExtra, ABC):
         """
         ...
 
-    def run_task_success(self, task_id: Union[str, int], events: List[int]) -> Any:
+    def run_task_success(self, task_id: Union[str, int], events: List[int]) -> None:
         """
         Called by the executor with the list of generated events when the function run_task has
         been successfully executed.
@@ -88,7 +88,7 @@ class BaseExecutor(BaseStateExtra, ABC):
         for event in events or []:
             self.scheduler.dispatch_event(event)
 
-    def run_task_error(self, task_id: Union[str, int]) -> Any:
+    def run_task_error(self, task_id: Union[str, int]) -> None:
         """
         Called by the executor with the exception if there is an error calling the run_task.
         """
@@ -105,7 +105,7 @@ def run_task(
     store_alias: str,
     run_times: List[datetime],
     _logger: Optional["Logger"] = None,
-):
+) -> List[TaskExecutionEvent]:
     """
     Called by executors to run the task. Returns a list of scheduler events to be dispatched by the
     scheduler.
@@ -169,7 +169,7 @@ async def run_coroutine_task(
     store_alias: str,
     run_times: List[datetime],
     _logger: Optional["Logger"] = None,
-):
+) -> List[TaskExecutionEvent]:
     """
     Called by executors to run the task. Returns a list of scheduler events to be dispatched by the
     scheduler.

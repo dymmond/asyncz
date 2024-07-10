@@ -19,7 +19,7 @@ class DebugExecutor(BaseExecutor):
             int,
             str,
         ],
-    ):
+    ) -> None:
         try:
             events = run_task(task, task.store_alias, run_times, self.logger)
         except BaseException:

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import TYPE_CHECKING, List, Union
+from typing import TYPE_CHECKING, Any, List, Union
 
 from asyncz.exceptions import ConflictIdError, TaskLookupError
 from asyncz.stores.base import BaseStore
@@ -14,7 +14,7 @@ class MemoryStore(BaseStore):
     Stores tasks in an array in RAM. Provides no persistance support.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.tasks = []
         self.tasks_index = {}
@@ -39,7 +39,7 @@ class MemoryStore(BaseStore):
     def get_all_tasks(self) -> List["TaskType"]:
         return [task[0] for task in self.tasks]
 
-    def add_task(self, task: "TaskType"):
+    def add_task(self, task: "TaskType") -> None:
         if task.id in self.tasks_index:
             raise ConflictIdError(task.id)
 
@@ -48,7 +48,7 @@ class MemoryStore(BaseStore):
         self.tasks.insert(index, (task, timestamp))
         self.tasks_index[task.id] = (task, timestamp)
 
-    def update_task(self, task: "TaskType"):
+    def update_task(self, task: "TaskType") -> None:
         old_task, old_timestamp = self.tasks_index.get(task.id, (None, None))
         if old_task is None:
             raise TaskLookupError(task.id)
@@ -62,7 +62,7 @@ class MemoryStore(BaseStore):
             new_index = self.get_task_index(new_timestamp, task.id)
             self.tasks.insert(new_index, (task, new_timestamp))
 
-    def delete_task(self, task_id: Union[str, int]):
+    def delete_task(self, task_id: Union[str, int]) -> None:
         task, timestamp = self.tasks_index.get(task_id, (None, None))
         if task is None:
             raise TaskLookupError(task_id)
@@ -71,11 +71,11 @@ class MemoryStore(BaseStore):
         del self.tasks[index]
         del self.tasks_index[task.id]
 
-    def remove_all_tasks(self):
+    def remove_all_tasks(self) -> None:
         self.tasks = []
         self.tasks_index = {}
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         self.remove_all_tasks()
 
     def get_task_index(self, timestamp: Union[int, float], task_id: Union[int, str]) -> int:

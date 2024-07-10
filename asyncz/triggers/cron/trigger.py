@@ -267,7 +267,7 @@ class CronTrigger(BaseTrigger):
     def __setstate__(self, state: Any) -> Any:
         if isinstance(state, tuple):
             return state[1]
-        super().__setstate__(state)
+        return super().__setstate__(state)
 
     def __str__(self):
         options = [f"{f.name}='{f}'" for f in self.fields if not f.is_default]

@@ -30,7 +30,7 @@ class BaseLookupError(LookupError):
 
     detail = "Not found."
 
-    def __init__(self, detail: Optional[str] = None):
+    def __init__(self, detail: Optional[str] = None) -> None:
         if not detail:
             detail = self.detail
         super().__init__(detail)
@@ -47,7 +47,7 @@ class AsynczLookupError(BaseLookupError):
 class SchedulerLookupError(BaseLookupError):
     detail = "No schedule with the id {schedule_id} has been found."
 
-    def __init__(self, schedule_id: str):
+    def __init__(self, schedule_id: str) -> None:
         detail = self.detail.format(schedule_id=schedule_id)
         super().__init__(detail=detail)
 
@@ -55,7 +55,7 @@ class SchedulerLookupError(BaseLookupError):
 class TaskLookupError(BaseLookupError):
     detail = "No task with the id {task_id} has been found."
 
-    def __init__(self, task_id: str):
+    def __init__(self, task_id: str) -> None:
         detail = self.detail.format(task_id=task_id)
         super().__init__(detail=detail)
 
@@ -63,7 +63,7 @@ class TaskLookupError(BaseLookupError):
 class ConflictError(KeyError):
     detail = "This data store already contains a schedule with the identifier {schedule_id}."
 
-    def __init__(self, schedule_id: str):
+    def __init__(self, schedule_id: str) -> None:
         detail = self.detail.format(schedule_id=schedule_id)
         super().__init__(detail)
 
@@ -71,7 +71,7 @@ class ConflictError(KeyError):
 class ConflictIdError(KeyError):
     detail = "Task identifier ({task_id}) conflicts with an existing task."
 
-    def __init__(self, task_id: str):
+    def __init__(self, task_id: str) -> None:
         detail = self.detail.format(task_id=task_id)
         super().__init__(detail)
 
@@ -83,7 +83,7 @@ class MaxInterationsReached(AsynczException):
 class MaximumInstancesError(AsynczException):
     detail = "The task by the id of {id} reached its maximum number of instances {total}."
 
-    def __init__(self, _id: Union[UUID, str, int], total: int):
+    def __init__(self, _id: Union[UUID, str, int], total: int) -> None:
         detail = self.detail.format(id=_id, total=total)
         super().__init__(detail=detail)
 

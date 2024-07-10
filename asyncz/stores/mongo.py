@@ -36,7 +36,7 @@ class MongoDBStore(BaseStore):
         client: Optional[MongoClient] = None,
         pickle_protocol: Optional[int] = pickle.HIGHEST_PROTOCOL,
         **kwargs: DictAny,
-    ):
+    ) -> None:
         super().__init__(**kwargs)
         self.pickle_protocol = pickle_protocol
 
@@ -51,7 +51,7 @@ class MongoDBStore(BaseStore):
 
         self.collection = self.client[database][collection]
 
-    def start(self, scheduler: Any, alias: str):
+    def start(self, scheduler: Any, alias: str) -> None:
         """
         When starting omits from the index any documents that lack next_run_time field.
         """
@@ -106,7 +106,7 @@ class MongoDBStore(BaseStore):
         self.fix_paused_tasks(tasks)
         return tasks
 
-    def add_task(self, task: "TaskType"):
+    def add_task(self, task: "TaskType") -> None:
         try:
             self.collection.insert_one(
                 {
@@ -118,7 +118,7 @@ class MongoDBStore(BaseStore):
         except DuplicateKeyError:
             raise ConflictIdError(task.id) from None
 
-    def update_task(self, task: "TaskType"):
+    def update_task(self, task: "TaskType") -> None:
         updates = {
             "next_run_time": datetime_to_utc_timestamp(task.next_run_time),
             "state": Binary(pickle.dumps(task.__getstate__(), self.pickle_protocol)),
@@ -127,16 +127,16 @@ class MongoDBStore(BaseStore):
         if result and result.matched_count == 0:
             raise TaskLookupError(task.id)
 
-    def delete_task(self, task_id: Union[str, int]):
+    def delete_task(self, task_id: Union[str, int]) -> None:
         result = self.collection.delete_one({"_id": task_id})
         if result and result.deleted_count == 0:
             raise TaskLookupError(task_id)
 
-    def remove_all_tasks(self):
+    def remove_all_tasks(self) -> None:
         self.collection.delete_many({})
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         self.client.close()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{self.__class__.__name__} (client={self.client})>"

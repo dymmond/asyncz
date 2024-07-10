@@ -20,19 +20,19 @@ class AsyncIOExecutor(BaseExecutor):
     executor which is usually a thread pool.
     """
 
-    def start(self, scheduler: Any, alias: str):
+    def start(self, scheduler: Any, alias: str) -> None:
         super().start(scheduler, alias)
         self.event_loop = scheduler.event_loop
         self.pending_futures = set()
 
-    def shutdown(self, wait: bool = True):
+    def shutdown(self, wait: bool = True) -> None:
         for f in self.pending_futures:
             if not f.done():
                 f.cancel()
 
         self.pending_futures.clear()
 
-    def do_send_task(self, task: "TaskType", run_times: Union[int, str]):
+    def do_send_task(self, task: "TaskType", run_times: Union[int, str]) -> None:
         def callback(fn):
             self.pending_futures.discard(fn)
             try:
