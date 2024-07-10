@@ -11,6 +11,7 @@ from asyncz.utils import maybe_ref
 if TYPE_CHECKING:
     from asyncz.executors.base import BaseExecutor
 
+
 class AsyncIOScheduler(BaseScheduler):
     """
     A scheduler that runs on an asyncio event loop.

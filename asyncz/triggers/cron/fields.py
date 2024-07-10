@@ -58,7 +58,7 @@ class BaseField(BaseModel):
     def get_value(self, dateval: datetime | date) -> int:
         return getattr(dateval, self.name)
 
-    def get_next_value(self, dateval: datetime) -> Any :
+    def get_next_value(self, dateval: datetime) -> Any:
         smallest = None
         for expr in self.expressions:
             value = expr.get_next_value(dateval, self)
@@ -100,7 +100,9 @@ class BaseField(BaseModel):
 
 
 class WeekField(BaseField):
-    def __init__(self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any) -> None:
+    def __init__(
+        self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any
+    ) -> None:
         super().__init__(name, exprs, is_default, **kwargs)
         self.real: bool = False
 
@@ -109,7 +111,9 @@ class WeekField(BaseField):
 
 
 class DayOfMonthField(BaseField):
-    def __init__(self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any) -> None:
+    def __init__(
+        self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any
+    ) -> None:
         compilers = [WeekdayPositionExpression, LastDayOfMonthExpression]
         super().__init__(name, exprs, is_default, compilers=compilers, **kwargs)
 
@@ -118,7 +122,9 @@ class DayOfMonthField(BaseField):
 
 
 class DayOfWeekField(BaseField):
-    def __init__(self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any) -> None:
+    def __init__(
+        self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any
+    ) -> None:
         compilers = [WeekdayRangeExpression]
         super().__init__(name, exprs, is_default, compilers=compilers, **kwargs)
         self.real: bool = False
@@ -128,6 +134,8 @@ class DayOfWeekField(BaseField):
 
 
 class MonthField(BaseField):
-    def __init__(self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any) -> None:
+    def __init__(
+        self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any
+    ) -> None:
         compilers = [MonthRangeExpression]
         super().__init__(name, exprs, is_default, compilers=compilers, **kwargs)
