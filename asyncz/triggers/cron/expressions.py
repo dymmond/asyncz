@@ -18,7 +18,7 @@ class BaseExpression(BaseModel):
 
 class AllExpression(BaseExpression):
     regex: ClassVar[re.Pattern] = re.compile(r"\*(?:/(?P<step>\d+))?$")
-    step: Optional[Union[int, float]] = None
+    step: Optional[int] = None
 
     def __init__(self, step: Optional[Union[int, float]] = None, **kwargs: Any):
         super().__init__(**kwargs)
@@ -35,20 +35,21 @@ class AllExpression(BaseExpression):
                 f"expression ({value_range})."
             )
 
-    def get_next_value(self, date: Union[date, datetime], field: "FieldType") -> Any:
+    def get_next_value(self, date: Union[date, datetime], field: "FieldType") -> Optional[int]:
         start = field.get_value(date)
         min_value = field.get_min(date)
         max_value = field.get_max(date)
         start = max(start, min_value)
 
         if not self.step:
-            next = start
+            next_v = start
         else:
             distance_to_next = (self.step - (start - min_value)) % self.step
-            next = start + distance_to_next
+            next_v = start + distance_to_next
 
-        if next <= max_value:
-            return next
+        if next_v <= max_value:
+            return next_v
+        return None
 
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, self.__class__) and self.step == other.step
@@ -66,16 +67,14 @@ class RangeExpression(AllExpression):
     regex: ClassVar[re.Pattern] = re.compile(
         r"(?P<first>\d+)(?:-(?P<last>\d+))?(?:/(?P<step>\d+))?$"
     )
-    step: Optional[Union[int, float]] = None
 
     def __init__(
         self,
         first: Union[str, float],
         last: Optional[Union[str, float]] = None,
-        step: Optional[Union[int, float]] = None,
         **kwargs: Any,
     ):
-        super().__init__(step=step, **kwargs)
+        super().__init__(**kwargs)
         first: Optional[int] = to_int(first)  # type: ignore
         last: Optional[int] = to_int(last)  # type: ignore
 
@@ -108,8 +107,8 @@ class RangeExpression(AllExpression):
                 f"expression ({value_range})."
             )
 
-    def get_next_value(self, date: Union[date, datetime], field: "FieldType") -> Union[int, None]:
-        start_value = field.get_value(date)  # type: ignore
+    def get_next_value(self, date: Union[date, datetime], field: "FieldType") -> Optional[int]:
+        start_value = field.get_value(date)
         min_value = field.get_min(date)
         max_value = field.get_max(date)
 
@@ -153,7 +152,7 @@ class MonthRangeExpression(RangeExpression):
     regex: ClassVar[re.Pattern] = re.compile(
         r"(?P<first>[a-z]+)(?:-(?P<last>[a-z]+))?", re.IGNORECASE
     )
-    step: Optional[Union[int, float]] = None
+    step: Optional[int] = None
 
     def __init__(
         self,
@@ -255,9 +254,9 @@ class WeekdayPositionExpression(AllExpression):
         except ValueError:
             raise ValueError(f'Invalid weekday name "{weekday_name}".') from None
 
-    def get_next_value(  # type: ignore
+    def get_next_value(
         self, date: Union[date, datetime], field: "FieldType"
-    ) -> Union[float, int]:
+    ) -> Union[None, int]:
         first_day_wday, last_day = monthrange(date.year, date.month)
 
         first_hit_day = self.weekday - first_day_wday + 1
@@ -271,6 +270,7 @@ class WeekdayPositionExpression(AllExpression):
 
         if target_day <= last_day and target_day >= date.day:
             return target_day
+        return None
 
     def __eq__(self, other: Any) -> bool:
         return (
@@ -295,7 +295,7 @@ class LastDayOfMonthExpression(AllExpression):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(step=None, **kwargs)
 
-    def get_next_value(self, date: Union[date, datetime], field: "FieldType"):  # type: ignore
+    def get_next_value(self, date: Union[date, datetime], field: "FieldType") -> Optional[int]:
         return monthrange(date.year, date.month)[1]
 
     def __str__(self) -> str:

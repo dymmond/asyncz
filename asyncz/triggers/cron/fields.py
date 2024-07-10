@@ -1,7 +1,7 @@
 import re
 from calendar import monthrange
 from datetime import date, datetime
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 
 from pydantic import BaseModel, ConfigDict
 
@@ -47,18 +47,18 @@ class BaseField(BaseModel):
         self.real: bool = True
         self.compile_expressions(exprs)
 
-    def get_min(self, dateval: datetime | date) -> int:
+    def get_min(self, dateval: Union[date, datetime]) -> int:
         # We need dateval for calculation the limits of e.g. the current month
         return MIN_VALUES[self.name]
 
-    def get_max(self, dateval: datetime | date) -> int:
+    def get_max(self, dateval: Union[date, datetime]) -> int:
         # We need dateval for calculation the limits of e.g. the current month
         return MAX_VALUES[self.name]
 
-    def get_value(self, dateval: datetime | date) -> int:
+    def get_value(self, dateval: Union[date, datetime]) -> int:
         return getattr(dateval, self.name)
 
-    def get_next_value(self, dateval: datetime) -> Any:
+    def get_next_value(self, dateval: datetime) -> Optional[int]:
         smallest = None
         for expr in self.expressions:
             value = expr.get_next_value(dateval, self)
@@ -106,7 +106,7 @@ class WeekField(BaseField):
         super().__init__(name, exprs, is_default, **kwargs)
         self.real: bool = False
 
-    def get_value(self, dateval: datetime | date) -> int:
+    def get_value(self, dateval: Union[date, datetime]) -> int:
         return dateval.isocalendar()[1]
 
 
@@ -117,7 +117,7 @@ class DayOfMonthField(BaseField):
         compilers = [WeekdayPositionExpression, LastDayOfMonthExpression]
         super().__init__(name, exprs, is_default, compilers=compilers, **kwargs)
 
-    def get_max(self, dateval: datetime) -> int:
+    def get_max(self, dateval: Union[date, datetime]) -> int:
         return monthrange(dateval.year, dateval.month)[1]
 
 
@@ -129,7 +129,7 @@ class DayOfWeekField(BaseField):
         super().__init__(name, exprs, is_default, compilers=compilers, **kwargs)
         self.real: bool = False
 
-    def get_value(self, dateval: datetime | date) -> int:
+    def get_value(self, dateval: Union[date, datetime]) -> int:
         return dateval.weekday()
 
 
