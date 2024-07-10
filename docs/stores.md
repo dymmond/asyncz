@@ -35,7 +35,7 @@ from asyncz.stores.redis import RedisStore
 
 ### Parameters
 
-* **datababe** - The database number to store tasks in.
+* **database** - The database number to store tasks in.
 
     <sup>Default: `0`</sup>
 

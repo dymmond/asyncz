@@ -22,7 +22,7 @@ class RedisStore(BaseStore):
     instance.
 
     Args:
-        datababe - The database number to store tasks in.
+        database - The database number to store tasks in.
         tasks_key - The key to store tasks in.
         run_times_key - The key to store the tasks run times in.
         pickle_protocol - Pickle protocol level to use (for serialization), defaults to the
@@ -160,4 +160,4 @@ class RedisStore(BaseStore):
         self.redis.connection_pool.disconnect()
 
     def __repr__(self):
-        return "<%s>" % self.__class__.__name__
+        return f"<{self.__class__.__name__}>"
