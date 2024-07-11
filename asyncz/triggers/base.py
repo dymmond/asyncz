@@ -35,14 +35,12 @@ class BaseTrigger(BaseStateExtra, ABC):
     @overload
     def apply_jitter(
         self, next_trigger_time: datetime, jitter: Optional[int], now: datetime
-    ) -> datetime:
-        ...
+    ) -> datetime: ...
 
     @overload
     def apply_jitter(
         self, next_trigger_time: None, jitter: Optional[int], now: datetime
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def apply_jitter(
         self, next_trigger_time: Optional[datetime], jitter: Optional[int], now: datetime

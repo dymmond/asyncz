@@ -199,7 +199,7 @@ async def run_coroutine_task(
 
         _logger.info(f'Running task "{task}" (scheduled at {run_time})')  # type: ignore
         try:
-            return_value = await cast(Callable[..., Any ], task.fn)(*task.args, **task.kwargs)
+            return_value = await cast(Callable[..., Any], task.fn)(*task.args, **task.kwargs)
         except Exception as exc:
             trace_back = sys.exc_info()[2]
             formatted_trace_back = "".join(format_tb(trace_back))

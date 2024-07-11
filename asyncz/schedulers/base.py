@@ -80,7 +80,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         self.trigger_classes: Dict[str, Type[BaseTrigger]] = {}
         self.executor_plugins: Dict[str, str] = dict(mapping.executors.items())
         self.executor_classes: Dict[str, Type[BaseExecutor]] = {}
-        self.store_plugins: Dict[str, str]  = dict(mapping.stores.items())
+        self.store_plugins: Dict[str, str] = dict(mapping.stores.items())
         self.store_classes: Dict[str, Type[BaseStore]] = {}
         self.executors: Dict[str, BaseExecutor] = {}
         self.executor_lock: RLock = self.create_lock()
@@ -273,7 +273,9 @@ class BaseScheduler(BaseStateExtra, ABC):
 
         self.dispatch_event(SchedulerEvent(code=EXECUTOR_REMOVED, alias=alias))
 
-    def add_store(self, store: Union["StoreType", str], alias: str = "default", **store_options: Any) -> None:
+    def add_store(
+        self, store: Union["StoreType", str], alias: str = "default", **store_options: Any
+    ) -> None:
         """
         Adds a task store to this scheduler.
 
@@ -298,7 +300,7 @@ class BaseScheduler(BaseStateExtra, ABC):
                 )
 
             if self.state != SchedulerState.STATE_STOPPED:
-                cast("StoreType",store).start(self, alias)
+                cast("StoreType", store).start(self, alias)
 
         self.dispatch_event(SchedulerEvent(code=STORE_ADDED, alias=alias))
 
@@ -413,7 +415,9 @@ class BaseScheduler(BaseStateExtra, ABC):
             "max_instances": max_instances,
             "next_run_time": next_run_time,
         }
-        task_kwargs: Dict[str, Any] = {key: value for key, value in task_struct.items() if value is not undefined}
+        task_kwargs: Dict[str, Any] = {
+            key: value for key, value in task_struct.items() if value is not undefined
+        }
         task = Task(self, **task_kwargs)
         with self.store_lock:
             if self.state == SchedulerState.STATE_STOPPED:
@@ -482,9 +486,7 @@ class BaseScheduler(BaseStateExtra, ABC):
 
         return wrap
 
-    def update_task(
-        self, task_id: str, store: Optional[str] = None, **updates: Any
-    ) -> "TaskType":
+    def update_task(self, task_id: str, store: Optional[str] = None, **updates: Any) -> "TaskType":
         """
         Modifies the propertues of a single task.
 
@@ -539,9 +541,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         """
         return self.update_task(task_id, store, next_run_time=None)
 
-    def resume_task(
-        self, task_id: str, store: Optional[str] = None
-    ) -> Union["TaskType", None]:
+    def resume_task(self, task_id: str, store: Optional[str] = None) -> Union["TaskType", None]:
         """
         Resumes the schedule of the given task, or removes the task if its schedule is finished.
 
@@ -757,7 +757,9 @@ class BaseScheduler(BaseStateExtra, ABC):
         except KeyError:
             raise KeyError(f"No such store: {alias}.") from None
 
-    def lookup_task(self, task_id: str, store_alias: Optional[str]) -> Tuple["TaskType", Optional[str]]:
+    def lookup_task(
+        self, task_id: str, store_alias: Optional[str]
+    ) -> Tuple["TaskType", Optional[str]]:
         """
         Finds a task by its ID.
 
@@ -891,7 +893,9 @@ class BaseScheduler(BaseStateExtra, ABC):
 
         return plugin_cls(**constructor_args)
 
-    def create_trigger(self, trigger: Union["TriggerType", str, None], trigger_args: Any) -> "TriggerType":
+    def create_trigger(
+        self, trigger: Union["TriggerType", str, None], trigger_args: Any
+    ) -> "TriggerType":
         """
         Creates a trigger.
         """

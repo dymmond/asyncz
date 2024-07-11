@@ -82,7 +82,7 @@ class Task(BaseStateExtra):
     ):
         super().__init__(id=id or uuid4().hex, scheduler=scheduler, **kwargs)  # type: ignore
         self.store_alias = store_alias
-        self._update(fn=fn,**kwargs)
+        self._update(fn=fn, **kwargs)
 
     @property
     def pending(self) -> bool:

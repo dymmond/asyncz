@@ -41,7 +41,7 @@ class BasePoolExecutor(BaseExecutor):
 
         fn.add_done_callback(callback)
 
-    def shutdown(self, wait: bool=True) -> None:
+    def shutdown(self, wait: bool = True) -> None:
         self.pool.shutdown(wait)
 
 

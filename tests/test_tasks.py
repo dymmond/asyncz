@@ -101,6 +101,7 @@ def test_create_bad_id(create_task):
     exc = pytest.raises(ValidationError, create_task, id=3)
     assert exc.value.errors()[0]["type"] == "string_type"
 
+
 def test_private_update_id(task):
     exc = pytest.raises(ValueError, task._update, id="alternate")
     assert str(exc.value) == "The task ID may not be changed."
