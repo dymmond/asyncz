@@ -1,6 +1,6 @@
 import pickle
 from datetime import datetime
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional
 
 from asyncz.exceptions import ConflictIdError, TaskLookupError
 from asyncz.stores.base import BaseStore
@@ -32,10 +32,10 @@ class MongoDBStore(BaseStore):
     def __init__(
         self,
         database: str = "asyncz",
-        collection: Optional[str] = "tasks",
+        collection: str = "tasks",
         client: Optional[MongoClient] = None,
         pickle_protocol: Optional[int] = pickle.HIGHEST_PROTOCOL,
-        **kwargs: DictAny,
+        **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
         self.pickle_protocol = pickle_protocol
@@ -45,7 +45,7 @@ class MongoDBStore(BaseStore):
 
         if not client:
             kwargs.setdefault("w", 1)
-            self.client = MongoClient(**kwargs)
+            self.client: MongoClient = MongoClient(**kwargs)
         else:
             self.client = maybe_ref(client)
 
@@ -58,7 +58,7 @@ class MongoDBStore(BaseStore):
         super().start(scheduler, alias)
         self.collection.create_index("next_run_time", sparse=True)
 
-    def lookup_task(self, task_id: Union[str, int]) -> "TaskType":
+    def lookup_task(self, task_id: str) -> Optional["TaskType"]:
         document = self.collection.find_one(task_id, ["state"])
         return self.rebuild_task(document["state"]) if document else None
 
@@ -93,7 +93,7 @@ class MongoDBStore(BaseStore):
 
         return tasks
 
-    def get_next_run_time(self) -> datetime:
+    def get_next_run_time(self) -> Optional[datetime]:
         document = self.collection.find_one(
             {"next_run_time": {"$ne": None}},
             projection=["next_run_time"],
@@ -127,7 +127,7 @@ class MongoDBStore(BaseStore):
         if result and result.matched_count == 0:
             raise TaskLookupError(task.id)
 
-    def delete_task(self, task_id: Union[str, int]) -> None:
+    def delete_task(self, task_id: str) -> None:
         result = self.collection.delete_one({"_id": task_id})
         if result and result.deleted_count == 0:
             raise TaskLookupError(task_id)

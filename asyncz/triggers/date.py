@@ -33,7 +33,7 @@ class DateTrigger(BaseTrigger):
             self.run_at = datetime.now(timezone)
 
     def get_next_trigger_time(
-        self, previous_time: datetime, now: Optional[datetime] = None
+        self, previous_time: Optional[datetime], now: Optional[datetime] = None
     ) -> Union[datetime, None]:
         if previous_time is None:
             return self.run_at

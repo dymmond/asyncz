@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, Any, Union
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, List, Set
 
 from asyncz.exceptions import AsynczException
 from asyncz.executors.base import BaseExecutor, run_coroutine_task, run_task
@@ -23,7 +24,7 @@ class AsyncIOExecutor(BaseExecutor):
     def start(self, scheduler: Any, alias: str) -> None:
         super().start(scheduler, alias)
         self.event_loop = scheduler.event_loop
-        self.pending_futures = set()
+        self.pending_futures: Set[Any] = set()
 
     def shutdown(self, wait: bool = True) -> None:
         for f in self.pending_futures:
@@ -32,8 +33,8 @@ class AsyncIOExecutor(BaseExecutor):
 
         self.pending_futures.clear()
 
-    def do_send_task(self, task: "TaskType", run_times: Union[int, str]) -> None:
-        def callback(fn):
+    def do_send_task(self, task: "TaskType", run_times: List[datetime]) -> None:
+        def callback(fn: Any) -> None:
             self.pending_futures.discard(fn)
             try:
                 events = fn.result()
@@ -44,7 +45,7 @@ class AsyncIOExecutor(BaseExecutor):
 
         if iscoroutinefunction_partial(task.fn):
             if run_coroutine_task is not None:
-                coroutine = run_coroutine_task(task, task.store_alias, run_times, self.logger)
+                coroutine = run_coroutine_task(task, task.store_alias, run_times, self.logger)  # type: ignore
                 fn = self.event_loop.create_task(coroutine)
             else:
                 raise AsynczException(

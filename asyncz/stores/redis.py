@@ -1,13 +1,12 @@
 import pickle
 from datetime import datetime
 from datetime import timezone as tz
-from typing import Any, List, Optional, Union
+from typing import Any, Iterable, List, Optional, Tuple, cast
 
 from asyncz.exceptions import AsynczException, ConflictIdError, TaskLookupError
 from asyncz.stores.base import BaseStore
 from asyncz.tasks import Task
 from asyncz.tasks.types import TaskType
-from asyncz.typing import DictAny
 from asyncz.utils import datetime_to_utc_timestamp, utc_timestamp_to_datetime
 
 try:
@@ -35,7 +34,7 @@ class RedisStore(BaseStore):
         tasks_key: str = "asyncz.tasks",
         run_times_key: str = "asyncz.run_times",
         pickle_protocol: Optional[int] = pickle.HIGHEST_PROTOCOL,
-        **kwargs: DictAny,
+        **kwargs: Any,
     ):
         super().__init__(**kwargs)
         try:
@@ -50,7 +49,7 @@ class RedisStore(BaseStore):
         self.run_times_key = run_times_key
         self.redis = Redis(db=self.database, **kwargs)
 
-    def lookup_task(self, task_id: Union[str, int]) -> "TaskType":
+    def lookup_task(self, task_id: str) -> Optional["TaskType"]:
         state = self.redis.hget(self.tasks_key, task_id)
         return self.rebuild_task(state) if state else None
 
@@ -64,13 +63,13 @@ class RedisStore(BaseStore):
 
     def get_due_tasks(self, now: datetime) -> List["TaskType"]:
         timestamp = datetime_to_utc_timestamp(now)
-        ids = self.redis.zrangebyscore(self.run_times_key, 0, timestamp)
+        ids: List[str] = self.redis.zrangebyscore(self.run_times_key, 0, timestamp)  # type: ignore
         if not ids:
             return []
-        states = self.redis.hmget(self.tasks_key, *ids)
+        states: List[Any] = self.redis.hmget(self.tasks_key, ids)  # type: ignore
         return self.rebuild_tasks(zip(ids, states))
 
-    def rebuild_tasks(self, states: Any) -> List["TaskType"]:
+    def rebuild_tasks(self, states: Iterable[Tuple[str, Any]]) -> List["TaskType"]:
         tasks = []
         failed_task_ids = []
 
@@ -85,22 +84,23 @@ class RedisStore(BaseStore):
             with self.redis.pipeline() as pipe:
                 pipe.hdel(self.tasks_key, *failed_task_ids)
                 pipe.zrem(self.run_times_key, *failed_task_ids)
-                pipe.execute()
+                pipe.execute()  # type: ignore
 
         return tasks
 
-    def get_next_run_time(self) -> datetime:
-        next_run_time = self.redis.zrange(self.run_times_key, 0, 0, withscores=True)
+    def get_next_run_time(self) -> Optional[datetime]:
+        next_run_time: Any = self.redis.zrange(self.run_times_key, 0, 0, withscores=True)
         if next_run_time:
-            return utc_timestamp_to_datetime(next_run_time[0][1])
+            return utc_timestamp_to_datetime(cast(float, next_run_time[0][1]))
+        return None
 
     def get_all_tasks(self) -> List["TaskType"]:
-        states = self.redis.hgetall(self.tasks_key)
+        states: List[Tuple[str, Any]] = self.redis.hgetall(self.tasks_key)  # type: ignore
         tasks = self.rebuild_tasks(states.items())
         paused_sort_key = datetime(9999, 12, 31, tzinfo=tz.utc)
         return sorted(tasks, key=lambda task: task.next_run_time or paused_sort_key)
 
-    def add_task(self, task: "TaskType"):
+    def add_task(self, task: "TaskType") -> None:
         if self.redis.hexists(self.tasks_key, task.id):
             raise ConflictIdError(task.id)
 
@@ -109,7 +109,7 @@ class RedisStore(BaseStore):
             pipe.hset(
                 self.tasks_key,
                 task.id,
-                pickle.dumps(task.__getstate__(), self.pickle_protocol),
+                pickle.dumps(task.__getstate__(), self.pickle_protocol),  # type: ignore
             )
 
             if task.next_run_time:
@@ -117,9 +117,9 @@ class RedisStore(BaseStore):
                     self.run_times_key,
                     {task.id: datetime_to_utc_timestamp(task.next_run_time)},
                 )
-            pipe.execute()
+            pipe.execute()  # type: ignore
 
-    def update_task(self, task: "TaskType"):
+    def update_task(self, task: "TaskType") -> None:
         if not self.redis.hexists(self.tasks_key, task.id):
             raise TaskLookupError(task.id)
 
@@ -127,7 +127,7 @@ class RedisStore(BaseStore):
             pipe.hset(
                 self.tasks_key,
                 task.id,
-                pickle.dumps(task.__getstate__(), self.pickle_protocol),
+                pickle.dumps(task.__getstate__(), self.pickle_protocol),  # type: ignore
             )
             if task.next_run_time:
                 pipe.zadd(
@@ -137,25 +137,25 @@ class RedisStore(BaseStore):
             else:
                 pipe.zrem(self.run_times_key, task.id)
 
-            pipe.execute()
+            pipe.execute()  # type: ignore
 
-    def delete_task(self, task_id: Union[str, int]):
+    def delete_task(self, task_id: str) -> None:
         if not self.redis.hexists(self.tasks_key, task_id):
             raise TaskLookupError(task_id)
 
         with self.redis.pipeline() as pipe:
             pipe.hdel(self.tasks_key, task_id)
             pipe.zrem(self.run_times_key, task_id)
-            pipe.execute()
+            pipe.execute()  # type: ignore
 
-    def remove_all_tasks(self):
+    def remove_all_tasks(self) -> None:
         with self.redis.pipeline() as pipe:
             pipe.delete(self.tasks_key)
             pipe.delete(self.run_times_key)
-            pipe.execute()
+            pipe.execute()  # type: ignore
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         self.redis.connection_pool.disconnect()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{self.__class__.__name__}>"

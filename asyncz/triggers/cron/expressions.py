@@ -3,7 +3,7 @@ from calendar import monthrange
 from datetime import date, datetime
 from typing import TYPE_CHECKING, Any, ClassVar, Optional, Union
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from asyncz.triggers.cron.constants import MAX_VALUES, MIN_VALUES, MONTHS, OPTIONS, WEEKDAYS
 from asyncz.utils import to_int
@@ -14,18 +14,16 @@ if TYPE_CHECKING:
 
 class BaseExpression(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="allow")
+    regex: ClassVar[re.Pattern]
 
 
 class AllExpression(BaseExpression):
     regex: ClassVar[re.Pattern] = re.compile(r"\*(?:/(?P<step>\d+))?$")
-    step: Optional[int] = None
+    step: Optional[int] = Field(gt=0, default=None)
 
     def __init__(self, step: Optional[Union[int, float]] = None, **kwargs: Any):
+        kwargs["step"] = to_int(step)
         super().__init__(**kwargs)
-        if step:
-            self.step = to_int(step)
-            if self.step == 0:
-                raise ValueError("Increment must be higher than 0.")
 
     def validate_range(self, field_name: str) -> None:
         value_range = MAX_VALUES[field_name] - MIN_VALUES[field_name]
@@ -72,9 +70,11 @@ class RangeExpression(AllExpression):
         self,
         first: Union[str, float],
         last: Optional[Union[str, float]] = None,
+        # for supporting positional as well as keyword calls
+        step: Optional[Union[int, float]] = None,
         **kwargs: Any,
     ):
-        super().__init__(**kwargs)
+        super().__init__(step=step, **kwargs)
         first: Optional[int] = to_int(first)  # type: ignore
         last: Optional[int] = to_int(last)  # type: ignore
 
@@ -254,9 +254,7 @@ class WeekdayPositionExpression(AllExpression):
         except ValueError:
             raise ValueError(f'Invalid weekday name "{weekday_name}".') from None
 
-    def get_next_value(
-        self, date: Union[date, datetime], field: "FieldType"
-    ) -> Union[None, int]:
+    def get_next_value(self, date: Union[date, datetime], field: "FieldType") -> Union[None, int]:
         first_day_wday, last_day = monthrange(date.year, date.month)
 
         first_hit_day = self.weekday - first_day_wday + 1

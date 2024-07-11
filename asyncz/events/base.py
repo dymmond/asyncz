@@ -30,8 +30,8 @@ class TaskEvent(SchedulerEvent):
         store: The alias given to a store.
     """
 
-    task_id: Union[str, int]
-    store: Union[str, Any] = None
+    task_id: str
+    store: Optional[str] = None
 
 
 class TaskSubmissionEvent(TaskEvent):

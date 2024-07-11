@@ -1,7 +1,7 @@
 import random
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, List, Optional, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Union, overload
 
 from asyncz.datastructures import CombinationState
 from asyncz.state import BaseStateExtra
@@ -17,10 +17,11 @@ class BaseTrigger(BaseStateExtra, ABC):
     """
 
     alias: Optional[str] = None
+    jitter: Optional[int] = None
 
     @abstractmethod
     def get_next_trigger_time(
-        self, previous_time: datetime, now: Optional[datetime] = None
+        self, previous_time: Optional[datetime], now: Optional[datetime] = None
     ) -> Union[datetime, None]:
         """
         Returns the next datetime to trigger. If the datetime cannot be calculated, then returns None.
@@ -31,8 +32,20 @@ class BaseTrigger(BaseStateExtra, ABC):
         """
         ...
 
+    @overload
     def apply_jitter(
-        self, next_trigger_time: datetime, jitter: int, now: datetime
+        self, next_trigger_time: datetime, jitter: Optional[int], now: datetime
+    ) -> datetime:
+        ...
+
+    @overload
+    def apply_jitter(
+        self, next_trigger_time: None, jitter: Optional[int], now: datetime
+    ) -> None:
+        ...
+
+    def apply_jitter(
+        self, next_trigger_time: Optional[datetime], jitter: Optional[int], now: datetime
     ) -> Union[datetime, None]:
         """
         Makes the next trigger time random by ading a random value (jitter).
@@ -56,19 +69,18 @@ class BaseCombinationTrigger(BaseTrigger):
         jitter: he maximum number of second to add to the next_trigger_time.
     """
 
-    triggers: Any = []
+    triggers: List["TriggerType"]
 
     def __init__(
         self,
         triggers: List["TriggerType"],
         jitter: Optional[int] = None,
         **kwargs: Any,
-    ):
-        super().__init__(**kwargs)
-        self.triggers = triggers
-        self.jitter = jitter
+    ) -> None:
+        kwargs["triggers"] = triggers
+        super().__init__(jitter=jitter, **kwargs)
 
-    def __getstate__(self) -> "CombinationState":
+    def __getstate__(self) -> "CombinationState":  # type: ignore
         triggers = [
             (obj_to_ref(trigger.__class__), trigger.__getstate__()) for trigger in self.triggers
         ]
@@ -78,7 +90,7 @@ class BaseCombinationTrigger(BaseTrigger):
         )
         return state
 
-    def __setstate__(self, state: "CombinationState") -> None:
+    def __setstate__(self, state: "CombinationState") -> None:  # type: ignore
         trigger = super().__setstate__(state)
         triggers = []
 

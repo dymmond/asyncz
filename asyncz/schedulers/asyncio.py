@@ -43,7 +43,7 @@ class AsyncIOScheduler(BaseScheduler):
         self.event_loop = maybe_ref(config.pop("event_loop", None))
         super()._setup(config)
 
-    def start_timer(self, wait_seconds: Optional[int] = None) -> None:
+    def start_timer(self, wait_seconds: Optional[float] = None) -> None:
         self.stop_timer()
         if wait_seconds is not None:
             self.timer = self.event_loop.call_later(wait_seconds, self.wakeup)

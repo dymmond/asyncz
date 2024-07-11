@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, List, Optional, Union
+from typing import TYPE_CHECKING, Any, List, Optional
 
 from loguru import logger
 
@@ -51,7 +51,7 @@ class BaseStore(BaseStateExtra, ABC):
                 break
 
     @abstractmethod
-    def lookup_task(self, task_id: Union[str, int]) -> "TaskType":
+    def lookup_task(self, task_id: str) -> Optional["TaskType"]:
         """
         Returns a specific task, or None if it isn't found.
 
@@ -69,7 +69,7 @@ class BaseStore(BaseStateExtra, ABC):
         ...
 
     @abstractmethod
-    def get_next_run_time(self) -> datetime:
+    def get_next_run_time(self) -> Optional[datetime]:
         """
         Returns the earliest run time of all the tasks stored in this task store, or None if
         there are no active tasks.
@@ -103,7 +103,7 @@ class BaseStore(BaseStateExtra, ABC):
         ...
 
     @abstractmethod
-    def delete_task(self, task_id: Union[str, int]) -> None:
+    def delete_task(self, task_id: str) -> None:
         """
         Removes the given task from this store.
         """

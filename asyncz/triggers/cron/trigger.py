@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, tzinfo
-from typing import Any, Optional, Union
+from typing import Any, Optional, Tuple, Union
 
 from tzlocal import get_localzone
 
@@ -144,10 +144,10 @@ class CronTrigger(BaseTrigger):
 
     @classmethod
     def from_crontab(
-        cls: "CronTrigger",
+        cls,
         expression: Union[str, Any],
         timezone: Optional[Union[str, tzinfo]] = None,
-    ):
+    ) -> "CronTrigger":
         """
         Creates a class CronTrigger from a standard crontab expression.
         See https://en.wikipedia.org/wiki/Cron for more information on the format accepted here.
@@ -169,7 +169,7 @@ class CronTrigger(BaseTrigger):
             timezone=timezone,
         )
 
-    def increment_field_value(self, dateval: datetime, field_number: int):
+    def increment_field_value(self, dateval: datetime, field_number: int) -> Tuple[datetime, int]:
         """
         Increments the designated field and resets all significant fields to their minimum values
         """
@@ -206,7 +206,7 @@ class CronTrigger(BaseTrigger):
         difference = datetime(**values) - dateval.replace(tzinfo=None)
         return normalize(dateval + difference), field_number
 
-    def set_field_value(self, dateval: datetime, field_number: int, new_value: Any):
+    def set_field_value(self, dateval: datetime, field_number: int, new_value: Any) -> datetime:
         values = {}
         for i, field in enumerate(self.fields):
             if field.real:
@@ -220,8 +220,10 @@ class CronTrigger(BaseTrigger):
         return localize(datetime(**values), self.timezone)
 
     def get_next_trigger_time(
-        self, previous_time: datetime, now: Optional[datetime] = None
+        self, previous_time: Optional[datetime], now: Optional[datetime] = None
     ) -> Union[datetime, None]:
+        if now is None:
+            now = datetime.now()
         if previous_time:
             start_at = min(now, previous_time + timedelta(microseconds=1))
             if start_at == previous_time:
@@ -253,6 +255,7 @@ class CronTrigger(BaseTrigger):
         if fieldnum >= 0:
             next_date = self.apply_jitter(next_date, self.jitter, now)
             return min(next_date, self.end_at) if self.end_at else next_date
+        return None
 
     def __getstate__(self) -> Any:
         state = CronState(
@@ -269,7 +272,7 @@ class CronTrigger(BaseTrigger):
             return state[1]
         return super().__setstate__(state)
 
-    def __str__(self):
+    def __str__(self) -> str:
         options = [f"{f.name}='{f}'" for f in self.fields if not f.is_default]
         return f"cron[{', '.join(options)}]"
 

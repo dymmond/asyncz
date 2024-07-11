@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, Union
+from datetime import datetime
+from typing import TYPE_CHECKING, List
 
 from asyncz.executors.base import BaseExecutor, run_task
 
@@ -15,14 +16,11 @@ class DebugExecutor(BaseExecutor):
     def do_send_task(
         self,
         task: "TaskType",
-        run_times: Union[
-            int,
-            str,
-        ],
+        run_times: List[datetime],
     ) -> None:
         try:
-            events = run_task(task, task.store_alias, run_times, self.logger)
-        except BaseException:
+            events = run_task(task, task.store_alias, run_times, self.logger)  # type: ignore
+        except Exception:
             self.run_task_error(task.id)
         else:
             self.run_task_success(task.id, events)

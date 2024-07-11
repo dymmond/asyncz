@@ -1,13 +1,14 @@
 import re
 from calendar import monthrange
 from datetime import date, datetime
-from typing import Any, List, Optional, Union
+from typing import Any, ClassVar, List, Optional, Tuple, Type, Union, cast
 
 from pydantic import BaseModel, ConfigDict
 
 from asyncz.triggers.cron.constants import MAX_VALUES, MIN_VALUES
 from asyncz.triggers.cron.expressions import (
     AllExpression,
+    BaseExpression,
     LastDayOfMonthExpression,
     MonthRangeExpression,
     RangeExpression,
@@ -20,32 +21,27 @@ SEPARATOR = re.compile(" *, *")
 
 class BaseField(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    name: Optional[str] = None
-    exprs: Optional[Any] = None
-    is_default: Optional[bool] = False
-    expressions: Optional[List[Any]] = None
-    compilers: Optional[List[Any]] = None
-    real: Optional[bool] = False
+    name: str
+    exprs: Any
+    is_default: bool
+    real: ClassVar[bool] = True
+    compilers: ClassVar[Tuple[Type[BaseExpression], ...]] = (AllExpression, RangeExpression)
+    expressions: List[BaseExpression]
 
     def __init__(
         self,
         name: str,
         exprs: Any,
         is_default: Optional[bool] = False,
-        compilers: Optional[List[Any]] = None,
         **kwargs: Any,
     ):
-        super().__init__(**kwargs)
-        self.name = name
-        self.is_default = is_default
-        self.exprs = exprs
-        self.compilers = [AllExpression, RangeExpression]
+        super().__init__(name=name, exprs=exprs, is_default=is_default, expressions=[], **kwargs)
+        self.compile_expressions(self.exprs)
 
-        if compilers:
-            self.compilers += compilers
-
-        self.real: bool = True
-        self.compile_expressions(exprs)
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        if cls is not BaseField:
+            cls.compilers = (AllExpression, RangeExpression, *cls.compilers)
 
     def get_min(self, dateval: Union[date, datetime]) -> int:
         # We need dateval for calculation the limits of e.g. the current month
@@ -56,10 +52,10 @@ class BaseField(BaseModel):
         return MAX_VALUES[self.name]
 
     def get_value(self, dateval: Union[date, datetime]) -> int:
-        return getattr(dateval, self.name)
+        return cast(int, getattr(dateval, self.name))
 
     def get_next_value(self, dateval: datetime) -> Optional[int]:
-        smallest = None
+        smallest: Optional[int] = None
         for expr in self.expressions:
             value = expr.get_next_value(dateval, self)
             if smallest is None or (value is not None and value < smallest):
@@ -68,7 +64,7 @@ class BaseField(BaseModel):
         return smallest
 
     def compile_expressions(self, exprs: Any) -> None:
-        self.expressions = []
+        self.expressions: List[Any] = []
 
         for expr in SEPARATOR.split(str(exprs).strip()):
             self.compile_expression(expr)
@@ -100,42 +96,26 @@ class BaseField(BaseModel):
 
 
 class WeekField(BaseField):
-    def __init__(
-        self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any
-    ) -> None:
-        super().__init__(name, exprs, is_default, **kwargs)
-        self.real: bool = False
+    real: ClassVar[bool] = False
 
     def get_value(self, dateval: Union[date, datetime]) -> int:
         return dateval.isocalendar()[1]
 
 
 class DayOfMonthField(BaseField):
-    def __init__(
-        self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any
-    ) -> None:
-        compilers = [WeekdayPositionExpression, LastDayOfMonthExpression]
-        super().__init__(name, exprs, is_default, compilers=compilers, **kwargs)
+    compilers = (WeekdayPositionExpression, LastDayOfMonthExpression)
 
     def get_max(self, dateval: Union[date, datetime]) -> int:
         return monthrange(dateval.year, dateval.month)[1]
 
 
 class DayOfWeekField(BaseField):
-    def __init__(
-        self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any
-    ) -> None:
-        compilers = [WeekdayRangeExpression]
-        super().__init__(name, exprs, is_default, compilers=compilers, **kwargs)
-        self.real: bool = False
+    real: ClassVar[bool] = False
+    compilers = (WeekdayRangeExpression,)
 
     def get_value(self, dateval: Union[date, datetime]) -> int:
         return dateval.weekday()
 
 
 class MonthField(BaseField):
-    def __init__(
-        self, name: str, exprs: Any, is_default: Optional[bool] = False, **kwargs: Any
-    ) -> None:
-        compilers = [MonthRangeExpression]
-        super().__init__(name, exprs, is_default, compilers=compilers, **kwargs)
+    compilers = (MonthRangeExpression,)

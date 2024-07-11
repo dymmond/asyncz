@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, List, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 from asyncz.exceptions import ConflictIdError, TaskLookupError
 from asyncz.stores.base import BaseStore
@@ -16,10 +16,10 @@ class MemoryStore(BaseStore):
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.tasks = []
-        self.tasks_index = {}
+        self.tasks: List[Tuple[TaskType, Optional[float]]] = []
+        self.tasks_index: Dict[str, Tuple[TaskType, Optional[float]]] = {}
 
-    def lookup_task(self, task_id: Union[str, int]) -> "TaskType":
+    def lookup_task(self, task_id: str) -> Optional["TaskType"]:
         return self.tasks_index.get(task_id, (None, None))[0]
 
     def get_due_tasks(self, now: datetime) -> List["TaskType"]:
@@ -33,7 +33,7 @@ class MemoryStore(BaseStore):
 
         return pending
 
-    def get_next_run_time(self) -> datetime:
+    def get_next_run_time(self) -> Optional[datetime]:
         return self.tasks[0][0].next_run_time if self.tasks else None
 
     def get_all_tasks(self) -> List["TaskType"]:
@@ -45,6 +45,7 @@ class MemoryStore(BaseStore):
 
         timestamp = datetime_to_utc_timestamp(task.next_run_time)
         index = self.get_task_index(timestamp, task.id)
+
         self.tasks.insert(index, (task, timestamp))
         self.tasks_index[task.id] = (task, timestamp)
 
@@ -62,7 +63,7 @@ class MemoryStore(BaseStore):
             new_index = self.get_task_index(new_timestamp, task.id)
             self.tasks.insert(new_index, (task, new_timestamp))
 
-    def delete_task(self, task_id: Union[str, int]) -> None:
+    def delete_task(self, task_id: str) -> None:
         task, timestamp = self.tasks_index.get(task_id, (None, None))
         if task is None:
             raise TaskLookupError(task_id)
@@ -78,7 +79,7 @@ class MemoryStore(BaseStore):
     def shutdown(self) -> None:
         self.remove_all_tasks()
 
-    def get_task_index(self, timestamp: Union[int, float], task_id: Union[int, str]) -> int:
+    def get_task_index(self, timestamp: Union[int, float, None], task_id: str) -> int:
         """
         Returns the index of the given task, or if it's not found, the index where the task should be
         inserted based on the given timestamp.
