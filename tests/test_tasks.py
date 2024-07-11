@@ -2,9 +2,10 @@ import gc
 import weakref
 from datetime import datetime, timedelta
 from functools import partial
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
+from pydantic import ValidationError
 
 from asyncz.datastructures import TaskState
 from asyncz.exceptions import AsynczException
@@ -23,17 +24,15 @@ def task(create_task):
 
 @pytest.mark.parametrize("task_id", ["testid", None])
 def test_constructor(task_id):
-    with patch("asyncz.tasks.base.Task._update") as _update:
-        scheduler_mock = MagicMock(BaseScheduler)
-        task = Task(scheduler_mock, id=task_id)
-        assert task.scheduler is scheduler_mock
-        assert task.store_alias is None
+    scheduler_mock = MagicMock(BaseScheduler)
+    task = Task(scheduler_mock, id=task_id)
+    assert task.scheduler is scheduler_mock
+    assert task.store_alias is None
 
-        update_kwargs = _update.call_args[1]
-        if task_id is None:
-            assert len(update_kwargs["id"]) == 32
-        else:
-            assert update_kwargs["id"] == task_id
+    if task_id is None:
+        assert len(task.id) == 32
+    else:
+        assert task.id == task_id
 
 
 def test_update(task):
@@ -98,10 +97,9 @@ def test_get_run_times(create_task, timezone):
     assert run_times == expected_times
 
 
-def test_private_update_bad_id(task):
-    del task.id
-    exc = pytest.raises(TypeError, task._update, id=3)
-    assert str(exc.value) == "Id must be a non empty string."
+def test_create_bad_id(create_task):
+    exc = pytest.raises(ValidationError, create_task, id=3)
+    assert exc.value.errors()[0]["type"] == "string_type"
 
 
 def test_private_update_id(task):

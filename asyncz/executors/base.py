@@ -4,8 +4,9 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from datetime import datetime, timedelta
 from datetime import timezone as tz
+from threading import RLock
 from traceback import format_tb
-from typing import TYPE_CHECKING, Any, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, cast
 
 from loguru import logger
 from loguru._logger import Logger
@@ -26,11 +27,11 @@ class BaseExecutor(BaseStateExtra, ABC):
     Asyncz uses loguru for its logging as it is more descriptive and intuitive.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.instances = defaultdict(lambda: 0)
+        self.instances: Dict[str, int] = defaultdict(lambda: 0)
 
-    def start(self, scheduler: Any, alias: str):
+    def start(self, scheduler: Any, alias: str) -> None:
         """
         Called by the scheduler when the scheduler is being started or when the executor is being
         added to an already running scheduler.
@@ -40,11 +41,11 @@ class BaseExecutor(BaseStateExtra, ABC):
             alias - The alias of this executor as it was assigned to the scheduler.
         """
         self.scheduler = scheduler
-        self.lock = scheduler.create_lock()
-        self.logger = logger
+        self.lock: RLock = scheduler.create_lock()
+        self.logger: Any = logger
         self.logger.bind(logger_name=f"asyncz.executors.{alias}")
 
-    def shutdown(self, wait: bool = True):
+    def shutdown(self, wait: bool = True) -> None:
         """
         Shuts down the executor.
 
@@ -52,7 +53,7 @@ class BaseExecutor(BaseStateExtra, ABC):
             wait - Boolean indicating to wait until all submitted tasks have been executed.
         """
 
-    def send_task(self, task: "TaskType", run_times: List[datetime]):
+    def send_task(self, task: "TaskType", run_times: List[datetime]) -> None:
         """
         Sends the task for execution.
 
@@ -75,7 +76,7 @@ class BaseExecutor(BaseStateExtra, ABC):
         """
         ...
 
-    def run_task_success(self, task_id: Union[str, int], events: List[int]) -> Any:
+    def run_task_success(self, task_id: str, events: List[TaskExecutionEvent]) -> None:
         """
         Called by the executor with the list of generated events when the function run_task has
         been successfully executed.
@@ -88,7 +89,7 @@ class BaseExecutor(BaseStateExtra, ABC):
         for event in events or []:
             self.scheduler.dispatch_event(event)
 
-    def run_task_error(self, task_id: Union[str, int]) -> Any:
+    def run_task_error(self, task_id: str) -> None:
         """
         Called by the executor with the exception if there is an error calling the run_task.
         """
@@ -104,8 +105,8 @@ def run_task(
     task: "TaskType",
     store_alias: str,
     run_times: List[datetime],
-    _logger: Optional["Logger"] = None,
-):
+    _logger: Optional[Any] = None,
+) -> List[TaskExecutionEvent]:
     """
     Called by executors to run the task. Returns a list of scheduler events to be dispatched by the
     scheduler.
@@ -134,9 +135,9 @@ def run_task(
 
         _logger.info(f'Running task "{task}" (scheduled at {run_time})')
         try:
-            return_value = task.fn(*task.args, **task.kwargs)
-        except BaseException:
-            exc, trace_back = sys.exc_info()[1:]
+            return_value = cast(Callable[..., Any], task.fn)(*task.args, **task.kwargs)
+        except Exception as exc:
+            trace_back = sys.exc_info()[2]
             formatted_trace_back = "".join(format_tb(trace_back))
             events.append(
                 TaskExecutionEvent(
@@ -169,7 +170,7 @@ async def run_coroutine_task(
     store_alias: str,
     run_times: List[datetime],
     _logger: Optional["Logger"] = None,
-):
+) -> List[TaskExecutionEvent]:
     """
     Called by executors to run the task. Returns a list of scheduler events to be dispatched by the
     scheduler.
@@ -177,7 +178,7 @@ async def run_coroutine_task(
     The run task is made to run in async mode.
     """
     if not _logger:
-        _logger = logger
+        _logger = logger  # type: ignore
 
     events = []
     for run_time in run_times:
@@ -193,14 +194,14 @@ async def run_coroutine_task(
                         scheduled_run_time=run_time,
                     )
                 )
-                _logger.warning(f"Run time of task '{task}' was missed by {difference}")
+                _logger.warning(f"Run time of task '{task}' was missed by {difference}")  # type: ignore
                 continue
 
-        _logger.info(f'Running task "{task}" (scheduled at {run_time})')
+        _logger.info(f'Running task "{task}" (scheduled at {run_time})')  # type: ignore
         try:
-            return_value = await task.fn(*task.args, **task.kwargs)
-        except BaseException:
-            exc, trace_back = sys.exc_info()[1:]
+            return_value = await cast(Callable[..., Any], task.fn)(*task.args, **task.kwargs)
+        except Exception as exc:
+            trace_back = sys.exc_info()[2]
             formatted_trace_back = "".join(format_tb(trace_back))
             events.append(
                 TaskExecutionEvent(
@@ -224,6 +225,6 @@ async def run_coroutine_task(
                     return_value=return_value,
                 )
             )
-            _logger.info(f"Task '{task}' executed successfully")
+            _logger.info(f"Task '{task}' executed successfully")  # type: ignore
 
     return events

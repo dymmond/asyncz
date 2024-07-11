@@ -94,13 +94,13 @@ class DummyStore(BaseStore):
 
     def get_due_tasks(self, now: datetime) -> List["TaskType"]: ...
 
-    def lookup_task(self, task_id: Union[str, int]) -> "TaskType": ...
+    def lookup_task(self, task_id: str) -> "TaskType": ...
 
-    def delete_task(self, task_id: Union[str, int]): ...
+    def delete_task(self, task_id: str): ...
 
     def remove_all_tasks(self): ...
 
-    def get_next_run_time(self) -> datetime: ...
+    def get_next_run_time(self) -> Optional[datetime]: ...
 
     def get_all_tasks(self) -> List["TaskType"]: ...
 
@@ -833,7 +833,7 @@ class TestBaseScheduler:
 class TestProcessTasks:
     @pytest.fixture
     def task(self):
-        task = MagicMock(Task, id=999, executor="default", coalesce=False, max_instances=1)
+        task = MagicMock(Task, id="999", executor="default", coalesce=False, max_instances=1)
         task.trigger = MagicMock(get_next_trigger_time=MagicMock(return_value=None))
         task.__str__ = lambda x: "task 999"
         return task
@@ -866,7 +866,7 @@ class TestProcessTasks:
 
         assert scheduler.process_tasks() is None
 
-        store.delete_task.assert_called_once_with(999)
+        store.delete_task.assert_called_once_with("999")
 
         assert len(caplog.records) == 1
 

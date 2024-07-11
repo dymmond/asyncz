@@ -5,7 +5,7 @@ from calendar import timegm
 from datetime import date, datetime, time, timedelta, tzinfo
 from datetime import timezone as dttz
 from functools import partial
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional, Union, cast, overload
 
 from asyncz.exceptions import AsynczException, AsynczLookupError
 
@@ -14,9 +14,9 @@ try:
 except ImportError:
     TIMEOUT_MAX = 4294967
 try:
-    from zoneinfo import ZoneInfo
+    from zoneinfo import ZoneInfo  # type: ignore[import-not-found,unused-ignore]
 except ImportError:
-    from backports.zoneinfo import ZoneInfo
+    from backports.zoneinfo import ZoneInfo  # type: ignore[no-redef,unused-ignore]
 
 BOOL_VALIDATION = {
     "true": ["true", "yes", "on", "y", "t", "1", True],
@@ -31,27 +31,41 @@ DATE_REGEX = re.compile(
 )
 
 
-def repr_escape(string: str) -> str:
-    return string
+@overload
+def to_int(value: None) -> None: ...
 
 
-def to_int(value: Union[str, float]) -> int:
+@overload
+def to_int(value: Union[str, float]) -> int: ...
+
+
+def to_int(value: Union[str, float, None]) -> Optional[int]:
     """
     Safely converts a value to integer.
     """
     if value is not None:
         return int(value)
+    return None
 
 
-def to_float(value: Union[str, int]) -> float:
+@overload
+def to_float(value: None) -> None: ...
+
+
+@overload
+def to_float(value: Union[str, int, float]) -> float: ...
+
+
+def to_float(value: Union[str, int, float, None]) -> Optional[float]:
     """
     Safely converts a value to float.
     """
     if value is not None:
         return float(value)
+    return None
 
 
-def to_bool(value: str) -> bool:
+def to_bool(value: Union[str, bool, None]) -> bool:
     """
     Converts the given value into a boolean.
     """
@@ -64,7 +78,15 @@ def to_bool(value: str) -> bool:
     return False
 
 
-def to_timezone(value: Any) -> tzinfo:
+@overload
+def to_timezone(value: None) -> None: ...
+
+
+@overload
+def to_timezone(value: Union[str, tzinfo]) -> tzinfo: ...
+
+
+def to_timezone(value: Any) -> Optional[tzinfo]:
     """
     Converts a value to timezone object.
     """
@@ -74,10 +96,21 @@ def to_timezone(value: Any) -> tzinfo:
         return value
     if value is not None:
         raise TypeError(f"Expected tzinfo, got {value.__class__.__name__} instead")
+    return None
+
+
+@overload
+def to_datetime(value: None, tz: Union[tzinfo, str], arg_name: str) -> None: ...
+
+
+@overload
+def to_datetime(
+    value: Union[str, datetime, date], tz: Union[tzinfo, str], arg_name: str
+) -> Union[datetime, Any]: ...
 
 
 def to_datetime(
-    value: Union[str, datetime], tz: tzinfo, arg_name: str
+    value: Union[str, datetime, date, None], tz: Union[tzinfo, str], arg_name: str
 ) -> Union[datetime, None, Any]:
     """
     Converts the given value to a timezone compatible aware datetime object.
@@ -87,12 +120,12 @@ def to_datetime(
     If the input is a string, it is parsed as a datetime with the given timezone.
     """
     if not value or value is None:
-        return  # type: ignore
+        return None
 
     if isinstance(value, datetime):
         _datetime = value
-    elif isinstance(value, date):  # type: ignore
-        _datetime = datetime.combine(value, time())  # type: ignore
+    elif isinstance(value, date):
+        _datetime = datetime.combine(value, time())
     elif isinstance(value, str):
         _value = DATE_REGEX.match(value)
 
@@ -130,23 +163,41 @@ def to_datetime(
     return localize(_datetime, tz)
 
 
-def datetime_to_utc_timestamp(timeval: datetime) -> Union[int, float]:
+@overload
+def datetime_to_utc_timestamp(timeval: None) -> None: ...
+
+
+@overload
+def datetime_to_utc_timestamp(timeval: datetime) -> float: ...
+
+
+def datetime_to_utc_timestamp(timeval: Optional[datetime]) -> Optional[float]:
     """
     Converts a datetime instance to a timestamp.
     """
     if timeval is not None:
         return timegm(timeval.utctimetuple()) + timeval.microsecond / 1000000
+    return None
 
 
-def utc_timestamp_to_datetime(timestamp: Union[int, float]) -> datetime:
+@overload
+def utc_timestamp_to_datetime(timestamp: None) -> None: ...
+
+
+@overload
+def utc_timestamp_to_datetime(timestamp: Union[int, float]) -> datetime: ...
+
+
+def utc_timestamp_to_datetime(timestamp: Union[int, float, None]) -> Optional[datetime]:
     """
     Converts the given timestamp to a datetime instance.
     """
     if timestamp is not None:
         return datetime.fromtimestamp(timestamp, dttz.utc)
+    return None
 
 
-def timedelta_seconds(delta: Any) -> Any:
+def timedelta_seconds(delta: timedelta) -> float:
     """
     Converts the given timedelta to seconds.
     """
@@ -162,11 +213,11 @@ def datetime_ceil(dateval: datetime) -> datetime:
     return dateval
 
 
-def datetime_repr(dateval: datetime) -> str:
+def datetime_repr(dateval: Optional[datetime]) -> str:
     return dateval.strftime("%Y-%m-%d %H:%M:%S %Z") if dateval else "None"
 
 
-def get_callable_name(func: Any) -> Any:
+def get_callable_name(func: Callable) -> str:
     """
     Returns the best available display name for the given function/callable.
     """
@@ -355,8 +406,8 @@ def normalize(value: datetime) -> datetime:
     return datetime.fromtimestamp(value.timestamp(), value.tzinfo)
 
 
-def localize(value: datetime, tzinfo: tzinfo) -> Any:
+def localize(value: datetime, tzinfo: tzinfo) -> datetime:
     if hasattr(tzinfo, "localize"):
-        return tzinfo.localize(value)
+        return cast(datetime, tzinfo.localize(value))
 
     return normalize(value.replace(tzinfo=tzinfo))

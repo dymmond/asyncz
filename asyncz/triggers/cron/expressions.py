@@ -3,7 +3,7 @@ from calendar import monthrange
 from datetime import date, datetime
 from typing import TYPE_CHECKING, Any, ClassVar, Optional, Union
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from asyncz.triggers.cron.constants import MAX_VALUES, MIN_VALUES, MONTHS, OPTIONS, WEEKDAYS
 from asyncz.utils import to_int
@@ -14,18 +14,16 @@ if TYPE_CHECKING:
 
 class BaseExpression(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="allow")
+    regex: ClassVar[re.Pattern]
 
 
 class AllExpression(BaseExpression):
     regex: ClassVar[re.Pattern] = re.compile(r"\*(?:/(?P<step>\d+))?$")
-    step: Optional[Union[int, float]] = None
+    step: Optional[int] = Field(gt=0, default=None)
 
     def __init__(self, step: Optional[Union[int, float]] = None, **kwargs: Any):
+        kwargs["step"] = to_int(step)
         super().__init__(**kwargs)
-        if step:
-            self.step = to_int(step)
-            if self.step == 0:
-                raise ValueError("Increment must be higher than 0.")
 
     def validate_range(self, field_name: str) -> None:
         value_range = MAX_VALUES[field_name] - MIN_VALUES[field_name]
@@ -35,20 +33,21 @@ class AllExpression(BaseExpression):
                 f"expression ({value_range})."
             )
 
-    def get_next_value(self, date: Union[date, datetime], field: "FieldType") -> Any:
-        start = field.get_value(date)  # type: ignore
-        min_value = field.get_min(date)  # type: ignore
-        max_value = field.get_max(date)  # type: ignore
+    def get_next_value(self, date: Union[date, datetime], field: "FieldType") -> Optional[int]:
+        start = field.get_value(date)
+        min_value = field.get_min(date)
+        max_value = field.get_max(date)
         start = max(start, min_value)
 
         if not self.step:
-            next = start
+            next_v = start
         else:
             distance_to_next = (self.step - (start - min_value)) % self.step
-            next = start + distance_to_next  # type: ignore
+            next_v = start + distance_to_next
 
-        if next <= max_value:
-            return next
+        if next_v <= max_value:
+            return next_v
+        return None
 
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, self.__class__) and self.step == other.step
@@ -66,26 +65,26 @@ class RangeExpression(AllExpression):
     regex: ClassVar[re.Pattern] = re.compile(
         r"(?P<first>\d+)(?:-(?P<last>\d+))?(?:/(?P<step>\d+))?$"
     )
-    step: Optional[Union[int, float]] = None
 
     def __init__(
         self,
         first: Union[str, float],
         last: Optional[Union[str, float]] = None,
+        # for supporting positional as well as keyword calls
         step: Optional[Union[int, float]] = None,
         **kwargs: Any,
     ):
         super().__init__(step=step, **kwargs)
-        first = to_int(first)
-        last = to_int(last)  # type: ignore
+        first: Optional[int] = to_int(first)  # type: ignore
+        last: Optional[int] = to_int(last)  # type: ignore
 
         if last is None and self.step is None:
             last = first
         if last is not None and first > last:  # type: ignore
             raise ValueError("The minimum value in a range must not be higher than the maximum.")
 
-        self.first: int = first
-        self.last: int = last
+        self.first: int = first  # type: ignore
+        self.last: int = last  # type: ignore
 
     def validate_range(self, field_name: str) -> None:
         super().validate_range(field_name)
@@ -108,10 +107,10 @@ class RangeExpression(AllExpression):
                 f"expression ({value_range})."
             )
 
-    def get_next_value(self, date: Union[date, datetime], field: "FieldType") -> Union[int, None]:
-        start_value = field.get_value(date)  # type: ignore
-        min_value = field.get_min(date)  # type: ignore
-        max_value = field.get_max(date)  # type: ignore
+    def get_next_value(self, date: Union[date, datetime], field: "FieldType") -> Optional[int]:
+        start_value = field.get_value(date)
+        min_value = field.get_min(date)
+        max_value = field.get_max(date)
 
         min_value = max(min_value, self.first)
         max_value = min(max_value, self.last) if self.last is not None else max_value
@@ -119,7 +118,7 @@ class RangeExpression(AllExpression):
 
         if self.step:
             distance_to_next = (self.step - (next_value - min_value)) % self.step
-            next_value += distance_to_next  # type: ignore
+            next_value += distance_to_next
 
         return next_value if next_value <= max_value else None
 
@@ -153,7 +152,7 @@ class MonthRangeExpression(RangeExpression):
     regex: ClassVar[re.Pattern] = re.compile(
         r"(?P<first>[a-z]+)(?:-(?P<last>[a-z]+))?", re.IGNORECASE
     )
-    step: Optional[Union[int, float]] = None
+    step: Optional[int] = None
 
     def __init__(
         self,
@@ -255,9 +254,7 @@ class WeekdayPositionExpression(AllExpression):
         except ValueError:
             raise ValueError(f'Invalid weekday name "{weekday_name}".') from None
 
-    def get_next_value(  # type: ignore
-        self, date: Union[date, datetime], field: "FieldType"
-    ) -> Union[float, int]:
+    def get_next_value(self, date: Union[date, datetime], field: "FieldType") -> Union[None, int]:
         first_day_wday, last_day = monthrange(date.year, date.month)
 
         first_hit_day = self.weekday - first_day_wday + 1
@@ -271,6 +268,7 @@ class WeekdayPositionExpression(AllExpression):
 
         if target_day <= last_day and target_day >= date.day:
             return target_day
+        return None
 
     def __eq__(self, other: Any) -> bool:
         return (
@@ -295,7 +293,7 @@ class LastDayOfMonthExpression(AllExpression):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(step=None, **kwargs)
 
-    def get_next_value(self, date: Union[date, datetime], field: "FieldType"):  # type: ignore
+    def get_next_value(self, date: Union[date, datetime], field: "FieldType") -> Optional[int]:
         return monthrange(date.year, date.month)[1]
 
     def __str__(self) -> str:

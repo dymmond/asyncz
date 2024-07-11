@@ -16,12 +16,12 @@ class BasePoolExecutor(BaseExecutor):
     model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True, populate_by_name=True)
 
     @abstractmethod
-    def __init__(self, pool: Any, **kwargs: Any):
+    def __init__(self, pool: Any, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.pool = pool
 
     def do_send_task(self, task: "TaskType", run_times: List[datetime]) -> Any:
-        def callback(fn):
+        def callback(fn: Any) -> None:
             exc, _ = (
                 fn.exception_info()
                 if hasattr(fn, "exception_info")
@@ -41,7 +41,7 @@ class BasePoolExecutor(BaseExecutor):
 
         fn.add_done_callback(callback)
 
-    def shutdown(self, wait=True):
+    def shutdown(self, wait: bool = True) -> None:
         self.pool.shutdown(wait)
 
 
@@ -70,7 +70,7 @@ class ProcessPoolExecutor(BasePoolExecutor):
             ProcessPoolExecutor constructor.
     """
 
-    def __init__(self, max_workers: int = 10, pool_kwargs: Optional[Any] = None):
+    def __init__(self, max_workers: int = 10, pool_kwargs: Optional[Any] = None) -> None:
         pool_kwargs = pool_kwargs or {}
         pool = concurrent.futures.ProcessPoolExecutor(int(max_workers), **pool_kwargs)
         super().__init__(pool)

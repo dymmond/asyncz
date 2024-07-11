@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, List, Optional, Union
+from typing import TYPE_CHECKING, Any, List, Optional
 
 from loguru import logger
 
@@ -23,7 +23,7 @@ class BaseStore(BaseStateExtra, ABC):
         self.scheduler = scheduler
         self.alias = alias
 
-    def start(self, scheduler: Any, alias: str):
+    def start(self, scheduler: Any, alias: str) -> None:
         """
         Called by the scheduler when the scheduler is being started or when the task store is being
         added to an already running scheduler.
@@ -35,13 +35,13 @@ class BaseStore(BaseStateExtra, ABC):
         self.scheduler = scheduler
         self.alias = alias
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         """
         Frees any resources still bound to this task store.
         """
         ...
 
-    def fix_paused_tasks(self, tasks: List["TaskType"]):
+    def fix_paused_tasks(self, tasks: List["TaskType"]) -> None:
         for index, task in enumerate(tasks):
             if task.next_run_time is not None:
                 if index > 0:
@@ -51,7 +51,7 @@ class BaseStore(BaseStateExtra, ABC):
                 break
 
     @abstractmethod
-    def lookup_task(self, task_id: Union[str, int]) -> "TaskType":
+    def lookup_task(self, task_id: str) -> Optional["TaskType"]:
         """
         Returns a specific task, or None if it isn't found.
 
@@ -69,7 +69,7 @@ class BaseStore(BaseStateExtra, ABC):
         ...
 
     @abstractmethod
-    def get_next_run_time(self) -> datetime:
+    def get_next_run_time(self) -> Optional[datetime]:
         """
         Returns the earliest run time of all the tasks stored in this task store, or None if
         there are no active tasks.
@@ -89,30 +89,30 @@ class BaseStore(BaseStateExtra, ABC):
         ...
 
     @abstractmethod
-    def add_task(self, task: "TaskType"):
+    def add_task(self, task: "TaskType") -> None:
         """
         Adds the given task to this store.
         """
         ...
 
     @abstractmethod
-    def update_task(self, task: "TaskType"):
+    def update_task(self, task: "TaskType") -> None:
         """
         Replaces the task in the store with the given newer version.
         """
         ...
 
     @abstractmethod
-    def delete_task(self, task_id: Union[str, int]):
+    def delete_task(self, task_id: str) -> None:
         """
         Removes the given task from this store.
         """
         ...
 
     @abstractmethod
-    def remove_all_tasks(self):
+    def remove_all_tasks(self) -> None:
         """Removes all tasks from this store."""
         ...
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{self.__class__.__name__}>"

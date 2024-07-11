@@ -18,7 +18,6 @@ from asyncz.utils import (
     maybe_ref,
     obj_to_ref,
     ref_to_obj,
-    repr_escape,
     timedelta_seconds,
     to_bool,
     to_datetime,
@@ -359,15 +358,6 @@ class TestRefToObj:
 )
 def test_maybe_ref(input, expected):
     assert maybe_ref(input) == expected
-
-
-@pytest.mark.parametrize(
-    "input,expected",
-    [(b"T\xc3\xa9ste".decode("utf-8"), "Téste"), (1, 1)],
-    ids=["string", "int"],
-)
-def test_repr_escape_py2(input, expected):
-    assert repr_escape(input) == expected
 
 
 class TestCheckCallableArgs:
