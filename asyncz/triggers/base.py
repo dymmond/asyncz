@@ -1,36 +1,17 @@
 import random
-from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, List, Optional, Union, overload
+from typing import Any, List, Optional, Union, overload
 
 from asyncz.datastructures import CombinationState
 from asyncz.state import BaseStateExtra
+from asyncz.triggers.types import TriggerType
 from asyncz.utils import obj_to_ref, ref_to_obj
 
-if TYPE_CHECKING:
-    from asyncz.triggers.types import TriggerType
 
-
-class BaseTrigger(BaseStateExtra, ABC):
+class BaseTrigger(BaseStateExtra, TriggerType):
     """
     Base model defining the protocol for every trigger.
     """
-
-    alias: Optional[str] = None
-    jitter: Optional[int] = None
-
-    @abstractmethod
-    def get_next_trigger_time(
-        self, previous_time: Optional[datetime], now: Optional[datetime] = None
-    ) -> Union[datetime, None]:
-        """
-        Returns the next datetime to trigger. If the datetime cannot be calculated, then returns None.
-
-        Args:
-            previous_time: The previous time the trigger was fired.
-            now: The current datetime.
-        """
-        ...
 
     @overload
     def apply_jitter(
@@ -67,11 +48,11 @@ class BaseCombinationTrigger(BaseTrigger):
         jitter: he maximum number of second to add to the next_trigger_time.
     """
 
-    triggers: List["TriggerType"]
+    triggers: List[TriggerType]
 
     def __init__(
         self,
-        triggers: List["TriggerType"],
+        triggers: List[TriggerType],
         jitter: Optional[int] = None,
         **kwargs: Any,
     ) -> None:

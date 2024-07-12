@@ -37,23 +37,21 @@ from asyncz.exceptions import (
     SchedulerNotRunningError,
     TaskLookupError,
 )
-from asyncz.executors.base import BaseExecutor
 from asyncz.executors.pool import ThreadPoolExecutor
+from asyncz.executors.types import ExecutorType
 from asyncz.schedulers.asgi import ASGIApp, ASGIHelper
 from asyncz.schedulers.datastructures import TaskDefaultStruct
 from asyncz.schedulers.types import SchedulerType
-from asyncz.stores.base import BaseStore
 from asyncz.stores.memory import MemoryStore
+from asyncz.stores.types import StoreType
 from asyncz.tasks import Task
 from asyncz.triggers.base import BaseTrigger
+from asyncz.triggers.types import TriggerType
 from asyncz.typing import UndefinedType, undefined
 from asyncz.utils import TIMEOUT_MAX, maybe_ref, timedelta_seconds, to_bool, to_int, to_timezone
 
 if TYPE_CHECKING:
-    from asyncz.executors.types import ExecutorType
-    from asyncz.stores.types import StoreType
     from asyncz.tasks.types import TaskType
-    from asyncz.triggers.types import TriggerType
 
 
 class BaseScheduler(SchedulerType):
@@ -81,10 +79,10 @@ class BaseScheduler(SchedulerType):
         self.trigger_plugins = dict(mapping.triggers.items())
         self.trigger_classes: Dict[str, Type[BaseTrigger]] = {}
         self.executor_plugins: Dict[str, str] = dict(mapping.executors.items())
-        self.executor_classes: Dict[str, Type[BaseExecutor]] = {}
+        self.executor_classes: Dict[str, Type[ExecutorType]] = {}
         self.store_plugins: Dict[str, str] = dict(mapping.stores.items())
-        self.store_classes: Dict[str, Type[BaseStore]] = {}
-        self.executors: Dict[str, BaseExecutor] = {}
+        self.store_classes: Dict[str, Type[StoreType]] = {}
+        self.executors: Dict[str, ExecutorType] = {}
         self.executor_lock: RLock = self.create_lock()
         self.stores: Dict[str, StoreType] = {}
         self.store_lock: RLock = self.create_lock()
@@ -254,7 +252,7 @@ class BaseScheduler(SchedulerType):
                     f"This scheduler already has an executor by the alias of '{alias}'."
                 )
 
-            if isinstance(executor, BaseExecutor):
+            if isinstance(executor, ExecutorType):
                 self.executors[alias] = executor
             elif isinstance(executor, str):
                 self.executors[alias] = executor = self.create_plugin_instance(
@@ -297,7 +295,7 @@ class BaseScheduler(SchedulerType):
                     f"This scheduler already has a task store by the alias of '{alias}'."
                 )
 
-            if isinstance(store, BaseStore):
+            if isinstance(store, StoreType):
                 self.stores[alias] = store
             elif isinstance(store, str):
                 self.stores[alias] = store = self.create_plugin_instance(
@@ -535,7 +533,7 @@ class BaseScheduler(SchedulerType):
             store: Alias of the task store that contains the task.
             trigger: Alias of the trigger type or a trigger instance.
         """
-        trigger = cast("TriggerType", self.create_trigger(trigger, trigger_args))
+        trigger = self.create_trigger(trigger, trigger_args)
         now = datetime.now(self.timezone)
         next_run_time = trigger.get_next_trigger_time(None, now)
         return self.update_task(task_id, store, trigger=trigger, next_run_time=next_run_time)
@@ -685,7 +683,7 @@ class BaseScheduler(SchedulerType):
 
         self.executors.clear()
         for alias, value in config.get("executors", {}).items():
-            if isinstance(value, BaseExecutor):
+            if isinstance(value, ExecutorType):
                 self.add_executor(value, alias)
             elif isinstance(value, MutableMapping):
                 executor_class = value.pop("class", None)
@@ -708,7 +706,7 @@ class BaseScheduler(SchedulerType):
         # Stores
         self.stores.clear()
         for alias, value in config.get("stores", {}).items():
-            if isinstance(value, BaseStore):
+            if isinstance(value, StoreType):
                 self.add_store(value, alias)
             elif isinstance(value, MutableMapping):
                 store_class = value.pop("class", None)
@@ -728,13 +726,13 @@ class BaseScheduler(SchedulerType):
                     f"Expected store instance or dict for stores['{alias}'], got {value.__class__.__name__} instead."
                 )
 
-    def create_default_executor(self) -> BaseExecutor:
+    def create_default_executor(self) -> ExecutorType:
         """
         Creates a default executor store, specific to the articular scheduler type.
         """
         return ThreadPoolExecutor()
 
-    def create_default_store(self) -> BaseStore:
+    def create_default_store(self) -> StoreType:
         """
         Creates a default store, specific to the particular scheduler type.
         """
@@ -881,8 +879,8 @@ class BaseScheduler(SchedulerType):
         """
         plugin_container, class_container, base_class = {
             "trigger": (self.trigger_plugins, self.trigger_classes, BaseTrigger),
-            "store": (self.store_plugins, self.store_classes, BaseStore),
-            "executor": (self.executor_plugins, self.executor_classes, BaseExecutor),
+            "store": (self.store_plugins, self.store_classes, StoreType),
+            "executor": (self.executor_plugins, self.executor_classes, ExecutorType),
         }[_type]
 
         try:

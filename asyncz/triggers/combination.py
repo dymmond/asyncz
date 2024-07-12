@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, Union
+from typing import ClassVar, Optional, Union
 
 from asyncz.triggers.base import BaseCombinationTrigger
 
@@ -14,7 +14,7 @@ class AndTrigger(BaseCombinationTrigger):
         jitter: Delay the task execution by the jitter seconds at most.
     """
 
-    alias: str = "and"
+    alias: ClassVar[str] = "and"
 
     def get_next_trigger_time(
         self, previous_time: Optional[datetime], now: Optional[datetime] = None
@@ -45,7 +45,7 @@ class OrTrigger(BaseCombinationTrigger):
         jitter: Delay the task execution by the jitter seconds at most.
     """
 
-    alias: str = "or"
+    alias: ClassVar[str] = "or"
 
     def get_next_trigger_time(
         self, previous_time: Optional[datetime], now: Optional[datetime] = None

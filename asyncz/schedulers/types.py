@@ -13,9 +13,7 @@ if TYPE_CHECKING:
     from threading import RLock
 
     from asyncz.events.base import SchedulerEvent
-    from asyncz.executors.base import BaseExecutor
     from asyncz.executors.types import ExecutorType
-    from asyncz.stores.base import BaseStore
     from asyncz.stores.types import StoreType
     from asyncz.tasks.types import TaskType
     from asyncz.triggers.types import TriggerType
@@ -309,13 +307,13 @@ class SchedulerType(ABC):
         ...
 
     @abstractmethod
-    def create_default_executor(self) -> BaseExecutor:
+    def create_default_executor(self) -> ExecutorType:
         """
         Creates a default executor store, specific to the articular scheduler type.
         """
 
     @abstractmethod
-    def create_default_store(self) -> BaseStore:
+    def create_default_store(self) -> StoreType:
         """
         Creates a default store, specific to the particular scheduler type.
         """
