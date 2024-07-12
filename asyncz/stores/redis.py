@@ -1,7 +1,7 @@
 import pickle
 from datetime import datetime
 from datetime import timezone as tz
-from typing import Any, Iterable, List, Optional, Tuple, cast
+from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Tuple, cast
 
 from asyncz.exceptions import AsynczException, ConflictIdError, TaskLookupError
 from asyncz.stores.base import BaseStore
@@ -13,6 +13,9 @@ try:
     from redis import Redis
 except ImportError:
     raise ImportError("You must install redis to be able to use this store.") from None
+
+if TYPE_CHECKING:
+    from asyncz.schedulers.types import SchedulerType
 
 
 class RedisStore(BaseStore):
@@ -57,7 +60,7 @@ class RedisStore(BaseStore):
         state = pickle.loads(state)
         task = Task.__new__(TaskType)
         task.__setstate__(state)
-        task.scheduler = self.scheduler
+        task.scheduler = cast(SchedulerType, self.scheduler)
         task.store_alias = self.alias
         return task
 

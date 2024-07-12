@@ -1,6 +1,6 @@
 import pickle
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional, cast
 
 from asyncz.exceptions import ConflictIdError, TaskLookupError
 from asyncz.stores.base import BaseStore
@@ -15,6 +15,9 @@ try:
     from pymongo.errors import DuplicateKeyError
 except ImportError:
     raise ImportError("MongoDBStore requires pymongo to be installed") from None
+
+if TYPE_CHECKING:
+    from asyncz.schedulers.types import SchedulerType
 
 
 class MongoDBStore(BaseStore):
@@ -66,7 +69,7 @@ class MongoDBStore(BaseStore):
         state = pickle.loads(state)
         task = Task.__new__(Task)
         task.__setstate__(state)
-        task.scheduler = self.scheduler
+        task.scheduler = cast("SchedulerType", self.scheduler)
         task.store_alias = self.alias
         return task
 

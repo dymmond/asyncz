@@ -5,7 +5,19 @@ from datetime import datetime, timedelta
 from functools import partial
 from importlib import import_module
 from threading import RLock
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Type, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    cast,
+    overload,
+)
 
 from loguru import logger
 from tzlocal import get_localzone
@@ -236,9 +248,18 @@ class BaseScheduler(SchedulerType):
         """
         return self.state != SchedulerState.STATE_STOPPED
 
+    @overload
+    async def asgi(
+        self, app: None, handle_lifespan: bool = False
+    ) -> Callable[[ASGIApp], ASGIHelper]: ...
+
+    @overload
+    async def asgi(self, app: ASGIApp, handle_lifespan: bool = False) -> ASGIHelper: ...
+
     async def asgi(
         self, app: Optional[ASGIApp] = None, handle_lifespan: bool = False
-    ) -> Union[ASGIHelper, partial[ASGIHelper]]:
+    ) -> Union[ASGIHelper, Callable[[ASGIApp], ASGIHelper]]:
+        """Return wrapper for asgi integration."""
         if app is not None:
             return ASGIHelper(app=app, scheduler=self, handle_lifespan=handle_lifespan)
         return partial(ASGIHelper, scheduler=self, handle_lifespan=handle_lifespan)
