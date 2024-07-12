@@ -155,9 +155,54 @@ fun 😁🎉.
 Asyncz currently supports the [Esmerald framework](https://asyncz.dymmond.com/contrib/esmerald/index.md)
 and brings some batteries that are currently used by the framework and leveraging Asyncz.
 
-If you wish to have support to any other framework such as FastAPI, Starlite, Starlette or
-literally any other, check the [contributing](https://asyncz.dymmond.com/contributing.md) section and see how you can
-do it.
+
+```python
+from asyncz.schedulers import AsyncIOScheduler
+...
+
+# handle_lifespan is optional, set to true if you don't want to pass it down because the asgiserver doesn't support it
+# this is true for django
+application = AsyncIOScheduler().asgi(application, handle_lifespan=False)
+# or more simple (please do not use both together)
+application = AsyncIOScheduler().asgi()(application)
+```
+
+## Contextmanager support
+
+Use as sync contextmanager
+
+```python
+from asyncz.schedulers import AsyncIOScheduler
+
+with AsyncIOScheduler() as scheduler:
+    ...
+```
+
+Use as async contextmanager
+
+```python
+from asyncz.schedulers import AsyncIOScheduler
+
+async with AsyncIOScheduler() as scheduler:
+    ...
+```
+
+
+For using with lifespan of starlette:
+
+```python
+from asyncz.schedulers import AsyncIOScheduler
+
+async lifespan(app):
+    with AsyncIOScheduler() as scheduler:
+        yield
+        # or yield a state
+app = Starlette(
+    lifespan=lifespan,
+)
+
+```
+
 
 ## Sponsors
 
