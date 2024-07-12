@@ -171,6 +171,21 @@ literally any other, check the [contributing](./contributing.md) section and see
     application = AsyncIOScheduler().asgi()(application)
     ```
 
+=== "Using with lilya"
+
+    ```python
+    from asyncz.schedulers import AsyncIOScheduler
+
+    app = Lilya(
+        routes=[...],
+        middleware=[
+            DefineMiddleware(AsyncIOScheduler().asgi()),
+        ],
+    )
+
+    ```
+
+
 ## Contextmanager support
 
 === "Use as sync contextmanager"

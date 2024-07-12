@@ -167,6 +167,21 @@ application = AsyncIOScheduler().asgi(application, handle_lifespan=False)
 application = AsyncIOScheduler().asgi()(application)
 ```
 
+
+For using with lilya:
+
+```python
+from asyncz.schedulers import AsyncIOScheduler
+
+app = Lilya(
+    routes=[...],
+    middleware=[
+        DefineMiddleware(AsyncIOScheduler().asgi()),
+    ],
+)
+
+```
+
 ## Contextmanager support
 
 Use as sync contextmanager
@@ -186,7 +201,6 @@ from asyncz.schedulers import AsyncIOScheduler
 async with AsyncIOScheduler() as scheduler:
     ...
 ```
-
 
 For using with lifespan of starlette:
 

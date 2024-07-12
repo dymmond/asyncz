@@ -60,7 +60,7 @@ class RedisStore(BaseStore):
         state = pickle.loads(state)
         task = Task.__new__(TaskType)
         task.__setstate__(state)
-        task.scheduler = cast(SchedulerType, self.scheduler)
+        task.scheduler = cast("SchedulerType", self.scheduler)
         task.store_alias = self.alias
         return task
 
