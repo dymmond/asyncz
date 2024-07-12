@@ -39,7 +39,7 @@ else:
     TriggerType = Any
 
 
-class Task(BaseStateExtra):
+class Task(BaseStateExtra):  # type: ignore
     """
     Contains the options given when scheduling callables and its current schedule and other state.
     This class should never be instantiated by the user.
@@ -80,7 +80,7 @@ class Task(BaseStateExtra):
         fn: Union[Callable[..., Any], str, None] = None,
         **kwargs: Any,
     ):
-        super().__init__(id=id or uuid4().hex, scheduler=scheduler, **kwargs)  # type: ignore
+        super().__init__(id=id or uuid4().hex, scheduler=scheduler, **kwargs)
         self.store_alias = store_alias
         self._update(fn=fn, **kwargs)
 

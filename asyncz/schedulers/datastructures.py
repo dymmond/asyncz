@@ -11,7 +11,7 @@ class BaseStruct(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class TaskStruct(BaseStruct):
+class TaskStruct(BaseStruct):  # type: ignore
     """
     fn: Callable (or a textual reference to one) to run at the given time.
     trigger: Trigger that determines when fn is called.

@@ -121,6 +121,9 @@ serve = "mkdocs serve --dev-addr localhost:8000"
 path = "asyncz/__init__.py"
 
 [tool.mypy]
+plugins = [
+  "pydantic.mypy"
+]
 warn_unused_configs = true
 warn_unreachable = true
 warn_return_any = true

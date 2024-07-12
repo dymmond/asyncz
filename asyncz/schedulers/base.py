@@ -1,7 +1,8 @@
 import sys
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from collections.abc import MutableMapping
 from datetime import datetime, timedelta
+from functools import partial
 from importlib import import_module
 from threading import RLock
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Type, Union, cast
@@ -38,8 +39,9 @@ from asyncz.exceptions import (
 )
 from asyncz.executors.base import BaseExecutor
 from asyncz.executors.pool import ThreadPoolExecutor
+from asyncz.schedulers.asgi import ASGIApp, ASGIHelper
 from asyncz.schedulers.datastructures import TaskDefaultStruct
-from asyncz.state import BaseStateExtra
+from asyncz.schedulers.types import SchedulerType
 from asyncz.stores.base import BaseStore
 from asyncz.stores.memory import MemoryStore
 from asyncz.tasks import Task
@@ -54,9 +56,9 @@ if TYPE_CHECKING:
     from asyncz.triggers.types import TriggerType
 
 
-class BaseScheduler(BaseStateExtra, ABC):
+class BaseScheduler(SchedulerType):
     """
-    Abstract base class for all schedulers.
+    Abstract base class for all schedulers. Implement the base logic.
 
     Takes the following keyword arguments:
 
@@ -73,7 +75,7 @@ class BaseScheduler(BaseStateExtra, ABC):
     """
 
     def __init__(self, global_config: Optional[Any] = None, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
+        super().__init__()
         mapping = AsynczObjectMapping()
         self.global_config: Dict[str, Any] = global_config or {}
         self.trigger_plugins = dict(mapping.triggers.items())
@@ -93,7 +95,7 @@ class BaseScheduler(BaseStateExtra, ABC):
         self.logger: Any = logger
         self.setup(self.global_config, **kwargs)
 
-    def __getstate__(self) -> None:  # type: ignore
+    def __getstate__(self) -> None:
         raise TypeError(
             "Schedulers cannot be serialized. Ensure that you are not passing a "
             "scheduler instance as an argument to a task, or scheduling an instance "
@@ -235,6 +237,13 @@ class BaseScheduler(BaseStateExtra, ABC):
         for scheduler.state != SchedulerState.STATE_STOPPED.
         """
         return self.state != SchedulerState.STATE_STOPPED
+
+    async def asgi(
+        self, app: Optional[ASGIApp] = None, handle_lifespan: bool = False
+    ) -> Union[ASGIHelper, partial[ASGIHelper]]:
+        if app is not None:
+            return ASGIHelper(app=app, scheduler=self, handle_lifespan=handle_lifespan)
+        return partial(ASGIHelper, scheduler=self, handle_lifespan=handle_lifespan)
 
     def add_executor(
         self, executor: Union["ExecutorType", str], alias: str = "default", **executor_options: Any

@@ -12,7 +12,7 @@ class BaseState(BaseModel):
 
     def __setstate__(self, state: Any) -> Any:
         """
-        Retrives the data pickled and sets the state for Pydantic compatible fashion.
+        Retrieves the data pickled and sets the state for Pydantic compatible fashion.
         """
         state.model_config.update(self.model_config)
         object_setattr(self, "__dict__", state.__dict__)
