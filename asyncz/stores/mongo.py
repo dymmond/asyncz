@@ -66,7 +66,7 @@ class MongoDBStore(BaseStore):
         return self.rebuild_task(document["state"]) if document else None
 
     def rebuild_task(self, state: Any) -> "TaskType":
-        state = pickle.loads(state)
+        state = pickle.loads(self.conditional_decrypt(state))
         task = Task.__new__(Task)
         task.__setstate__(state)
         task.scheduler = cast("SchedulerType", self.scheduler)
@@ -115,7 +115,11 @@ class MongoDBStore(BaseStore):
                 {
                     "_id": task.id,
                     "next_run_time": datetime_to_utc_timestamp(task.next_run_time),
-                    "state": Binary(pickle.dumps(task.__getstate__(), self.pickle_protocol)),
+                    "state": Binary(
+                        self.conditional_encrypt(
+                            pickle.dumps(task.__getstate__(), self.pickle_protocol)
+                        )
+                    ),
                 }
             )
         except DuplicateKeyError:
@@ -124,7 +128,9 @@ class MongoDBStore(BaseStore):
     def update_task(self, task: "TaskType") -> None:
         updates = {
             "next_run_time": datetime_to_utc_timestamp(task.next_run_time),
-            "state": Binary(pickle.dumps(task.__getstate__(), self.pickle_protocol)),
+            "state": Binary(
+                self.conditional_encrypt(pickle.dumps(task.__getstate__(), self.pickle_protocol))
+            ),
         }
         result = self.collection.update_one({"_id": task.id}, {"$set": updates})
         if result and result.matched_count == 0:

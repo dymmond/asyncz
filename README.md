@@ -231,6 +231,15 @@ app = Starlette(
 
 ```
 
+## Security
+
+You should use store encryption for security reasons.
+
+All standard stores except MemoryStore support the environment variable `ASYNCZ_STORE_ENCRYPTION_KEY`.
+If set and non-empty the hash of the value is used for AESGCM encrypting the elements before sending them
+to the store.
+This way store entries are encrypted and authentificated so there is no security hole.
+This is highly recommended! Because if someone can inject store entries he can execute code.
 
 ## Sponsors
 

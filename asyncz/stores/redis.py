@@ -57,7 +57,7 @@ class RedisStore(BaseStore):
         return self.rebuild_task(state) if state else None
 
     def rebuild_task(self, state: Any) -> "TaskType":
-        state = pickle.loads(state)
+        state = pickle.loads(self.conditional_decrypt(state))
         task = Task.__new__(TaskType)
         task.__setstate__(state)
         task.scheduler = cast("SchedulerType", self.scheduler)
@@ -112,7 +112,7 @@ class RedisStore(BaseStore):
             pipe.hset(
                 self.tasks_key,
                 task.id,
-                pickle.dumps(task.__getstate__(), self.pickle_protocol),  # type: ignore
+                self.conditional_encrypt(pickle.dumps(task.__getstate__(), self.pickle_protocol)),  # type: ignore
             )
 
             if task.next_run_time:
@@ -130,7 +130,7 @@ class RedisStore(BaseStore):
             pipe.hset(
                 self.tasks_key,
                 task.id,
-                pickle.dumps(task.__getstate__(), self.pickle_protocol),  # type: ignore
+                self.conditional_encrypt(pickle.dumps(task.__getstate__(), self.pickle_protocol)),  # type: ignore
             )
             if task.next_run_time:
                 pipe.zadd(
