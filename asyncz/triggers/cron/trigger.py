@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, tzinfo
-from typing import Any, Optional, Tuple, Union
+from typing import Any, ClassVar, Optional, Tuple, Union
 
 from tzlocal import get_localzone
 
@@ -55,7 +55,7 @@ class CronTrigger(BaseTrigger):
     The first day of the week is always monday.
     """
 
-    alias: str = "cron"
+    alias: ClassVar[str] = "cron"
 
     def __init__(
         self,

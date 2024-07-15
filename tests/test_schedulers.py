@@ -58,7 +58,7 @@ class DummyScheduler(BaseScheduler):
         object_setter(self, "wakeup", MagicMock())
 
     def shutdown(self, wait=True):
-        super().shutdown(wait)
+        return super().shutdown(wait)
 
     def wakeup(self): ...
 
@@ -213,7 +213,17 @@ class TestBaseScheduler:
         the scheduler has been started.
         """
         scheduler.start(paused=True)
-        pytest.raises(SchedulerAlreadyRunningError, method, scheduler)
+        # multi init is possible
+        if method is BaseScheduler.start:
+            assert method(scheduler) is False
+        else:
+            pytest.raises(SchedulerAlreadyRunningError, method, scheduler)
+
+    def test_scheduler_multi_init(self, scheduler):
+        assert scheduler.start(paused=True) is True
+        assert scheduler.start(paused=True) is False
+        assert scheduler.shutdown(wait=True) is False
+        assert scheduler.shutdown(wait=True) is True
 
     @pytest.mark.parametrize(
         "method",

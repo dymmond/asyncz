@@ -39,6 +39,7 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP",
 ]
 dependencies = [
+    "cryptography",
     "loguru>=0.7.0,<0.8.0",
     "pydantic>=2.5.3,<3.0.0",
     "tzlocal>=4.0,<6.0",
@@ -85,6 +86,9 @@ testing = [
     "redis>=4.4.0,<6.0.0",
     "mypy>=0.982,<2.0.0",
     "esmerald",
+    "starlette",
+    "lilya",
+    "httpx",
     "pytz>=2022.6",
 ]
 
@@ -102,6 +106,16 @@ check_types = "mypy -p asyncz"
 
 [tool.hatch.envs.hatch-test]
 features = ["testing"]
+[tool.hatch.envs.hatch-test.env-vars]
+ASYNCZ_STORE_ENCRYPTION_KEY = "{matrix:key:''}"
+
+
+[[tool.hatch.envs.hatch-test.matrix]]
+key = ["89389432893482832agasfsasdafjkdfasjkfdajkadsffdsiasiofsdifdlkalkdkfaskjfdfsakj"]
+
+[[tool.hatch.envs.hatch-test.matrix]]
+a = ["a"]
+
 
 [tool.hatch.envs.docs]
 dependencies = [
@@ -121,6 +135,9 @@ serve = "mkdocs serve --dev-addr localhost:8000"
 path = "asyncz/__init__.py"
 
 [tool.mypy]
+plugins = [
+  "pydantic.mypy"
+]
 warn_unused_configs = true
 warn_unreachable = true
 warn_return_any = true

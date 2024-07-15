@@ -1,6 +1,7 @@
 from loguru import logger
 
-from asyncz.contrib.esmerald.decorator import scheduler
+from esmerald.contrib.schedulers.asyncz.config import AsynczConfig
+from esmerald.contrib.schedulers.asyncz.decorator import scheduler
 from asyncz.schedulers import AsyncIOScheduler
 from asyncz.triggers import IntervalTrigger
 from esmerald import Esmerald
@@ -40,11 +41,13 @@ configurations = (
 # AsyncIOScheduler Is the default scheduler of Esmerald but
 # we pass here for example purposes
 app = Esmerald(
-    scheduler_class=AsyncIOScheduler,
-    scheduler_configurations=configurations,
-    scheduler_tasks={
-        "send_message": "src.accounts.tasks",
-        "send_longer_message": "src.accounts.tasks",
-    },
+    scheduler_config=AsynczConfig(
+        scheduler_class=AsyncIOScheduler,
+        configurations=configurations,
+        tasks={
+            "send_message": "src.accounts.tasks",
+            "send_longer_message": "src.accounts.tasks",
+        },
+    ),
     enable_scheduler=True,
 )

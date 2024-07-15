@@ -1,5 +1,5 @@
 from datetime import datetime, tzinfo
-from typing import Any, Optional, Union
+from typing import Any, ClassVar, Optional, Union
 
 from tzlocal import get_localzone
 
@@ -17,7 +17,7 @@ class DateTrigger(BaseTrigger):
         timezone: The time zone for the run_at if it does not have one already.
     """
 
-    alias: str = "date"
+    alias: ClassVar[str] = "date"
 
     def __init__(
         self,

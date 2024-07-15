@@ -4,7 +4,7 @@ from typing import Any, Callable
 
 def run_in_event_loop(fn: Callable[..., Any]) -> Any:
     """
-    Decorator to run in an evenmt loop.
+    Decorator to run in an event loop.
     """
 
     @wraps(fn)

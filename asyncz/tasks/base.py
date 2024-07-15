@@ -1,7 +1,6 @@
 import inspect
 from datetime import datetime
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -17,8 +16,9 @@ from uuid import uuid4
 from pydantic import Field
 
 from asyncz.datastructures import TaskState
+from asyncz.schedulers.types import SchedulerType
 from asyncz.state import BaseStateExtra
-from asyncz.triggers.base import BaseTrigger
+from asyncz.triggers.types import TriggerType
 from asyncz.utils import (
     check_callable_args,
     datetime_repr,
@@ -30,16 +30,8 @@ from asyncz.utils import (
 
 object_setattr = object.__setattr__
 
-if TYPE_CHECKING:
-    from asyncz.schedulers.base import BaseScheduler
-    from asyncz.stores.types import StoreType
-    from asyncz.triggers.types import TriggerType
-else:
-    StoreType = Any
-    TriggerType = Any
 
-
-class Task(BaseStateExtra):
+class Task(BaseStateExtra):  # type: ignore
     """
     Contains the options given when scheduling callables and its current schedule and other state.
     This class should never be instantiated by the user.
@@ -68,19 +60,19 @@ class Task(BaseStateExtra):
     kwargs: Dict[str, Any] = Field(default_factory=dict)
     next_run_time: Optional[datetime] = None
     store_alias: Optional[str] = None
-    scheduler: Any
+    scheduler: SchedulerType
     id: str
 
     def __init__(
         self,
-        scheduler: "BaseScheduler",
+        scheduler: SchedulerType,
         id: Optional[str] = None,
         store_alias: Optional[str] = None,
         *,
         fn: Union[Callable[..., Any], str, None] = None,
         **kwargs: Any,
     ):
-        super().__init__(id=id or uuid4().hex, scheduler=scheduler, **kwargs)  # type: ignore
+        super().__init__(id=id or uuid4().hex, scheduler=scheduler, **kwargs)
         self.store_alias = store_alias
         self._update(fn=fn, **kwargs)
 
@@ -100,7 +92,7 @@ class Task(BaseStateExtra):
         self.scheduler.update_task(self.id, self.store_alias, **updates)
         return self
 
-    def reschedule(self, trigger: BaseTrigger, **trigger_args: Any) -> "Task":
+    def reschedule(self, trigger: TriggerType, **trigger_args: Any) -> "Task":
         """
         Shortcut for switching the trigger on this task.
         """
@@ -205,7 +197,7 @@ class Task(BaseStateExtra):
 
         if "trigger" in updates:
             trigger = updates.pop("trigger")
-            if not isinstance(trigger, BaseTrigger):
+            if not isinstance(trigger, TriggerType):
                 raise TypeError(
                     f"Expected a trigger instance, got {trigger.__class__.__name__} instead."
                 )

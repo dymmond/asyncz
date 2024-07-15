@@ -1,6 +1,5 @@
 import sys
 import traceback
-from abc import ABC, abstractmethod
 from collections import defaultdict
 from datetime import datetime, timedelta
 from datetime import timezone as tz
@@ -14,13 +13,14 @@ from loguru._logger import Logger
 from asyncz.events import TaskExecutionEvent
 from asyncz.events.constants import TASK_ERROR, TASK_EXECUTED, TASK_MISSED
 from asyncz.exceptions import MaximumInstancesError
+from asyncz.executors.types import ExecutorType
 from asyncz.state import BaseStateExtra
 
 if TYPE_CHECKING:
     from asyncz.tasks.types import TaskType
 
 
-class BaseExecutor(BaseStateExtra, ABC):
+class BaseExecutor(BaseStateExtra, ExecutorType):
     """
     Base model for the executors. It defines the interface for all the executors used by the Asyncz.
 
@@ -58,7 +58,7 @@ class BaseExecutor(BaseStateExtra, ABC):
         Sends the task for execution.
 
         Args:
-            task: A Task instanceyo execute.
+            task: A Task instance to execute.
             run_times: A list of datetimes specifying when the task should have been run.
         """
         assert self.lock is not None, "This executor has not been started yet."
@@ -68,13 +68,6 @@ class BaseExecutor(BaseStateExtra, ABC):
 
             self.do_send_task(task, run_times)
             self.instances[task.id] += 1
-
-    @abstractmethod
-    def do_send_task(self, task: "TaskType", run_times: List[datetime]) -> Any:
-        """
-        Executes the actual task of scheduling `run_task` to be called.
-        """
-        ...
 
     def run_task_success(self, task_id: str, events: List[TaskExecutionEvent]) -> None:
         """

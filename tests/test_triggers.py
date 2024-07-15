@@ -19,7 +19,6 @@ from asyncz.triggers import (
 
 class DummyTriggerWithJitter(BaseTrigger):
     dt: Optional[datetime] = None
-    jitter: Optional[int] = None
 
     def __init__(self, dt: datetime, jitter: int, **kwargs) -> None:
         super().__init__(**kwargs)

@@ -57,7 +57,7 @@ class CronState(BaseDatastructureState):
     jitter: Optional[int] = None
 
 
-class TaskState(BaseDatastructureState):
+class TaskState(BaseDatastructureState):  # type: ignore
     id: Optional[str] = None
     name: Optional[str] = None
     fn: Optional[Union[Callable[..., Any], str]] = None
@@ -69,7 +69,7 @@ class TaskState(BaseDatastructureState):
     executor: Optional[str] = None
     mistrigger_grace_time: Optional[int] = None
     max_instances: Optional[int] = None
-    next_run_time: Optional[datetime]
+    next_run_time: Optional[datetime] = None
     scheduler: Optional[Any] = None
     store_alias: Optional[str] = None
     store: Optional[Union[str, StoreType]] = None

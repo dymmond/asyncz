@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, tzinfo
 from math import ceil
-from typing import Any, Optional, Union
+from typing import Any, ClassVar, Optional, Union
 
 from tzlocal import get_localzone
 
@@ -25,7 +25,7 @@ class IntervalTrigger(BaseTrigger):
         jitter: Delay the task execution by jitter seconds at most.
     """
 
-    alias: str = "interval"
+    alias: ClassVar[str] = "interval"
 
     def __init__(
         self,

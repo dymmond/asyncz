@@ -21,3 +21,4 @@ UndefinedTypeVar = TypeVar("UndefinedTypeVar", bound=Undefined)
 UndefinedType = Union[Type[UndefinedTypeVar], Undefined]
 
 DictAny = Dict[Any, Any]
+DictStrAny = Dict[str, Any]
