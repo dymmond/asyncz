@@ -249,14 +249,14 @@ class BaseScheduler(SchedulerType):
         return self.state != SchedulerState.STATE_STOPPED
 
     @overload
-    async def asgi(
+    def asgi(
         self, app: None, handle_lifespan: bool = False
     ) -> Callable[[ASGIApp], ASGIHelper]: ...
 
     @overload
-    async def asgi(self, app: ASGIApp, handle_lifespan: bool = False) -> ASGIHelper: ...
+    def asgi(self, app: ASGIApp, handle_lifespan: bool = False) -> ASGIHelper: ...
 
-    async def asgi(
+    def asgi(
         self, app: Optional[ASGIApp] = None, handle_lifespan: bool = False
     ) -> Union[ASGIHelper, Callable[[ASGIApp], ASGIHelper]]:
         """Return wrapper for asgi integration."""

@@ -164,7 +164,7 @@ literally any other, check the [contributing](./contributing.md) section and see
     from asyncz.schedulers import AsyncIOScheduler
     ...
 
-    # handle_lifespan is optional, set to true if you don't want to pass it down because the asgiserver doesn't support it
+    # handle_lifespan is optional, set to True if you don't want to pass it down because the underlying app doesn't support it
     # this is true for django
     application = AsyncIOScheduler().asgi(application, handle_lifespan=False)
     # or more simple (please do not use both together)
@@ -176,11 +176,25 @@ literally any other, check the [contributing](./contributing.md) section and see
     ```python
     from asyncz.schedulers import AsyncIOScheduler
 
+    # Lilya middleware doesn't pass lifespan events
+
+    app = AsyncIOScheduler().asgi(Lilya(
+        routes=[...],
+    ))
+
+    ```
+
+    Or manually:
+
+    ```python
+    from asyncz.schedulers import AsyncIOScheduler
+
+    scheduler = AsyncIOScheduler()
+
     app = Lilya(
         routes=[...],
-        middleware=[
-            DefineMiddleware(AsyncIOScheduler().asgi()),
-        ],
+        on_startup=[scheduler.start],
+        on_shutdown=[scheduler.shutdown],
     )
 
     ```

@@ -85,6 +85,9 @@ testing = [
     "redis>=4.4.0,<6.0.0",
     "mypy>=0.982,<2.0.0",
     "esmerald",
+    "starlette",
+    "lilya",
+    "httpx",
     "pytz>=2022.6",
 ]
 
