@@ -26,18 +26,24 @@ class AsyncIOScheduler(BaseScheduler):
     event_loop: Any = None
     timer: Optional[Any] = None
 
-    def start(self, paused: bool = False) -> None:
+    def start(self, paused: bool = False) -> bool:
         if not self.event_loop:
             try:
                 self.event_loop = asyncio.get_running_loop()
             except RuntimeError:
                 self.event_loop = asyncio.new_event_loop()
-        super().start(paused)
+        return super().start(paused)
 
     @run_in_event_loop
-    def shutdown(self, wait: bool = True) -> None:
-        super().shutdown(wait)
-        self.stop_timer()
+    def _shutdown(self, wait: bool = True) -> None:
+        if super().shutdown(wait):
+            self.stop_timer()
+
+    def shutdown(self, wait: bool = True) -> bool:
+        # not decremented yet so +1
+        result = self.ref_counter
+        self._shutdown(wait)
+        return result > 1
 
     def _setup(self, config: Any) -> None:
         self.event_loop = maybe_ref(config.pop("event_loop", None))

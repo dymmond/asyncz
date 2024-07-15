@@ -8,7 +8,6 @@ from esmerald import route as esmerald_route
 from esmerald.applications import Esmerald
 from esmerald.contrib.schedulers.asyncz.config import AsynczConfig
 from lilya.apps import Lilya
-from lilya.middleware import DefineMiddleware
 from lilya.responses import JSONResponse as LilyaJSONResponse
 from lilya.routing import Path
 from starlette.applications import Starlette
@@ -107,7 +106,7 @@ def get_lilya_app():
     return app, scheduler
 
 
-def get_lilya_middleware_app():
+def get_lilya_start_shutdown_app():
     scheduler = DummyScheduler()
 
     async def list_notes(request: Request) -> LilyaJSONResponse:
@@ -119,11 +118,14 @@ def get_lilya_middleware_app():
                 "/notes",
                 methods=["GET"],
                 handler=list_notes,
-                middleware=[
-                    DefineMiddleware(scheduler.asgi()),
-                ],
             )
-        ]
+        ],
+        on_startup=[
+            scheduler.start,
+        ],
+        on_shutdown=[
+            scheduler.shutdown,
+        ],
     )
 
     return app, scheduler
@@ -171,7 +173,7 @@ def get_esmerald_app2():
         get_asgi_app,
         get_asgi_app2,
         get_lilya_app,
-        get_lilya_middleware_app,
+        get_lilya_start_shutdown_app,
         get_esmerald_app,
         get_esmerald_app2,
     ],

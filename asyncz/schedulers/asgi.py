@@ -36,42 +36,34 @@ class ASGIHelper:
         send: Callable[[DictStrAny], Awaitable[None]],
     ) -> None:
         if scope["type"] == "lifespan":
-            if self.handle_lifespan:
-                while True:
-                    message = await receive()
-                    if message["type"] == "lifespan.startup":
-                        try:
-                            self.scheduler.start()
-                        except Exception as exc:
-                            await send({"type": "lifespan.startup.failed", "msg": str(exc)})
-                            return
-                        await send({"type": "lifespan.startup.complete"})
-                    elif message["type"] == "lifespan.shutdown":
-                        try:
-                            self.scheduler.shutdown()
-                        except Exception as exc:
-                            await send({"type": "lifespan.shutdown.failed", "msg": str(exc)})
-                            return
-                        await send({"type": "lifespan.shutdown.complete"})
-                        return
-            else:
-                original_receive = receive
+            original_receive = receive
 
-                async def receive() -> DictStrAny:
-                    message = await original_receive()
-                    if message["type"] == "lifespan.startup":
-                        try:
-                            self.scheduler.start()
-                        except Exception as exc:
-                            await send({"type": "lifespan.startup.failed", "msg": str(exc)})
-                            raise MuteInteruptException from None
-                    elif message["type"] == "lifespan.shutdown":
-                        try:
-                            self.scheduler.shutdown()
-                        except Exception as exc:
-                            await send({"type": "lifespan.shutdown.failed", "msg": str(exc)})
-                            raise MuteInteruptException from None
-                    return message
+            async def receive() -> DictStrAny:
+                message = await original_receive()
+                if message["type"] == "lifespan.startup":
+                    try:
+                        self.scheduler.start()
+                    except Exception as exc:
+                        await send({"type": "lifespan.startup.failed", "msg": str(exc)})
+                        raise MuteInteruptException from None
+                elif message["type"] == "lifespan.shutdown":
+                    try:
+                        self.scheduler.shutdown()
+                    except Exception as exc:
+                        await send({"type": "lifespan.shutdown.failed", "msg": str(exc)})
+                        raise MuteInteruptException from None
+                return message
+
+            if self.handle_lifespan:
+                with suppress(MuteInteruptException):
+                    while True:
+                        message = await receive()
+                        if message["type"] == "lifespan.startup":
+                            await send({"type": "lifespan.startup.complete"})
+                        elif message["type"] == "lifespan.shutdown":
+                            await send({"type": "lifespan.shutdown.complete"})
+                            return
+                return
 
         with suppress(MuteInteruptException):
             await self.app(scope, receive, send)

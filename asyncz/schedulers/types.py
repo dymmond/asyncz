@@ -21,22 +21,28 @@ if TYPE_CHECKING:
 
 class SchedulerType(ABC):
     @abstractmethod
-    def start(self, paused: bool = False) -> None:
+    def start(self, paused: bool = False) -> bool:
         """
         Start the configured executors and task stores and begin processing scheduled tasks.
 
         Args:
             paused: If True don't start the process until resume is called.
+
+        Return:
+            bool: True when scheduler is really started
         """
 
     @abstractmethod
-    def shutdown(self, wait: bool = True) -> None:
+    def shutdown(self, wait: bool = True) -> bool:
         """
         Shuts down the scheduler, along with its executors and task stores.
         Does not interrupt any currently running tasks.
 
         Args:
             wait: True to wait until all currently executing tasks have finished.
+
+        Return:
+            bool: True when scheduler is terminated
         """
 
     @abstractmethod

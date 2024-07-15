@@ -4,7 +4,7 @@ from collections.abc import MutableMapping
 from datetime import datetime, timedelta
 from functools import partial
 from importlib import import_module
-from threading import RLock
+from threading import Lock, RLock
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -103,6 +103,9 @@ class BaseScheduler(SchedulerType):
         self.pending_tasks: List[Tuple[TaskType, str, bool]] = []
         self.state: Union[SchedulerState, Any] = SchedulerState.STATE_STOPPED
         self.logger: Any = logger
+
+        self.ref_counter: int = 0
+        self.ref_lock: Lock = Lock()
         self.setup(self.global_config, **kwargs)
 
     def __getstate__(self) -> None:
@@ -155,15 +158,33 @@ class BaseScheduler(SchedulerType):
         config.update(options)
         self._setup(config)
 
-    def start(self, paused: bool = False) -> None:
+    def inc_refcount(self) -> bool:
+        with self.ref_lock:
+            self.ref_counter += 1
+            # first start with 1
+            if self.ref_counter > 1:
+                return False
+        return True
+
+    def decr_refcount(self) -> bool:
+        with self.ref_lock:
+            self.ref_counter -= 1
+            # first start with 0
+            if self.ref_counter > 0:
+                return False
+        return True
+
+    def start(self, paused: bool = False) -> bool:
         """
         Start the configured executors and task stores and begin processing scheduled tasks.
 
         Args:
             paused: If True don't start the process until resume is called.
         """
-        if self.state != SchedulerState.STATE_STOPPED:
-            raise SchedulerAlreadyRunningError()
+        if not self.inc_refcount():
+            return False
+        # should not happen, ref_counter should protect
+        assert self.state == SchedulerState.STATE_STOPPED
 
         self.check_uwsgi()
         with self.executor_lock:
@@ -190,8 +211,9 @@ class BaseScheduler(SchedulerType):
 
         if not paused:
             self.wakeup()
+        return True
 
-    def shutdown(self, wait: bool = True) -> None:
+    def shutdown(self, wait: bool = True) -> bool:
         """
         Shuts down the scheduler, along with its executors and task stores.
         Does not interrupt any currently running tasks.
@@ -199,6 +221,9 @@ class BaseScheduler(SchedulerType):
         Args:
             wait: True to wait until all currently executing tasks have finished.
         """
+        if not self.decr_refcount():
+            return False
+
         if self.state == SchedulerState.STATE_STOPPED:
             raise SchedulerNotRunningError()
 
@@ -213,6 +238,7 @@ class BaseScheduler(SchedulerType):
 
         self.logger.info("Scheduler has been shutdown.")
         self.dispatch_event(SchedulerEvent(code=SCHEDULER_SHUTDOWN))
+        return True
 
     def pause(self) -> None:
         """
