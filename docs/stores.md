@@ -91,6 +91,30 @@ available.
 
     <sup>Default: `pickle.HIGHEST_PROTOCOL`</sup>
 
+
+## SQLAlchemyStore
+
+**Store Alias** - `sqlalchemy`
+
+```python
+from asyncz.stores.sqlalchemy import SQLAlchemyStore
+```
+
+### Parameters
+
+* **database** - The database to store the tasks. Can be string url or engine
+
+    <sup>Default: `asyncz`</sup>
+
+* **tablename** - The tablename.
+
+    <sup>Default: `asyncz_store`</sup>
+
+* **pickle_protocol** - Pickle protocol level to use (for serialization), defaults to the highest
+available.
+
+    <sup>Default: `pickle.HIGHEST_PROTOCOL`</sup>
+
 ## Custom store
 
 ```python
