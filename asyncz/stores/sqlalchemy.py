@@ -49,7 +49,9 @@ class SQLAlchemyStore(BaseStore):
         self.table: sqlalchemy.Table = sqlalchemy.Table(
             tablename,
             self.metadata,
-            sqlalchemy.Column("id", sqlalchemy.String(length=255), primary_key=True, nullable=False),
+            sqlalchemy.Column(
+                "id", sqlalchemy.String(length=255), primary_key=True, nullable=False
+            ),
             sqlalchemy.Column("next_run_time", sqlalchemy.BigInteger(), nullable=True),
             sqlalchemy.Column("state", sqlalchemy.LargeBinary(), nullable=False),
         )
@@ -121,17 +123,15 @@ class SQLAlchemyStore(BaseStore):
 
     def add_task(self, task: TaskType) -> None:
         data = {
-            "id":task.id,
+            "id": task.id,
             "next_run_time": datetime_to_utc_timestamp(task.next_run_time),
             "state": self.conditional_encrypt(
                 pickle.dumps(task.__getstate__(), self.pickle_protocol)
-            )
+            ),
         }
         try:
             with self.engine.begin() as conn:
-                conn.execute(
-                    self.table.insert().values(**data)
-                )
+                conn.execute(self.table.insert().values(**data))
         except IntegrityError:
             raise ConflictIdError(task.id) from None
 
