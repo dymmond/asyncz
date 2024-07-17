@@ -22,7 +22,7 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: pip install hatch
       - name: "Build package"
-        run: "hatch run build_with_check"
+        run: "hatch build"
       - name: "Publish to PyPI"
         run: "scripts/release"
         env:
