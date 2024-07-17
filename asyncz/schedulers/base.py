@@ -22,7 +22,6 @@ from typing import (
 from loguru import logger
 from tzlocal import get_localzone
 
-from asyncz._mapping import AsynczObjectMapping
 from asyncz.enums import PluginInstance, SchedulerState
 from asyncz.events.base import SchedulerEvent, TaskEvent, TaskSubmissionEvent
 from asyncz.events.constants import (
@@ -51,13 +50,13 @@ from asyncz.exceptions import (
 )
 from asyncz.executors.pool import ThreadPoolExecutor
 from asyncz.executors.types import ExecutorType
+from asyncz.schedulers import defaults
 from asyncz.schedulers.asgi import ASGIApp, ASGIHelper
 from asyncz.schedulers.datastructures import TaskDefaultStruct
 from asyncz.schedulers.types import SchedulerType
 from asyncz.stores.memory import MemoryStore
 from asyncz.stores.types import StoreType
 from asyncz.tasks import Task
-from asyncz.triggers.base import BaseTrigger
 from asyncz.triggers.types import TriggerType
 from asyncz.typing import UndefinedType, undefined
 from asyncz.utils import TIMEOUT_MAX, maybe_ref, timedelta_seconds, to_bool, to_int, to_timezone
@@ -86,13 +85,12 @@ class BaseScheduler(SchedulerType):
 
     def __init__(self, global_config: Optional[Any] = None, **kwargs: Any) -> None:
         super().__init__()
-        mapping = AsynczObjectMapping()
         self.global_config: Dict[str, Any] = global_config or {}
-        self.trigger_plugins = dict(mapping.triggers.items())
-        self.trigger_classes: Dict[str, Type[BaseTrigger]] = {}
-        self.executor_plugins: Dict[str, str] = dict(mapping.executors.items())
+        self.trigger_plugins = dict(defaults.triggers.items())
+        self.trigger_classes: Dict[str, Type[TriggerType]] = {}
+        self.executor_plugins: Dict[str, str] = dict(defaults.executors.items())
         self.executor_classes: Dict[str, Type[ExecutorType]] = {}
-        self.store_plugins: Dict[str, str] = dict(mapping.stores.items())
+        self.store_plugins: Dict[str, str] = dict(defaults.stores.items())
         self.store_classes: Dict[str, Type[StoreType]] = {}
         self.executors: Dict[str, ExecutorType] = {}
         self.executor_lock: RLock = self.create_lock()
@@ -925,7 +923,7 @@ class BaseScheduler(SchedulerType):
         Creates an instance of the given plugin type, loading the plugin first if necessary.
         """
         plugin_container, class_container, base_class = {
-            "trigger": (self.trigger_plugins, self.trigger_classes, BaseTrigger),
+            "trigger": (self.trigger_plugins, self.trigger_classes, TriggerType),
             "store": (self.store_plugins, self.store_classes, StoreType),
             "executor": (self.executor_plugins, self.executor_classes, ExecutorType),
         }[_type]
@@ -948,12 +946,12 @@ class BaseScheduler(SchedulerType):
         return plugin_cls(**constructor_args)
 
     def create_trigger(
-        self, trigger: Union["TriggerType", str, None], trigger_args: Any
+        self, trigger: Union[TriggerType, str, None], trigger_args: Any
     ) -> "TriggerType":
         """
         Creates a trigger.
         """
-        if isinstance(trigger, BaseTrigger):
+        if isinstance(trigger, TriggerType):
             return trigger
         elif trigger is None:
             trigger = "date"

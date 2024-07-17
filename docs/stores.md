@@ -1,8 +1,8 @@
 # Stores
 
 In simple terms, the stores are places where, as the name suggests, stores the scheduled tasks.
-Asyncz has a `default` store wich is a [MemoryStore](#memoryStore) but also brings an integration
-with two major ones, [Redis](#redisstore) and [MongoDB](#mongostore).
+Asyncz has a `default` store wich is a [MemoryStore](#memorystore) but also brings an integration
+with two major ones, [Redis](#redisstore) and [MongoDB](#mongodbstore).
 
 Besides the default memory store, the tasks are not store in memory but in the corresponding desired
 store.
