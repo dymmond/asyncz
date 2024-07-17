@@ -21,4 +21,5 @@ stores: Dict[str, str] = {
     "memory": "asyncz.stores.memory:MemoryTaskStore",
     "mongodb": "asyncz.stores.mongo:MongoDBStore",
     "redis": "asyncz.stores.redis:RedisStore",
+    "sqlalchemy": "asyncz.stores.sqlalchemy:SQLAlchemyStore",
 }

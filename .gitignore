@@ -1,5 +1,6 @@
 # folders
 *.egg-info/
+*.sqlite3
 .hypothesis/
 .idea/
 .mypy_cache/
