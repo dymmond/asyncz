@@ -1,5 +1,19 @@
 # Release Notes
 
+## 0.9.0
+
+### Added
+
+- SQLAlchemy store
+- ASGI integration
+
+### Changed
+
+- Schedulers use now refcounting to track if it should startup/shutdown (for asgi, lifespan).
+- Schedulers support now the async and sync context manager protocols.
+- Improved typings.
+- The default (builtin) plugins live now in `asyncz/scheduler/defaults.py`.
+
 ## 0.8.3
 
 ### Fixed
