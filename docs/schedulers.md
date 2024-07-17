@@ -60,7 +60,7 @@ with a [MemoryStore](./stores.md#memorystore) named `default` and starting the
 Let us assume you now need a very custom configuration with more than one store, executors and
 custom settings.
 
-* Two stores - A [mongo](./stores.md#mongo) and a [redis](./stores.md#redis).
+* Two stores - A [mongo](./stores.md#mongodbstore) and a [redis](./stores.md#redisstore).
 * Two executors - An [asyncio](./executors.md#asyncioexecutor) and
 a [thread pool](./executors.md#threadpoolexecutor).
 * Coalesce turned off for new tasks by default.
@@ -174,7 +174,7 @@ store alias.
 
 ## Delete
 
-The `delete` function is probably more convenient but it requires that you store the [Task](./tasks)
+The `delete` function is probably more convenient but it requires that you store the [Task](./tasks.md)
 somewhere ocne the instance is received and for tasks scheduled by [scheduled task](#scheduled-tasks)
 this method does not work, instead only the [delete task](#delete-task) will work.
 
@@ -186,7 +186,7 @@ this method does not work, instead only the [delete task](#delete-task) will wor
 
 As shown above, you can add and remove tasks but you can pause and resume tasks as well. When a task
 is paused, there is no next time to run since the action is no longer being validate. That can be
-again reactivated by resuming that same [Task](./tasks).
+again reactivated by resuming that same [Task](./tasks.md).
 
 Like the previous examples, there are also multiple ways of achieving that.
 
@@ -329,7 +329,7 @@ some additional ones.
 
 * **event_loop** - An optional. async event_loop to be used. If nothing is provided, it will use
 the `asyncio.get_event_loop()` (global).
-    
+
     <sup>Default: `None`</sup>
 
 * **timeout** - A timeout used for start and stop the scheduler.

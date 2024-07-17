@@ -1,12 +1,12 @@
-from enum import Enum
+from enum import Enum, IntEnum
 
 
-class SchedulerState(Enum):
+class SchedulerState(IntEnum):
     STATE_STOPPED = 0
     STATE_RUNNING = 1
     STATE_PAUSED = 2
 
 
-class PluginInstance(Enum):
+class PluginInstance(str, Enum):
     EXECUTOR = "executor"
     STORE = "store"

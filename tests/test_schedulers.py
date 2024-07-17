@@ -58,7 +58,7 @@ class DummyScheduler(BaseScheduler):
         object_setter(self, "wakeup", MagicMock())
 
     def shutdown(self, wait=True):
-        super().shutdown(wait)
+        return super().shutdown(wait)
 
     def wakeup(self): ...
 
@@ -94,13 +94,13 @@ class DummyStore(BaseStore):
 
     def get_due_tasks(self, now: datetime) -> List["TaskType"]: ...
 
-    def lookup_task(self, task_id: Union[str, int]) -> "TaskType": ...
+    def lookup_task(self, task_id: str) -> "TaskType": ...
 
-    def delete_task(self, task_id: Union[str, int]): ...
+    def delete_task(self, task_id: str): ...
 
     def remove_all_tasks(self): ...
 
-    def get_next_run_time(self) -> datetime: ...
+    def get_next_run_time(self) -> Optional[datetime]: ...
 
     def get_all_tasks(self) -> List["TaskType"]: ...
 
@@ -122,7 +122,7 @@ class TestBaseScheduler:
         return events
 
     def test_constructor(self):
-        with patch("%s.DummyScheduler.setup" % __name__) as setup:
+        with patch(f"{__name__}.DummyScheduler.setup") as setup:
             global_config = {"asyncz.foo": "bar", "asyncz.x": "y"}
             options = {"bar": "baz", "xyz": 123}
             DummyScheduler(global_config, **options)
@@ -137,15 +137,15 @@ class TestBaseScheduler:
                 "asyncz.task_defaults.mistrigger_grace_time": "5",
                 "asyncz.task_defaults.coalesce": "false",
                 "asyncz.task_defaults.max_instances": "9",
-                "asyncz.executors.default.class": "%s:DummyExecutor" % __name__,
+                "asyncz.executors.default.class": f"{__name__}:DummyExecutor",
                 "asyncz.executors.default.arg1": "3",
                 "asyncz.executors.default.arg2": "a",
-                "asyncz.executors.alter.class": "%s:DummyExecutor" % __name__,
+                "asyncz.executors.alter.class": f"{__name__}:DummyExecutor",
                 "asyncz.executors.alter.arg": "true",
-                "asyncz.stores.default.class": "%s:DummyStore" % __name__,
+                "asyncz.stores.default.class": f"{__name__}:DummyStore",
                 "asyncz.stores.default.arg1": "3",
                 "asyncz.stores.default.arg2": "a",
-                "asyncz.stores.bar.class": "%s:DummyStore" % __name__,
+                "asyncz.stores.bar.class": f"{__name__}:DummyStore",
                 "asyncz.stores.bar.arg": "false",
             },
             {
@@ -157,19 +157,19 @@ class TestBaseScheduler:
                 },
                 "asyncz.executors": {
                     "default": {
-                        "class": "%s:DummyExecutor" % __name__,
+                        "class": f"{__name__}:DummyExecutor",
                         "arg1": "3",
                         "arg2": "a",
                     },
-                    "alter": {"class": "%s:DummyExecutor" % __name__, "arg": "true"},
+                    "alter": {"class": f"{__name__}:DummyExecutor", "arg": "true"},
                 },
                 "asyncz.stores": {
                     "default": {
-                        "class": "%s:DummyStore" % __name__,
+                        "class": f"{__name__}:DummyStore",
                         "arg1": "3",
                         "arg2": "a",
                     },
-                    "bar": {"class": "%s:DummyStore" % __name__, "arg": "false"},
+                    "bar": {"class": f"{__name__}:DummyStore", "arg": "false"},
                 },
             },
         ],
@@ -189,19 +189,19 @@ class TestBaseScheduler:
                 },
                 "executors": {
                     "default": {
-                        "class": "%s:DummyExecutor" % __name__,
+                        "class": f"{__name__}:DummyExecutor",
                         "arg1": "3",
                         "arg2": "a",
                     },
-                    "alter": {"class": "%s:DummyExecutor" % __name__, "arg": "true"},
+                    "alter": {"class": f"{__name__}:DummyExecutor", "arg": "true"},
                 },
                 "stores": {
                     "default": {
-                        "class": "%s:DummyStore" % __name__,
+                        "class": f"{__name__}:DummyStore",
                         "arg1": "3",
                         "arg2": "a",
                     },
-                    "bar": {"class": "%s:DummyStore" % __name__, "arg": "false"},
+                    "bar": {"class": f"{__name__}:DummyStore", "arg": "false"},
                 },
             }
         )
@@ -213,7 +213,17 @@ class TestBaseScheduler:
         the scheduler has been started.
         """
         scheduler.start(paused=True)
-        pytest.raises(SchedulerAlreadyRunningError, method, scheduler)
+        # multi init is possible
+        if method is BaseScheduler.start:
+            assert method(scheduler) is False
+        else:
+            pytest.raises(SchedulerAlreadyRunningError, method, scheduler)
+
+    def test_scheduler_multi_init(self, scheduler):
+        assert scheduler.start(paused=True) is True
+        assert scheduler.start(paused=True) is False
+        assert scheduler.shutdown(wait=True) is False
+        assert scheduler.shutdown(wait=True) is True
 
     @pytest.mark.parametrize(
         "method",
@@ -643,19 +653,19 @@ class TestBaseScheduler:
                 },
                 "executors": {
                     "default": {
-                        "class": "%s:DummyExecutor" % __name__,
+                        "class": f"{__name__}:DummyExecutor",
                         "arg1": "3",
                         "arg2": "a",
                     },
-                    "alter": {"class": "%s:DummyExecutor" % __name__, "arg": "true"},
+                    "alter": {"class": f"{__name__}:DummyExecutor", "arg": "true"},
                 },
                 "stores": {
                     "default": {
-                        "class": "%s:DummyStore" % __name__,
+                        "class": f"{__name__}:DummyStore",
                         "arg1": "3",
                         "arg2": "a",
                     },
-                    "bar": {"class": "%s:DummyStore" % __name__, "arg": "false"},
+                    "bar": {"class": f"{__name__}:DummyStore", "arg": "false"},
                 },
             },
             {
@@ -833,7 +843,7 @@ class TestBaseScheduler:
 class TestProcessTasks:
     @pytest.fixture
     def task(self):
-        task = MagicMock(Task, id=999, executor="default", coalesce=False, max_instances=1)
+        task = MagicMock(Task, id="999", executor="default", coalesce=False, max_instances=1)
         task.trigger = MagicMock(get_next_trigger_time=MagicMock(return_value=None))
         task.__str__ = lambda x: "task 999"
         return task
@@ -866,7 +876,7 @@ class TestProcessTasks:
 
         assert scheduler.process_tasks() is None
 
-        store.delete_task.assert_called_once_with(999)
+        store.delete_task.assert_called_once_with("999")
 
         assert len(caplog.records) == 1
 
@@ -962,11 +972,6 @@ class SchedulerImpBaseTest:
 
 
 class TestAsyncIOScheduler(SchedulerImpBaseTest):
-    @pytest.fixture
-    def event_loop(self):
-        asyncio = pytest.importorskip("asyncz.schedulers.asyncio")
-        return asyncio.asyncio.new_event_loop()
-
     @pytest.fixture
     def scheduler(self, event_loop):
         asyncio = pytest.importorskip("asyncz.schedulers.asyncio")

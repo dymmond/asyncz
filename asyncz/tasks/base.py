@@ -1,32 +1,37 @@
 import inspect
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Callable, Iterable, List, Mapping, Optional, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Union,
+)
 from uuid import uuid4
 
+from pydantic import Field
+
 from asyncz.datastructures import TaskState
+from asyncz.schedulers.types import SchedulerType
 from asyncz.state import BaseStateExtra
-from asyncz.triggers.base import BaseTrigger
+from asyncz.triggers.types import TriggerType
 from asyncz.utils import (
     check_callable_args,
     datetime_repr,
     get_callable_name,
     obj_to_ref,
     ref_to_obj,
-    repr_escape,
     to_datetime,
 )
 
 object_setattr = object.__setattr__
 
-if TYPE_CHECKING:
-    from asyncz.stores.types import StoreType
-    from asyncz.triggers.types import TriggerType
-else:
-    StoreType = Any
-    TriggerType = Any
 
-
-class Task(BaseStateExtra):
+class Task(BaseStateExtra):  # type: ignore
     """
     Contains the options given when scheduling callables and its current schedule and other state.
     This class should never be instantiated by the user.
@@ -49,28 +54,30 @@ class Task(BaseStateExtra):
     """
 
     name: Optional[str] = None
-    fn: Optional[Union[Callable[..., Any], str]] = None
+    fn: Optional[Callable[..., Any]] = None
     fn_reference: Optional[str] = None
-    args: Optional[Any] = None
-    kwargs: Optional[Any] = None
+    args: Sequence[Any] = ()
+    kwargs: Dict[str, Any] = Field(default_factory=dict)
     next_run_time: Optional[datetime] = None
-    scheduler: Any = None
     store_alias: Optional[str] = None
+    scheduler: SchedulerType
+    id: str
 
     def __init__(
         self,
-        scheduler: Any,
+        scheduler: SchedulerType,
         id: Optional[str] = None,
         store_alias: Optional[str] = None,
+        *,
+        fn: Union[Callable[..., Any], str, None] = None,
         **kwargs: Any,
     ):
-        super().__init__(**kwargs)
-        self.scheduler = scheduler
+        super().__init__(id=id or uuid4().hex, scheduler=scheduler, **kwargs)
         self.store_alias = store_alias
-        self._update(id=id or uuid4().hex, **kwargs)
+        self._update(fn=fn, **kwargs)
 
     @property
-    def pending(self):
+    def pending(self) -> bool:
         """
         Returns true if the referenced task is still waiting to be added to its designated task
         store.
@@ -85,7 +92,7 @@ class Task(BaseStateExtra):
         self.scheduler.update_task(self.id, self.store_alias, **updates)
         return self
 
-    def reschedule(self, trigger, **trigger_args) -> "Task":
+    def reschedule(self, trigger: TriggerType, **trigger_args: Any) -> "Task":
         """
         Shortcut for switching the trigger on this task.
         """
@@ -97,6 +104,7 @@ class Task(BaseStateExtra):
         Temporarily suspenses the execution of a given task.
         """
         self.scheduler.pause_task(self.id, self.store_alias)
+        return self
 
     def resume(self) -> "Task":
         """
@@ -122,22 +130,18 @@ class Task(BaseStateExtra):
             next_run_time = self.trigger.get_next_trigger_time(next_run_time, now)
         return run_times
 
-    def _update(self, **updates: Any) -> None:
+    def _update(self, *, fn: Any = None, **updates: Any) -> None:
         """
         Validates the updates to the Task and makes the modifications if and only if all of them
         validate.
         """
         approved = {}
         if "id" in updates:
-            _id = updates.pop("id")
-            if not isinstance(_id, str):
-                raise TypeError("Id must be a non empty string.")
-            if hasattr(self, "id") and getattr(self, "id", None):
-                raise ValueError("The task ID may not be changed.")
-            approved["id"] = _id
+            raise ValueError("The task ID may not be changed.")
 
-        if "fn" in updates or "args" in updates or "kwargs" in updates:
-            fn = updates.pop("fn") if "fn" in updates else self.fn
+        if fn or "args" in updates or "kwargs" in updates:
+            if not fn:
+                fn = self.fn
             args = updates.pop("args") if "args" in updates else self.args
             kwargs = updates.pop("kwargs") if "kwargs" in updates else self.kwargs
 
@@ -193,7 +197,7 @@ class Task(BaseStateExtra):
 
         if "trigger" in updates:
             trigger = updates.pop("trigger")
-            if not isinstance(trigger, BaseTrigger):
+            if not isinstance(trigger, TriggerType):
                 raise TypeError(
                     f"Expected a trigger instance, got {trigger.__class__.__name__} instead."
                 )
@@ -219,7 +223,7 @@ class Task(BaseStateExtra):
         for key, value in approved.items():
             setattr(self, key, value)
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: "TaskState") -> "Task":  # type: ignore
         object_setattr(self, "__dict__", state.__dict__)
         object_setattr(self, "__pydantic_fields_set__", state.__pydantic_fields_set__)
         object_setattr(self, "__pydantic_extra__", state.__pydantic_extra__)
@@ -235,12 +239,12 @@ class Task(BaseStateExtra):
             object_setattr(self, name, value)
         return self
 
-    def __getstate__(self) -> "TaskState":
+    def __getstate__(self) -> "TaskState":  # type: ignore
         if not self.fn_reference:
             raise ValueError(
-                "This Task cannot be serialized since the reference to its callable (%r) could not "
+                f"This Task cannot be serialized since the reference to its callable ({self.func!r}) could not "
                 "be determined. Consider giving a textual reference (module:function name) "
-                "instead." % (self.func,)
+                "instead."
             )
 
         fn = self.fn
@@ -249,9 +253,9 @@ class Task(BaseStateExtra):
             and not inspect.isclass(fn.__self__)
             and obj_to_ref(fn) == self.fn_reference
         ):
-            args = (fn.__self__,) + tuple(self.args)
+            args = (fn.__self__, *self.args)
         else:
-            args = self.args
+            args = tuple(self.args)
 
         task_state = TaskState(
             id=self.id,
@@ -269,18 +273,15 @@ class Task(BaseStateExtra):
         )
         return task_state
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, Task):
             return self.id == other.id
         return NotImplemented
 
-    def __repr__(self):
-        return f"<Task (id={repr_escape(self.id)} name={repr_escape(self.name)})>"
+    def __repr__(self) -> str:
+        return f"<Task (id={self.id} name={self.name})>"
 
-    def __str__(self):
-        return repr_escape(self.__unicode__())
-
-    def __unicode__(self):
+    def __str__(self) -> str:
         if hasattr(self, "next_run_time"):
             status = (
                 "next run at: " + datetime_repr(self.next_run_time)

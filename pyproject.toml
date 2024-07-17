@@ -39,15 +39,13 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP",
 ]
 dependencies = [
+    "cryptography",
     "loguru>=0.7.0,<0.8.0",
     "pydantic>=2.5.3,<3.0.0",
     "tzlocal>=4.0,<6.0",
     'backports.zoneinfo;python_version<"3.9"',
 ]
 keywords = [
-    "api",
-    "rest",
-    "http",
     "asgi",
     "asyncz",
     "pydantic",
@@ -55,10 +53,6 @@ keywords = [
     "fastapi",
     "apscheduler",
     "framework",
-    "websocket",
-    "openapi",
-    "ml",
-    "machine learning",
     "scheduler",
     "cron",
     "asyncz",
@@ -73,36 +67,48 @@ Source = "https://github.com/dymmond/asyncz"
 
 
 [tool.hatch.envs.default]
-dependencies = ["ruff", "pre-commit>=2.17.0,<3.0.0", "twine", "ipdb", "pdbpp"]
+dependencies = ["pre-commit>=2.17.0,<3.0.0", "ipdb", "types-tzlocal"]
 
 [project.optional-dependencies]
 testing = [
     "pymongo>=4.3.3,<5.0.0",
     "pytest>=7.1.3,<9.0.0",
     "pytest-cov >=2.12.0,<6.0.0",
-    "pytest-asyncio >=0.19.0,<1.0.0",
+    "pytest-asyncio >=0.23.0,<1.0.0",
     "pytest-loguru>=0.2.0,<1",
     "redis>=4.4.0,<6.0.0",
     "mypy>=0.982,<2.0.0",
     "esmerald",
+    "starlette",
+    "lilya",
+    "sqlalchemy",
+    "httpx",
     "pytz>=2022.6",
 ]
 
 [tool.hatch.envs.default.scripts]
 clean_pyc = "find . -type f -name \"*.pyc\" -delete"
 clean_pycache = "find . -type d -name \"*__pycache__*\" -delete"
-lint = "ruff check --fix --line-length 99  asyncz tests docs_src {args}"
-build_with_check = "hatch build; twine check dist/*"
 
 [tool.hatch.envs.test]
 features = ["testing"]
 
 [tool.hatch.envs.test.scripts]
 # needs docker services running
-test = "pytest --disable-pytest-warnings {args}"
-test_man = "pytest --disable-pytest-warnings -s -vv {args}"
-coverage = "pytest --cov=asyncz --cov=tests --cov-report=term-missing:skip-covered --cov-report=html tests {args}"
 check_types = "mypy -p asyncz"
+
+
+[tool.hatch.envs.hatch-test]
+features = ["testing"]
+[tool.hatch.envs.hatch-test.env-vars]
+ASYNCZ_STORE_ENCRYPTION_KEY = "{matrix:key:''}"
+
+
+[[tool.hatch.envs.hatch-test.matrix]]
+key = ["89389432893482832agasfsasdafjkdfasjkfdajkadsffdsiasiofsdifdlkalkdkfaskjfdfsakj"]
+
+[[tool.hatch.envs.hatch-test.matrix]]
+a = ["a"]
 
 
 [tool.hatch.envs.docs]
@@ -123,6 +129,9 @@ serve = "mkdocs serve --dev-addr localhost:8000"
 path = "asyncz/__init__.py"
 
 [tool.mypy]
+plugins = [
+  "pydantic.mypy"
+]
 warn_unused_configs = true
 warn_unreachable = true
 warn_return_any = true
@@ -136,14 +145,25 @@ disable_error_code = "attr-defined"
 warn_unused_ignores = true
 warn_redundant_casts = true
 
+[tool.ruff]
+line-length=99
+
 [tool.ruff.lint]
-select = ["E", "W", "F", "C", "B", "I"]
+select = ["E", "W", "F", "C", "B", "I", "UP", "SIM"]
 ignore = ["E501", "B008", "C901", "B026"]
 
 exclude = ["docs_src/*"]
 
 [tool.ruff.lint.isort]
 known-third-party = ["esmerald", "pydantic", "starlette"]
+
+
+[tool.ruff.lint.pyupgrade]
+keep-runtime-typing = true
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 99
+max-doc-length = 120
 
 [[tool.mypy.overrides]]
 module = "asyncz.tests.*"
@@ -163,6 +183,7 @@ module = [
     "sqlalchemy_utils.*",
     "slugify",
     "pytz",
+    "backports.*"
 ]
 ignore_missing_imports = true
 ignore_errors = true

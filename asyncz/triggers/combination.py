@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, Union
+from typing import ClassVar, Optional, Union
 
 from asyncz.triggers.base import BaseCombinationTrigger
 
@@ -14,19 +14,22 @@ class AndTrigger(BaseCombinationTrigger):
         jitter: Delay the task execution by the jitter seconds at most.
     """
 
-    alias: str = "and"
+    alias: ClassVar[str] = "and"
 
     def get_next_trigger_time(
-        self, previous_time: datetime, now: Optional[datetime] = None
+        self, previous_time: Optional[datetime], now: Optional[datetime] = None
     ) -> Union[datetime, None]:
+        if now is None:
+            now = datetime.now()
         while True:
-            trigger_times = [
-                trigger.get_next_trigger_time(previous_time, now) for trigger in self.triggers
-            ]
-
-            if None in trigger_times:
-                return None
-            elif min(trigger_times) == max(trigger_times):
+            trigger_times = []
+            for trigger in self.triggers:
+                next_trigger_time = trigger.get_next_trigger_time(previous_time, now)
+                # bail out early
+                if next_trigger_time is None:
+                    return None
+                trigger_times.append(next_trigger_time)
+            if min(trigger_times) == max(trigger_times):
                 return self.apply_jitter(trigger_times[0], self.jitter, now)
             else:
                 now = max(trigger_times)
@@ -42,17 +45,18 @@ class OrTrigger(BaseCombinationTrigger):
         jitter: Delay the task execution by the jitter seconds at most.
     """
 
-    alias: str = "or"
+    alias: ClassVar[str] = "or"
 
     def get_next_trigger_time(
-        self, previous_time: datetime, now: Optional[datetime] = None
+        self, previous_time: Optional[datetime], now: Optional[datetime] = None
     ) -> Union[datetime, None]:
-        trigger_times = [
-            trigger.get_next_trigger_time(previous_time, now) for trigger in self.triggers
-        ]
-        trigger_times = [
-            trigger_time for trigger_time in trigger_times if trigger_time is not None
-        ]
+        if now is None:
+            now = datetime.now()
+        trigger_times = []
+        for trigger in self.triggers:
+            next_trigger_time = trigger.get_next_trigger_time(previous_time, now)
+            if next_trigger_time is not None:
+                trigger_times.append(next_trigger_time)
 
         if trigger_times:
             return self.apply_jitter(min(trigger_times), self.jitter, now)

@@ -5,7 +5,7 @@ from calendar import timegm
 from datetime import date, datetime, time, timedelta, tzinfo
 from datetime import timezone as dttz
 from functools import partial
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional, Union, cast, overload
 
 from asyncz.exceptions import AsynczException, AsynczLookupError
 
@@ -14,9 +14,9 @@ try:
 except ImportError:
     TIMEOUT_MAX = 4294967
 try:
-    from zoneinfo import ZoneInfo
+    from zoneinfo import ZoneInfo  # type: ignore[import-not-found,unused-ignore]
 except ImportError:
-    from backports.zoneinfo import ZoneInfo
+    from backports.zoneinfo import ZoneInfo  # type: ignore[no-redef,unused-ignore]
 
 BOOL_VALIDATION = {
     "true": ["true", "yes", "on", "y", "t", "1", True],
@@ -31,27 +31,41 @@ DATE_REGEX = re.compile(
 )
 
 
-def repr_escape(string: str) -> str:
-    return string
+@overload
+def to_int(value: None) -> None: ...
 
 
-def to_int(value: Union[str, float]) -> int:
+@overload
+def to_int(value: Union[str, float]) -> int: ...
+
+
+def to_int(value: Union[str, float, None]) -> Optional[int]:
     """
     Safely converts a value to integer.
     """
     if value is not None:
         return int(value)
+    return None
 
 
-def to_float(value: Union[str, int]) -> float:
+@overload
+def to_float(value: None) -> None: ...
+
+
+@overload
+def to_float(value: Union[str, int, float]) -> float: ...
+
+
+def to_float(value: Union[str, int, float, None]) -> Optional[float]:
     """
     Safely converts a value to float.
     """
     if value is not None:
         return float(value)
+    return None
 
 
-def to_bool(value: str) -> bool:
+def to_bool(value: Union[str, bool, None]) -> bool:
     """
     Converts the given value into a boolean.
     """
@@ -64,7 +78,15 @@ def to_bool(value: str) -> bool:
     return False
 
 
-def to_timezone(value: Any) -> tzinfo:
+@overload
+def to_timezone(value: None) -> None: ...
+
+
+@overload
+def to_timezone(value: Union[str, tzinfo]) -> tzinfo: ...
+
+
+def to_timezone(value: Any) -> Optional[tzinfo]:
     """
     Converts a value to timezone object.
     """
@@ -73,11 +95,22 @@ def to_timezone(value: Any) -> tzinfo:
     if isinstance(value, tzinfo):
         return value
     if value is not None:
-        raise TypeError("Expected tzinfo, got %s instead" % value.__class__.__name__)
+        raise TypeError(f"Expected tzinfo, got {value.__class__.__name__} instead")
+    return None
+
+
+@overload
+def to_datetime(value: None, tz: Union[tzinfo, str], arg_name: str) -> None: ...
+
+
+@overload
+def to_datetime(
+    value: Union[str, datetime, date], tz: Union[tzinfo, str], arg_name: str
+) -> Union[datetime, Any]: ...
 
 
 def to_datetime(
-    value: Union[str, datetime], tz: tzinfo, arg_name: str
+    value: Union[str, datetime, date, None], tz: Union[tzinfo, str], arg_name: str
 ) -> Union[datetime, None, Any]:
     """
     Converts the given value to a timezone compatible aware datetime object.
@@ -87,12 +120,12 @@ def to_datetime(
     If the input is a string, it is parsed as a datetime with the given timezone.
     """
     if not value or value is None:
-        return  # type: ignore
+        return None
 
     if isinstance(value, datetime):
         _datetime = value
-    elif isinstance(value, date):  # type: ignore
-        _datetime = datetime.combine(value, time())  # type: ignore
+    elif isinstance(value, date):
+        _datetime = datetime.combine(value, time())
     elif isinstance(value, str):
         _value = DATE_REGEX.match(value)
 
@@ -121,8 +154,7 @@ def to_datetime(
 
     if tz is None:
         raise AsynczException(
-            detail='The "tz" argument must be specified if %s has no timezone information'
-            % arg_name
+            detail=f'The "tz" argument must be specified if {arg_name} has no timezone information'
         )
 
     if isinstance(tz, str):
@@ -131,23 +163,41 @@ def to_datetime(
     return localize(_datetime, tz)
 
 
-def datetime_to_utc_timestamp(timeval: datetime) -> Union[int, float]:
+@overload
+def datetime_to_utc_timestamp(timeval: None) -> None: ...
+
+
+@overload
+def datetime_to_utc_timestamp(timeval: datetime) -> float: ...
+
+
+def datetime_to_utc_timestamp(timeval: Optional[datetime]) -> Optional[float]:
     """
     Converts a datetime instance to a timestamp.
     """
     if timeval is not None:
         return timegm(timeval.utctimetuple()) + timeval.microsecond / 1000000
+    return None
 
 
-def utc_timestamp_to_datetime(timestamp: Union[int, float]) -> datetime:
+@overload
+def utc_timestamp_to_datetime(timestamp: None) -> None: ...
+
+
+@overload
+def utc_timestamp_to_datetime(timestamp: Union[int, float]) -> datetime: ...
+
+
+def utc_timestamp_to_datetime(timestamp: Union[int, float, None]) -> Optional[datetime]:
     """
     Converts the given timestamp to a datetime instance.
     """
     if timestamp is not None:
         return datetime.fromtimestamp(timestamp, dttz.utc)
+    return None
 
 
-def timedelta_seconds(delta: Any) -> Any:
+def timedelta_seconds(delta: timedelta) -> float:
     """
     Converts the given timedelta to seconds.
     """
@@ -163,11 +213,11 @@ def datetime_ceil(dateval: datetime) -> datetime:
     return dateval
 
 
-def datetime_repr(dateval: datetime) -> str:
+def datetime_repr(dateval: Optional[datetime]) -> str:
     return dateval.strftime("%Y-%m-%d %H:%M:%S %Z") if dateval else "None"
 
 
-def get_callable_name(func: Any) -> Any:
+def get_callable_name(func: Callable) -> str:
     """
     Returns the best available display name for the given function/callable.
     """
@@ -183,14 +233,14 @@ def get_callable_name(func: Any) -> Any:
         f_class = getattr(func, "im_class", None)
 
     if f_class and hasattr(func, "__name__"):
-        return "{}.{}".format(f_class.__name__, func.__name__)
+        return f"{f_class.__name__}.{func.__name__}"
 
     if hasattr(func, "__call__"):  # noqa
         if hasattr(func, "__name__"):
             return func.__name__
         return func.__class__.__name__
 
-    raise TypeError("Unable to determine a name for %r -- maybe it is not a callable?" % func)
+    raise TypeError(f"Unable to determine a name for {func!r} -- maybe it is not a callable?")
 
 
 def obj_to_ref(obj: Any) -> str:
@@ -215,7 +265,7 @@ def obj_to_ref(obj: Any) -> str:
             module = obj.__module__
     else:
         module = obj.__module__
-    return "{}:{}".format(module, name)
+    return f"{module}:{name}"
 
 
 def ref_to_obj(ref: str) -> Any:
@@ -232,7 +282,7 @@ def ref_to_obj(ref: str) -> Any:
         obj = __import__(modulename, fromlist=[rest])
     except ImportError:
         raise AsynczLookupError(
-            "Error resolving reference %s: could not import module" % ref
+            f"Error resolving reference {ref}: could not import module"
         ) from None
     try:
         for name in rest.split("."):
@@ -245,7 +295,7 @@ def ref_to_obj(ref: str) -> Any:
         return obj
     except Exception:
         raise AsynczLookupError(
-            "Error resolving reference %s: error looking up object" % ref
+            f"Error resolving reference {ref}: error looking up object"
         ) from None
 
 
@@ -306,25 +356,30 @@ def check_callable_args(func: Callable[..., Any], args: Any, kwargs: Any) -> Non
 
     if pos_kwargs_conflicts:
         raise ValueError(
-            "The following arguments are supplied in both args and kwargs: %s"
-            % ", ".join(pos_kwargs_conflicts)
+            "The following arguments are supplied in both args and kwargs: {}".format(
+                ", ".join(pos_kwargs_conflicts)
+            )
         )
 
     if positional_only_kwargs:
         raise ValueError(
-            "The following arguments cannot be given as keyword arguments: %s"
-            % ", ".join(positional_only_kwargs)
+            "The following arguments cannot be given as keyword arguments: {}".format(
+                ", ".join(positional_only_kwargs)
+            )
         )
 
     if unsatisfied_args:
         raise ValueError(
-            "The following arguments have not been supplied: %s" % ", ".join(unsatisfied_args)
+            "The following arguments have not been supplied: {}".format(
+                ", ".join(unsatisfied_args)
+            )
         )
 
     if unsatisfied_kwargs:
         raise ValueError(
-            "The following keyword-only arguments have not been supplied in kwargs: %s"
-            % ", ".join(unsatisfied_kwargs)
+            "The following keyword-only arguments have not been supplied in kwargs: {}".format(
+                ", ".join(unsatisfied_kwargs)
+            )
         )
 
     if not has_varargs and unmatched_args:
@@ -335,8 +390,9 @@ def check_callable_args(func: Callable[..., Any], args: Any, kwargs: Any) -> Non
 
     if not has_var_kwargs and unmatched_kwargs:
         raise ValueError(
-            "The target callable does not accept the following keyword arguments: %s"
-            % ", ".join(unmatched_kwargs)
+            "The target callable does not accept the following keyword arguments: {}".format(
+                ", ".join(unmatched_kwargs)
+            )
         )
 
 
@@ -350,8 +406,8 @@ def normalize(value: datetime) -> datetime:
     return datetime.fromtimestamp(value.timestamp(), value.tzinfo)
 
 
-def localize(value: datetime, tzinfo: tzinfo) -> Any:
+def localize(value: datetime, tzinfo: tzinfo) -> datetime:
     if hasattr(tzinfo, "localize"):
-        return tzinfo.localize(value)
+        return cast(datetime, tzinfo.localize(value))
 
     return normalize(value.replace(tzinfo=tzinfo))

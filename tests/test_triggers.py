@@ -19,7 +19,6 @@ from asyncz.triggers import (
 
 class DummyTriggerWithJitter(BaseTrigger):
     dt: Optional[datetime] = None
-    jitter: Optional[int] = None
 
     def __init__(self, dt: datetime, jitter: int, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -176,9 +175,9 @@ class TestIntervalTrigger:
         timedelta_args = "seconds=1"
 
         assert repr(trigger) == (
-            "<IntervalTrigger (interval=datetime.timedelta({}), "
+            f"<IntervalTrigger (interval=datetime.timedelta({timedelta_args}), "
             "start_at='2022-11-03 00:00:02 GMT', "
-            "timezone='Europe/London')>".format(timedelta_args)
+            "timezone='Europe/London')>"
         )
 
     def test_str(self, trigger):
@@ -212,7 +211,7 @@ class TestIntervalTrigger:
             next_trigger_time = trigger.get_next_trigger_time(None, now)
             results.add(next_trigger_time)
             assert timedelta(seconds=2) <= (next_trigger_time - now) <= timedelta(seconds=8)
-        assert 1 < len(results)
+        assert len(results) > 1
 
     @pytest.mark.parametrize(
         "trigger_args, start_at, start_at_dst, correct_next_date",
@@ -276,13 +275,13 @@ class TestOrTrigger:
     @pytest.mark.parametrize("jitter", [None, 5], ids=["nojitter", "jitter"])
     def test_repr(self, trigger, jitter):
         trigger.jitter = jitter
-        jitter_part = ", jitter={}".format(jitter) if jitter else ""
+        jitter_part = f", jitter={jitter}" if jitter else ""
 
         assert repr(trigger) == (
             "<OrTrigger([<CronTrigger (month='5-8', day='6-15', "
             "end_at='2022-08-10 00:00:00 BST', timezone='Europe/London')>, <CronTrigger "
             "(month='6-9', day='*/3', end_at='2022-09-07 00:00:00 BST', "
-            "timezone='Europe/London')>]{})>".format(jitter_part)
+            f"timezone='Europe/London')>]{jitter_part})>"
         )
 
     def test_str(self, trigger):
@@ -332,12 +331,12 @@ class TestAndTrigger:
     @pytest.mark.parametrize("jitter", [None, 5], ids=["nojitter", "jitter"])
     def test_repr(self, trigger, jitter):
         trigger.jitter = jitter
-        jitter_part = ", jitter={}".format(jitter) if jitter else ""
+        jitter_part = f", jitter={jitter}" if jitter else ""
         assert repr(trigger) == (
             "<AndTrigger([<CronTrigger (month='5-8', day='6-15', "
             "end_at='2022-08-10 00:00:00 BST', timezone='Europe/London')>, <CronTrigger "
             "(month='6-9', day='*/3', end_at='2022-09-07 00:00:00 BST', "
-            "timezone='Europe/London')>]{})>".format(jitter_part)
+            f"timezone='Europe/London')>]{jitter_part})>"
         )
 
     def test_str(self, trigger):
@@ -669,7 +668,7 @@ class TestCronTrigger:
             results.add(next_trigger_time)
             assert timedelta(seconds=25) <= (next_trigger_time - now) <= timedelta(seconds=35)
 
-        assert 1 < len(results)
+        assert len(results) > 1
 
     def test_jitter_with_timezone(self, timezone):
         est = pytz.FixedOffset(-300)

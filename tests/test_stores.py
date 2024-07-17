@@ -55,13 +55,24 @@ def mongodbstore():
     store.shutdown()
 
 
+@pytest.fixture
+def sqlalchemystore():
+    sqlalchemy = pytest.importorskip("asyncz.stores.sqlalchemy")
+    store = sqlalchemy.SQLAlchemyStore(database="sqlite:///./test_suite.sqlite3")
+    store.start(None, "sqlalchemy")
+    yield store
+    store.metadata.drop_all(store.engine)
+    store.shutdown()
+
+
 @pytest.fixture(
     params=[
         "memstore",
         "mongodbstore",
+        "sqlalchemystore",
         "redistore",
     ],
-    ids=["memory", "mongodb", "redis"],
+    ids=["memory", "mongodb", "sqlalchemy", "redis"],
 )
 def store(request):
     return request.getfixturevalue(request.param)
@@ -70,9 +81,10 @@ def store(request):
 @pytest.fixture(
     params=[
         "mongodbstore",
+        "sqlalchemystore",
         "redistore",
     ],
-    ids=["mongodb", "redis"],
+    ids=["mongodb", "sqlalchemy", "redis"],
 )
 def persistent_store(request):
     return request.getfixturevalue(request.param)
@@ -302,7 +314,7 @@ def test_mongodb_client_ref():
     mongodb = pytest.importorskip("asyncz.stores.mongo")
     mongodb_client = mongodb.MongoClient()
     try:
-        mongodb.MongoDBStore(client="%s:mongodb_client" % __name__)
+        mongodb.MongoDBStore(client=f"{__name__}:mongodb_client")
     finally:
         mongodb_client.close()
         del mongodb_client

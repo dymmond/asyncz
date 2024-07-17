@@ -1,8 +1,8 @@
 # Stores
 
 In simple terms, the stores are places where, as the name suggests, stores the scheduled tasks.
-Asyncz has a `default` store wich is a [MemoryStore](#memoryStore) but also brings an integration
-with two major ones, [Redis](#redisstore) and [MongoDB](#mongostore).
+Asyncz has a `default` store wich is a [MemoryStore](#memorystore) but also brings an integration
+with two major ones, [Redis](#redisstore) and [MongoDB](#mongodbstore).
 
 Besides the default memory store, the tasks are not store in memory but in the corresponding desired
 store.
@@ -13,6 +13,18 @@ information.
 
 All the states are serialized and reversed using pydantic objects, so keep that in mind when
 creating a [custom store](#custom-store).
+
+
+## Store Encryption
+
+You should use store encryption for security reasons.
+
+All standard stores except MemoryStore support the environment variable `ASYNCZ_STORE_ENCRYPTION_KEY`.
+If set and non-empty the hash of the value is used for AESGCM encrypting the elements before sending them
+to the store.
+This way store entries are encrypted and authentificated so there is no security hole.
+This is highly recommended! Because if someone can inject store entries he can execute code.
+
 
 ## MemoryStore
 
@@ -35,7 +47,7 @@ from asyncz.stores.redis import RedisStore
 
 ### Parameters
 
-* **datababe** - The database number to store tasks in.
+* **database** - The database number to store tasks in.
 
     <sup>Default: `0`</sup>
 
@@ -73,6 +85,30 @@ from asyncz.stores.mongo import MongoDBStore
 * **client** - A pymongo.mongo_client.MongoClient instance.
 
     <sup>Default: `None`</sup>
+
+* **pickle_protocol** - Pickle protocol level to use (for serialization), defaults to the highest
+available.
+
+    <sup>Default: `pickle.HIGHEST_PROTOCOL`</sup>
+
+
+## SQLAlchemyStore
+
+**Store Alias** - `sqlalchemy`
+
+```python
+from asyncz.stores.sqlalchemy import SQLAlchemyStore
+```
+
+### Parameters
+
+* **database** - The database to store the tasks. Can be string url or engine
+
+    <sup>Default: `asyncz`</sup>
+
+* **tablename** - The tablename.
+
+    <sup>Default: `asyncz_store`</sup>
 
 * **pickle_protocol** - Pickle protocol level to use (for serialization), defaults to the highest
 available.

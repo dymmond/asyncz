@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, tzinfo
 from math import ceil
-from typing import Any, Optional, Union
+from typing import Any, ClassVar, Optional, Union
 
 from tzlocal import get_localzone
 
@@ -25,22 +25,22 @@ class IntervalTrigger(BaseTrigger):
         jitter: Delay the task execution by jitter seconds at most.
     """
 
-    alias: str = "interval"
+    alias: ClassVar[str] = "interval"
 
     def __init__(
         self,
-        weeks: Optional[int] = 0,
-        days: Optional[int] = 0,
-        hours: Optional[int] = 0,
-        minutes: Optional[int] = 0,
-        seconds: Optional[int] = 0,
+        weeks: int = 0,
+        days: int = 0,
+        hours: int = 0,
+        minutes: int = 0,
+        seconds: int = 0,
         start_at: Optional[Union[datetime, str]] = None,
         end_at: Optional[Union[datetime, str]] = None,
         timezone: Optional[Union[tzinfo, str]] = None,
         jitter: Optional[int] = None,
         **kwargs: Any,
     ):
-        super().__init__(**kwargs)
+        super().__init__(jitter=jitter, **kwargs)
         self.interval = timedelta(
             weeks=weeks, days=days, hours=hours, minutes=minutes, seconds=seconds
         )
@@ -62,11 +62,13 @@ class IntervalTrigger(BaseTrigger):
         start_at = start_at or (datetime.now(self.timezone) + self.interval)
         self.start_at = to_datetime(start_at, self.timezone, "start_at")
         self.end_at = to_datetime(end_at, self.timezone, "end_at")
-        self.jitter = jitter
 
     def get_next_trigger_time(
-        self, previous_time: datetime, now: datetime
+        self, previous_time: Optional[datetime], now: Union[datetime, None] = None
     ) -> Union[datetime, None]:
+        if now is None:
+            now = datetime.now()
+        next_trigger_time: Optional[datetime]
         if previous_time:
             next_trigger_time = previous_time + self.interval
         elif self.start_at > now:
@@ -83,8 +85,9 @@ class IntervalTrigger(BaseTrigger):
 
         if not self.end_at or next_trigger_time <= self.end_at:
             return normalize(value=next_trigger_time)
+        return None
 
-    def __getstate__(self) -> IntervalState:
+    def __getstate__(self) -> IntervalState:  # type: ignore
         state = IntervalState(
             timezone=self.timezone,
             start_at=self.start_at,
@@ -99,13 +102,13 @@ class IntervalTrigger(BaseTrigger):
 
     def __repr__(self) -> str:
         options = [
-            "interval=%r" % self.interval,
-            "start_at=%r" % datetime_repr(self.start_at),
+            f"interval={self.interval!r}",
+            f"start_at={datetime_repr(self.start_at)!r}",
         ]
         if self.end_at:
-            options.append("end_at=%r" % datetime_repr(self.end_at))
+            options.append(f"end_at={datetime_repr(self.end_at)!r}")
         if self.jitter:
-            options.append("jitter=%s" % self.jitter)
+            options.append(f"jitter={self.jitter}")
 
         return "<{} ({}, timezone='{}')>".format(
             self.__class__.__name__,

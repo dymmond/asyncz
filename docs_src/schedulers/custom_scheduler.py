@@ -1,9 +1,9 @@
 from asyncz.schedulers.base import BaseScheduler
-from asyncz.typing import DictAny
+from asyncz.typing import Any
 
 
 class MyCustomScheduler(BaseScheduler):
-    def __init__(self, **kwargs: DictAny) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
     def start(self, paused: bool = False):

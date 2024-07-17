@@ -1,5 +1,5 @@
 from datetime import datetime, tzinfo
-from typing import Any, Optional, Union
+from typing import Any, ClassVar, Optional, Union
 
 from tzlocal import get_localzone
 
@@ -17,7 +17,7 @@ class DateTrigger(BaseTrigger):
         timezone: The time zone for the run_at if it does not have one already.
     """
 
-    alias: str = "date"
+    alias: ClassVar[str] = "date"
 
     def __init__(
         self,
@@ -33,7 +33,7 @@ class DateTrigger(BaseTrigger):
             self.run_at = datetime.now(timezone)
 
     def get_next_trigger_time(
-        self, previous_time: datetime, now: Optional[datetime] = None
+        self, previous_time: Optional[datetime], now: Optional[datetime] = None
     ) -> Union[datetime, None]:
         if previous_time is None:
             return self.run_at
@@ -47,10 +47,7 @@ class DateTrigger(BaseTrigger):
         return state
 
     def __str__(self) -> str:
-        return "date[%s]" % datetime_repr(self.run_at)
+        return f"date[{datetime_repr(self.run_at)}]"
 
     def __repr__(self) -> str:
-        return "<{} (run_at='{}')>".format(
-            self.__class__.__name__,
-            datetime_repr(self.run_at),
-        )
+        return f"<{self.__class__.__name__} (run_at='{datetime_repr(self.run_at)}')>"

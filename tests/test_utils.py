@@ -18,7 +18,6 @@ from asyncz.utils import (
     maybe_ref,
     obj_to_ref,
     ref_to_obj,
-    repr_escape,
     timedelta_seconds,
     to_bool,
     to_datetime,
@@ -234,9 +233,7 @@ class TestGetCallableName:
             (to_int, "to_int"),
             (
                 DummyClass.staticmeth,
-                "DummyClass.staticmeth"
-                if hasattr(DummyClass, "__qualname__")
-                else "staticmeth",
+                "DummyClass.staticmeth" if hasattr(DummyClass, "__qualname__") else "staticmeth",
             ),
             (DummyClass.classmeth, "DummyClass.classmeth"),
             (
@@ -363,15 +360,6 @@ def test_maybe_ref(input, expected):
     assert maybe_ref(input) == expected
 
 
-@pytest.mark.parametrize(
-    "input,expected",
-    [(b"T\xc3\xa9ste".decode("utf-8"), "Téste"), (1, 1)],
-    ids=["string", "int"],
-)
-def test_repr_escape_py2(input, expected):
-    assert repr_escape(input) == expected
-
-
 class TestCheckCallableArgs:
     def test_invalid_callable_args(self):
         """
@@ -391,25 +379,19 @@ class TestCheckCallableArgs:
         exception.
 
         """
-        exc = pytest.raises(
-            ValueError, check_callable_args, lambda x: None, [], {"x": 0, "y": 1}
-        )
+        exc = pytest.raises(ValueError, check_callable_args, lambda x: None, [], {"x": 0, "y": 1})
         assert str(exc.value) == (
             "The target callable does not accept the following keyword " "arguments: y"
         )
 
     def test_missing_callable_args(self):
         """Tests that attempting to schedule a task with missing arguments raises an exception."""
-        exc = pytest.raises(
-            ValueError, check_callable_args, lambda x, y, z: None, [1], {"y": 0}
-        )
+        exc = pytest.raises(ValueError, check_callable_args, lambda x, y, z: None, [1], {"y": 0})
         assert str(exc.value) == "The following arguments have not been supplied: z"
 
     def test_default_args(self):
         """Tests that default values for arguments are properly taken into account."""
-        exc = pytest.raises(
-            ValueError, check_callable_args, lambda x, y, z=1: None, [1], {}
-        )
+        exc = pytest.raises(ValueError, check_callable_args, lambda x, y, z=1: None, [1], {})
         assert str(exc.value) == "The following arguments have not been supplied: y"
 
     def test_conflicting_callable_args(self):
@@ -418,13 +400,8 @@ class TestCheckCallableArgs:
         conflict raises an exception.
 
         """
-        exc = pytest.raises(
-            ValueError, check_callable_args, lambda x, y: None, [1, 2], {"y": 1}
-        )
-        assert (
-            str(exc.value)
-            == "The following arguments are supplied in both args and kwargs: y"
-        )
+        exc = pytest.raises(ValueError, check_callable_args, lambda x, y: None, [1, 2], {"y": 1})
+        assert str(exc.value) == "The following arguments are supplied in both args and kwargs: y"
 
     def test_signature_positional_only(self):
         """Tests that a function where signature() fails is accepted."""
@@ -456,8 +433,7 @@ class TestCheckCallableArgs:
         func = eval("lambda x, *, y, z=1: None")
         exc = pytest.raises(ValueError, check_callable_args, func, [1], {})
         assert str(exc.value) == (
-            "The following keyword-only arguments have not been supplied in "
-            "kwargs: y"
+            "The following keyword-only arguments have not been supplied in " "kwargs: y"
         )
 
     def test_wrapped_func(self):
