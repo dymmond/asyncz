@@ -46,9 +46,6 @@ dependencies = [
     'backports.zoneinfo;python_version<"3.9"',
 ]
 keywords = [
-    "api",
-    "rest",
-    "http",
     "asgi",
     "asyncz",
     "pydantic",
@@ -56,10 +53,6 @@ keywords = [
     "fastapi",
     "apscheduler",
     "framework",
-    "websocket",
-    "openapi",
-    "ml",
-    "machine learning",
     "scheduler",
     "cron",
     "asyncz",
@@ -88,6 +81,7 @@ testing = [
     "esmerald",
     "starlette",
     "lilya",
+    "sqlalchemy",
     "httpx",
     "pytz>=2022.6",
 ]
