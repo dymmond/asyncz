@@ -48,8 +48,7 @@ nav:
           - Overview: "contrib/esmerald/index.md"
           - Scheduler: "contrib/esmerald/scheduler.md"
           - Decorator: "contrib/esmerald/decorator.md"
-      - ASGI:
-          - asgi.md
+      - asgi.md
   - Contributing: "contributing.md"
   - Vendors: "vendors.md"
   - Sponsorship: "sponsorship.md"

@@ -1,5 +1,5 @@
 
-# ASGI and contexmanager
+# ASGI and Contextmanager
 
 The scheduler uses refcounting for start and stop calls. Only if refs drop to 0 it is shutdown.
 This way it is compatible to lifespan and nested contextmanager calls.
@@ -54,7 +54,9 @@ This way it is compatible to lifespan and nested contextmanager calls.
     from asyncz.schedulers import AsyncIOScheduler
 
     with AsyncIOScheduler() as scheduler:
-        ...
+        # nesting is no problem
+        with AsyncIOScheduler() as scheduler2:
+            ...
     ```
 
 === "Use as async contextmanager"
@@ -63,7 +65,9 @@ This way it is compatible to lifespan and nested contextmanager calls.
     from asyncz.schedulers import AsyncIOScheduler
 
     async with AsyncIOScheduler() as scheduler:
-        ...
+        # nesting is no problem
+        async with AsyncIOScheduler() as scheduler2:
+            ...
     ```
 
 
@@ -82,6 +86,4 @@ For using with lifespan of starlette
     app = Starlette(
         lifespan=lifespan,
     )
-
-
     ```

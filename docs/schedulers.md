@@ -114,7 +114,7 @@ A scheduler to work needs tasks, of course and Asyncz offers some ways of adding
 scheduler.
 
 * [add_tasks](#add-tasks)
-* [scheduled_tasks](#scheduled-tasks)
+* [add tasks as decorator](#add-tasks-as-decorator)
 
 There is also a third option but that is related with the integration with ASGI frameworks, for
 instance [esmerald](./contrib/esmerald/decorator.md) which it should not be used in this agnostic
@@ -122,8 +122,7 @@ context.
 
 ### Add tasks
 
-Adding a task via `add_task` is the most common and probably the one you will be using more times
-than the `scheduled_task`.
+Adding a task via `add_task` is the most common.
 
 **The `add_task` returns an instance of [Task](./tasks.md).**
 
@@ -146,13 +145,14 @@ and simpler.
 When adding tasks there is not a specific order. **You can add tasks at any given time**. If the
 scheduler is not yet running, once it does it will add the tasks to it.
 
-## Scheduled tasks
+## Add tasks as decorator
 
-Scheduled tasks works in the same way as [add_tasks](#add-tasks) with the **unique difference** that
-the `replacing_existing` is always `True` and it is used as a decorator.
+When leaving out the `fn` parameter, you get back a decorator type Task. When decorating a function it is with
+`replacing_existing=True` added to the task queue.
+When also leaving out the `id` parameter a new Task object is created.
 
 ```python hl_lines="10-12 19-23 29-33"
-{!> ../docs_src/schedulers/scheduled_task.py !}
+{!> ../docs_src/schedulers/add_task_decorator.py !}
 ```
 
 ## Deleting tasks
@@ -175,7 +175,7 @@ store alias.
 ## Delete
 
 The `delete` function is probably more convenient but it requires that you store the [Task](./tasks.md)
-somewhere ocne the instance is received and for tasks scheduled by [scheduled task](#scheduled-tasks)
+somewhere ocne the instance is received and for tasks scheduled by the[task decorator](#add-tasks-as-decorator)
 this method does not work, instead only the [delete task](#delete-task) will work.
 
 ```python hl_lines="23 29"

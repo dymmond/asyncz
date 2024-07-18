@@ -26,7 +26,7 @@ scheduler.add_task(
 )
 
 # Run every 10 minutes
-scheduler.add_task(
+check_status = scheduler.add_task(
     id="check_status",
     fn=check_status,
     trigger=IntervalTrigger(minutes=10),
@@ -37,7 +37,7 @@ scheduler.add_task(
 
 # Reschedule the tasks
 scheduler.reschedule_task("send_email_newsletter", trigger="cron", day_of_week="mon", hour="1")
-scheduler.reschedule_task("check_status", trigger="interval", minutes=20)
+scheduler.reschedule_task(check_status, trigger="interval", minutes=20)
 
 # Start the scheduler
 scheduler.start()

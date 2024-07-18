@@ -4,7 +4,7 @@ The decorator is a wrapper provided by Asyncz to Esmerald that allows you to dec
 anywhere and import them into the [EsmeraldScheduler](./scheduler.md) upont instantiation.
 
 In the end, the scheduler is a wrapper on te top of the [Task](../../tasks.md) object but not the
-same as the [scheduled_tasks](../../schedulers.md#scheduled-tasks). The latter is to be used
+same as the [task decorator](../../schedulers.md#add-tasks-as-decorator). The latter is to be used
 outside of the Esmerald context.
 
 ## Parameters
