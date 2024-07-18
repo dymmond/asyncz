@@ -124,16 +124,16 @@ class SchedulerType(ABC):
     @abstractmethod
     def add_task(
         self,
-        fn: Optional[Callable[..., Any]],
+        fn_or_task: Optional[Union[Callable[..., Any], TaskType]] = None,
         trigger: Optional[Union[TriggerType, str]] = None,
         args: Optional[Any] = None,
         kwargs: Optional[Any] = None,
         id: Optional[str] = None,
         name: Optional[str] = None,
-        mistrigger_grace_time: Union[int, UndefinedType] = undefined,
+        mistrigger_grace_time: Union[int, UndefinedType, None] = undefined,
         coalesce: Union[bool, UndefinedType] = undefined,
-        max_instances: Union[int, UndefinedType] = undefined,
-        next_run_time: Union[datetime, str, UndefinedType] = undefined,
+        max_instances: Union[int, UndefinedType, None] = undefined,
+        next_run_time: Union[datetime, str, UndefinedType, None] = undefined,
         store: str = "default",
         executor: str = "default",
         replace_existing: bool = False,
@@ -175,43 +175,6 @@ class SchedulerType(ABC):
             executor: Alias of the executor to run the task with.
             replace_existing: True to replace an existing task with the same id
                               (but retain the number of runs from the existing one).
-        """
-
-    @abstractmethod
-    def scheduled_task(
-        self,
-        trigger: Optional[Union[TriggerType, str]] = None,
-        args: Optional[Any] = None,
-        kwargs: Optional[Any] = None,
-        id: Optional[str] = None,
-        name: Optional[str] = None,
-        mistrigger_grace_time: Union[int, UndefinedType] = undefined,
-        coalesce: Union[bool, UndefinedType] = undefined,
-        max_instances: Union[int, UndefinedType] = undefined,
-        next_run_time: Union[datetime, str, UndefinedType] = undefined,
-        store: str = "default",
-        executor: str = "default",
-        **trigger_args: Any,
-    ) -> Callable[..., Any]:
-        """
-        Functionality that can be used as a decorator for any function to schedule a task
-        with a difference that replace_existing is always True.
-
-        Args:
-            trigger: Trigger that determines when fn is called.
-            args: List of positional arguments to call fn with.
-            kwargs: Dict of keyword arguments to call fn with.
-            id: Explicit identifier for the task (for modifying it later).
-            name: Textual description of the task.
-            mistriger_grace_time: Seconds after the designated runtime that the task is still
-                allowed to be run (or None to allow the task to run no matter how late it is).
-            coalesce: Run once instead of many times if the scheduler determines that the
-                task should be run more than once in succession.
-            max_instances: Maximum number of concurrently running instances allowed for this task.
-            next_run_time: When to first run the task, regardless of the trigger (pass
-                None to add the task as paused).
-            store: Alias of the task store to store the task in.
-            executor: Alias of the executor to run the task with.
         """
 
     @abstractmethod

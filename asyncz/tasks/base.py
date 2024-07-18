@@ -17,7 +17,7 @@ from pydantic import Field
 
 from asyncz.datastructures import TaskState
 from asyncz.schedulers.types import SchedulerType
-from asyncz.state import BaseStateExtra
+from asyncz.state import BaseState
 from asyncz.tasks.types import TaskType
 from asyncz.triggers.types import TriggerType
 from asyncz.utils import (
@@ -32,7 +32,7 @@ from asyncz.utils import (
 object_setattr = object.__setattr__
 
 
-class Task(BaseStateExtra, TaskType):  # type: ignore
+class Task(BaseState, TaskType):  # type: ignore
     """
     Contains the options given when scheduling callables and its current schedule and other state.
     This class should never be instantiated by the user.
@@ -69,8 +69,7 @@ class Task(BaseStateExtra, TaskType):  # type: ignore
         **kwargs: Any,
     ):
         super().__init__(id=id or uuid4().hex, **kwargs)
-        self.store_alias = store_alias
-        self._update(fn=fn, scheduler=scheduler, **kwargs)
+        self.update_task(fn=fn, scheduler=scheduler, store_alias=store_alias, **kwargs)
 
     def get_run_times(self, now: datetime) -> List[datetime]:
         """
@@ -78,25 +77,13 @@ class Task(BaseStateExtra, TaskType):  # type: ignore
         """
         run_times = []
         next_run_time = self.next_run_time
+        assert self.trigger
         while next_run_time and next_run_time <= now:
             run_times.append(next_run_time)
             next_run_time = self.trigger.get_next_trigger_time(next_run_time, now)
         return run_times
 
-    def update(self, *, update_scheduler: bool = True, **updates: Any) -> TaskType:
-        """
-        Makes the given updates to this json and save it in the associated store.
-        Accepted keyword args are the same as the class variables.
-        """
-        if not update_scheduler:
-            self._update(**updates)
-            return self
-        scheduler = self.scheduler
-        if scheduler is not None:
-            scheduler.update_task(self.id, self.store_alias, **updates)
-        return self
-
-    def _update(
+    def update_task(  # type: ignore
         self, *, fn: Any = None, scheduler: Optional[SchedulerType] = None, **updates: Any
     ) -> None:
         """
@@ -120,7 +107,9 @@ class Task(BaseStateExtra, TaskType):  # type: ignore
             args = updates.pop("args") if "args" in updates else self.args
             kwargs = updates.pop("kwargs") if "kwargs" in updates else self.kwargs
 
-            if isinstance(fn, str):
+            if fn is None:
+                fn_reference = None
+            elif isinstance(fn, str):
                 fn_reference = fn
                 fn = ref_to_obj(fn)
             elif callable(fn):
@@ -139,7 +128,8 @@ class Task(BaseStateExtra, TaskType):  # type: ignore
             if isinstance(kwargs, str) or not isinstance(kwargs, Mapping):
                 raise TypeError("kwargs must be a dict-like object.")
 
-            check_callable_args(fn, args, kwargs)
+            if fn is not None:
+                check_callable_args(fn, args, kwargs)
 
             approved["fn"] = fn
             approved["fn_reference"] = fn_reference
@@ -155,14 +145,20 @@ class Task(BaseStateExtra, TaskType):  # type: ignore
         if "mistrigger_grace_time" in updates:
             mistrigger_grace_time = updates.pop("mistrigger_grace_time")
             if mistrigger_grace_time is not None and (
-                not isinstance(mistrigger_grace_time, int) or mistrigger_grace_time <= 0
+                not isinstance(mistrigger_grace_time, (float, int)) or mistrigger_grace_time <= 0
             ):
-                raise TypeError("mistrigger_grace_time must be either None or a positive integer.")
+                raise TypeError(
+                    "mistrigger_grace_time must be either None or a positive float/integer."
+                )
             approved["mistrigger_grace_time"] = mistrigger_grace_time
 
         if "coalesce" in updates:
             coalesce = bool(updates.pop("coalesce"))
             approved["coalesce"] = coalesce
+
+        if "store_alias" in updates:
+            store_alias = updates.pop("store_alias")
+            approved["store_alias"] = store_alias
 
         if "max_instances" in updates:
             max_instances = updates.pop("max_instances")
@@ -260,8 +256,7 @@ class Task(BaseStateExtra, TaskType):  # type: ignore
         return f"<Task (id={self.id} name={self.name})>"
 
     def __str__(self) -> str:
-        scheduler = self.scheduler
-        if scheduler and scheduler.running:
+        if not self.pending:
             status = (
                 "next run at: " + datetime_repr(self.next_run_time)
                 if self.next_run_time

@@ -111,9 +111,10 @@ def run_task(
 
     events = []
     for run_time in run_times:
-        if getattr(task, "mistrigger_grace_time", None) is not None:
+        mistrigger_grace_time = task.mistrigger_grace_time
+        if mistrigger_grace_time is not None:
             difference = datetime.now(tz.utc) - run_time
-            grace_time = timedelta(seconds=task.mistrigger_grace_time)
+            grace_time = timedelta(seconds=mistrigger_grace_time)
             if difference > grace_time:
                 events.append(
                     TaskExecutionEvent(
@@ -175,9 +176,10 @@ async def run_coroutine_task(
 
     events = []
     for run_time in run_times:
-        if getattr(task, "mistrigger_grace_time", None) is not None:
+        mistrigger_grace_time = task.mistrigger_grace_time
+        if mistrigger_grace_time is not None:
             difference = datetime.now(tz.utc) - run_time
-            grace_time = timedelta(seconds=task.mistrigger_grace_time)
+            grace_time = timedelta(seconds=mistrigger_grace_time)
             if difference > grace_time:
                 events.append(
                     TaskExecutionEvent(

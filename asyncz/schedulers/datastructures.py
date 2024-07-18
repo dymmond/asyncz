@@ -1,12 +1,9 @@
-from typing import Optional, Union
+from typing import Optional  # noqa: F401
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
-from asyncz.typing import UndefinedType
+from asyncz.tasks.types import TaskDefaultsType
 
 
-class TaskDefaultStruct(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-    mistrigger_grace_time: Optional[Union[int, "UndefinedType"]]
-    coalesce: Optional[Union[bool, "UndefinedType"]]
-    max_instances: Optional[Union[int, "UndefinedType"]]
+class TaskDefaultStruct(BaseModel, TaskDefaultsType):
+    pass

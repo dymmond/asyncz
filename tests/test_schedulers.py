@@ -418,9 +418,9 @@ class TestBaseScheduler:
         assert isinstance(task, Task)
         assert task.id == "my-id"
 
-        assert not hasattr(task, "mistrigger_grace_time")
-        assert not hasattr(task, "coalesce")
-        assert not hasattr(task, "max_instances")
+        assert task.mistrigger_grace_time == 1
+        assert task.coalesce is True
+        assert task.max_instances == 1
 
         assert task.next_run_time.tzinfo.zone == timezone.zone
 
@@ -470,6 +470,26 @@ class TestBaseScheduler:
         tasks = scheduler.get_tasks()
         assert len(tasks) == 1
         assert tasks[0].name == "replacement"
+
+    def test_add_task_task(self, scheduler):
+        scheduler.start(paused=True)
+        scheduler.add_task(lambda: None, "interval", id="testtask", seconds=1, name="original")
+        decorator = scheduler.add_task(
+            None,
+            "cron",
+            id="testtask",
+            name="replacement",
+        )
+        tasks = scheduler.get_tasks()
+        assert len(tasks) == 1
+        assert tasks[0].name == "original"
+        def fn():
+            return None
+        assert decorator(fn) is fn
+        tasks = scheduler.get_tasks()
+        assert len(tasks) == 1
+        assert tasks[0].name == "replacement"
+
 
     def test_scheduled_task(self, scheduler):
         def fn(x, y): ...
@@ -900,7 +920,7 @@ class TestProcessTasks:
 
         assert scheduler.process_tasks() is None
 
-        task._update.assert_called_once_with(next_run_time=next_run_time)
+        task.update_task.assert_called_once_with(next_run_time=next_run_time)
         store.update_task.assert_called_once_with(task)
 
 

@@ -2,43 +2,50 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    List,
-    Optional,
-)
+from typing import Any, Callable, List, Optional, TypeVar
 
 from asyncz.schedulers.types import SchedulerType
+from asyncz.triggers.types import TriggerType
 
-if TYPE_CHECKING:
-    from asyncz.triggers.types import TriggerType
+DecoratedFn = TypeVar("DecoratedFn", bound=Callable[..., Any])
 
 
-class TaskType(ABC):
+class TaskDefaultsType:
+    mistrigger_grace_time: Optional[float] = 1
+    coalesce: bool = True
+    max_instances: int = 1
+
+
+class TaskType(TaskDefaultsType, ABC):
     """BaseType of task."""
 
     id: str
+    pending: bool = True
     name: Optional[str] = None
     next_run_time: Optional[datetime] = None
     store_alias: Optional[str] = None
     scheduler: Optional[SchedulerType] = None
-
-    @property
-    def pending(self) -> bool:
-        """
-        Returns true if the referenced task is still waiting to be added to its designated task
-        store.
-        """
-        return self.store_alias is None
+    trigger: Optional[TriggerType] = None
+    executor: Optional[str] = None
 
     @abstractmethod
+    def update_task(self, **updates: Any) -> TaskType:
+        """
+        Makes the given updates to this json and save it in the associated store.
+        Accepted keyword args are the same as the class variables.
+
+        This one really updates the task
+        """
+
     def update(self, **updates: Any) -> TaskType:
         """
         Makes the given updates to this json and save it in the associated store.
         Accepted keyword args are the same as the class variables.
         """
+        scheduler = self.scheduler
+        if scheduler is not None:
+            scheduler.update_task(self.id, self.store_alias, **updates)
+        return self
 
     def reschedule(self, trigger: TriggerType, **trigger_args: Any) -> TaskType:
         """
@@ -82,6 +89,9 @@ class TaskType(ABC):
         Computes the scheduled run times `next_run_time` and `now`, inclusive.
         """
 
-    def __call__(self, fn: Callable[..., Any]) -> Callable:
-        self._update(fn=fn)
+    def __call__(self, fn: DecoratedFn) -> DecoratedFn:
+        self.update_task(fn=fn)
+        scheduler = self.scheduler
+        if scheduler is not None:
+            scheduler.add_task(self, replace_existing=True)
         return fn
