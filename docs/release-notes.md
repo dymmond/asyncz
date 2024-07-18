@@ -1,5 +1,20 @@
 # Release Notes
 
+## Unreleased
+
+### Added
+
+- Task are decorators now
+- Tasks can be added via add_task
+
+### Changed
+
+- Task id can be None
+
+### Removed
+
+- schedule_task call (superseeded by add_task overloads)
+
 ## 0.9.0
 
 ### Added
