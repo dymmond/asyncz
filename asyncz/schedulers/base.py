@@ -453,6 +453,7 @@ class BaseScheduler(SchedulerType):
         """
         if isinstance(fn_or_task, TaskType):
             assert fn_or_task.id is not None, "Cannot submit a decorator type task."
+            fn_or_task.scheduler = self
             with self.store_lock:
                 if self.state == SchedulerState.STATE_STOPPED:
                     self.pending_tasks.append(
@@ -467,6 +468,7 @@ class BaseScheduler(SchedulerType):
                     )
             return fn_or_task
         task_struct = {
+            "scheduler": self,
             "trigger": self.create_trigger(trigger, trigger_args),
             "executor": executor,
             "fn": fn_or_task,
@@ -483,7 +485,7 @@ class BaseScheduler(SchedulerType):
         task_kwargs: Dict[str, Any] = {
             key: value for key, value in task_struct.items() if value is not undefined
         }
-        task = Task(self, **task_kwargs)
+        task = Task(**task_kwargs)
         if task.fn is not None:
             return self.add_task(task, replace_existing=replace_existing)
         return task

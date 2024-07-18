@@ -61,17 +61,15 @@ class Task(BaseState, TaskType):  # type: ignore
 
     def __init__(
         self,
-        scheduler: Optional[SchedulerType] = None,
-        id: Optional[str] = None,
-        store_alias: Optional[str] = None,
-        *,
         fn: Union[Callable[..., Any], str, None] = None,
+        *,
+        id: Optional[str] = None,
         **kwargs: Any,
     ):
         if id is None and fn is not None:
             id = uuid4().hex
         super().__init__(id=id, **kwargs)
-        self.update_task(fn=fn, scheduler=scheduler, store_alias=store_alias, **kwargs)
+        self.update_task(fn=fn, **kwargs)
 
     def get_run_times(self, now: datetime) -> List[datetime]:
         """
@@ -94,7 +92,7 @@ class Task(BaseState, TaskType):  # type: ignore
         """
         approved: Dict[str, Any] = {}
         if scheduler is not None:
-            if self.scheduler is not None:
+            if self.scheduler is not None and self.scheduler is not scheduler:
                 raise ValueError("The task scheduler may not be changed.")
             approved["scheduler"] = scheduler
         else:
