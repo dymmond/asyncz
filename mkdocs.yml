@@ -33,8 +33,7 @@ repo_url: https://github.com/dymmond/asyncz
 edit_uri: ""
 plugins:
   - search
-  - markdownextradata:
-      data: data
+  - macros
 
 nav:
   - Asyncz: "index.md"
