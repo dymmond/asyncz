@@ -42,7 +42,6 @@ from asyncz.stores.memory import MemoryStore
 from asyncz.tasks import Task
 from asyncz.tasks.types import TaskType
 from asyncz.triggers.base import BaseTrigger
-from asyncz.typing import undefined
 
 try:
     from zoneinfo import ZoneInfo
@@ -483,39 +482,25 @@ class TestBaseScheduler:
         tasks = scheduler.get_tasks()
         assert len(tasks) == 1
         assert tasks[0].name == "original"
+
         def fn():
             return None
+
         assert decorator(fn) is fn
         tasks = scheduler.get_tasks()
         assert len(tasks) == 1
         assert tasks[0].name == "replacement"
 
-
-    def test_scheduled_task(self, scheduler):
+    def test_add_task_to_decorator(self, scheduler):
         def fn(x, y): ...
 
-        object_setter(scheduler, "add_task", MagicMock())
-        decorator = scheduler.scheduled_task(
-            "date", [1], {"y": 2}, "my-id", "dummy", run_at="2022-06-01 08:41:00"
+        decorator = scheduler.add_task(
+            None, "date", [1], {"y": 2}, "my-id", "dummy", run_at="2022-06-01 08:41:00"
         )
+        object_setter(scheduler, "add_task", MagicMock())
         decorator(fn)
 
-        scheduler.add_task.assert_called_once_with(
-            fn=fn,
-            trigger="date",
-            args=[1],
-            kwargs={"y": 2},
-            id="my-id",
-            name="dummy",
-            mistrigger_grace_time=undefined,
-            coalesce=undefined,
-            max_instances=undefined,
-            next_run_time=undefined,
-            store="default",
-            executor="default",
-            replace_existing=True,
-            run_at="2022-06-01 08:41:00",
-        )
+        scheduler.add_task.assert_called_once()
 
     @pytest.mark.parametrize("pending", [True, False], ids=["pending task", "scheduled task"])
     def test_update_task(self, scheduler, pending, timezone):

@@ -178,7 +178,9 @@ class SchedulerType(ABC):
         """
 
     @abstractmethod
-    def update_task(self, task_id: str, store: Optional[str] = None, **updates: Any) -> TaskType:
+    def update_task(
+        self, task_id: Union[TaskType, str], store: Optional[str] = None, **updates: Any
+    ) -> TaskType:
         """
         Modifies the properties of a single task.
 
@@ -192,7 +194,7 @@ class SchedulerType(ABC):
     @abstractmethod
     def reschedule_task(
         self,
-        task_id: str,
+        task_id: Union[TaskType, str],
         store: Optional[str] = None,
         trigger: Optional[Union[str, TriggerType]] = None,
         **trigger_args: Any,
@@ -209,7 +211,7 @@ class SchedulerType(ABC):
         """
 
     @abstractmethod
-    def pause_task(self, task_id: str, store: Optional[str] = None) -> TaskType:
+    def pause_task(self, task_id: Union[TaskType, str], store: Optional[str] = None) -> TaskType:
         """
         Causes the given task not to be executed until it is explicitly resumed.
 
@@ -219,7 +221,9 @@ class SchedulerType(ABC):
         """
 
     @abstractmethod
-    def resume_task(self, task_id: str, store: Optional[str] = None) -> Union[TaskType, None]:
+    def resume_task(
+        self, task_id: Union[TaskType, str], store: Optional[str] = None
+    ) -> Union[TaskType, None]:
         """
         Resumes the schedule of the given task, or removes the task if its schedule is finished.
 
@@ -252,7 +256,9 @@ class SchedulerType(ABC):
         """
 
     @abstractmethod
-    def delete_task(self, task_id: str, store: Optional[str] = None) -> None:
+    def delete_task(
+        self, task_id: Union[TaskType, str, None], store: Optional[str] = None
+    ) -> None:
         """
         Removes a task, preventing it from being run anymore.
 

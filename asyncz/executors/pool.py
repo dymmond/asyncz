@@ -21,6 +21,9 @@ class BasePoolExecutor(BaseExecutor):
         self.pool = pool
 
     def do_send_task(self, task: "TaskType", run_times: List[datetime]) -> Any:
+        task_id = task.id
+        assert task_id is not None, "Cannot send decorator type task"
+
         def callback(fn: Any) -> None:
             exc, _ = (
                 fn.exception_info()
@@ -28,9 +31,9 @@ class BasePoolExecutor(BaseExecutor):
                 else (fn.exception(), getattr(fn.exception(), "__traceback__", None))
             )
             if exc:
-                self.run_task_error(task.id)
+                self.run_task_error(task_id)
             else:
-                self.run_task_success(task.id, fn.result())
+                self.run_task_success(task_id, fn.result())
 
         try:
             fn = self.pool.submit(run_task, task, task.store_alias, run_times)

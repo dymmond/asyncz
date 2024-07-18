@@ -40,6 +40,7 @@ class MemoryStore(BaseStore):
         return [task[0] for task in self.tasks]
 
     def add_task(self, task: "TaskType") -> None:
+        assert task.id is not None, "The task is in decorator mode."
         if task.id in self.tasks_index:
             raise ConflictIdError(task.id)
 
@@ -50,11 +51,12 @@ class MemoryStore(BaseStore):
         self.tasks_index[task.id] = (task, timestamp)
 
     def update_task(self, task: "TaskType") -> None:
+        assert task.id is not None, "The task is in decorator mode."
         old_task, old_timestamp = self.tasks_index.get(task.id, (None, None))
         if old_task is None:
             raise TaskLookupError(task.id)
 
-        old_index = self.get_task_index(old_timestamp, old_task.id)
+        old_index = self.get_task_index(old_timestamp, old_task.id)  # type: ignore
         new_timestamp = datetime_to_utc_timestamp(task.next_run_time or None)
         if old_timestamp == new_timestamp:
             self.tasks[old_index] = (task, new_timestamp)
@@ -70,7 +72,7 @@ class MemoryStore(BaseStore):
 
         index = self.get_task_index(timestamp, task_id)
         del self.tasks[index]
-        del self.tasks_index[task.id]
+        del self.tasks_index[task_id]
 
     def remove_all_tasks(self) -> None:
         self.tasks = []
@@ -94,9 +96,9 @@ class MemoryStore(BaseStore):
                 high = mid
             elif mid_timestamp < timestamp:
                 low = mid + 1
-            elif mid_task.id > task_id:
+            elif mid_task.id > task_id:  # type: ignore
                 high = mid
-            elif mid_task.id < task_id:
+            elif mid_task.id < task_id:  # type: ignore
                 low = mid + 1
             else:
                 return mid

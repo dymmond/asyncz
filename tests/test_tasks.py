@@ -25,7 +25,7 @@ def task(create_task):
 @pytest.mark.parametrize("task_id", ["testid", None])
 def test_constructor(task_id):
     scheduler_mock = MagicMock(BaseScheduler)
-    task = Task(scheduler_mock, id=task_id)
+    task = Task(scheduler_mock, id=task_id, fn=lambda: None)
     assert task.scheduler is scheduler_mock
     assert task.store_alias is None
 

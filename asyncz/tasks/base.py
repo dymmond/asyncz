@@ -68,7 +68,9 @@ class Task(BaseState, TaskType):  # type: ignore
         fn: Union[Callable[..., Any], str, None] = None,
         **kwargs: Any,
     ):
-        super().__init__(id=id or uuid4().hex, **kwargs)
+        if id is None and fn is not None:
+            id = uuid4().hex
+        super().__init__(id=id, **kwargs)
         self.update_task(fn=fn, scheduler=scheduler, store_alias=store_alias, **kwargs)
 
     def get_run_times(self, now: datetime) -> List[datetime]:
@@ -249,6 +251,8 @@ class Task(BaseState, TaskType):  # type: ignore
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, Task):
+            if self.id is None:
+                return False
             return self.id == other.id
         return NotImplemented
 

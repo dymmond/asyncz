@@ -452,6 +452,7 @@ class BaseScheduler(SchedulerType):
                               (but retain the number of runs from the existing one).
         """
         if isinstance(fn_or_task, TaskType):
+            assert fn_or_task.id is not None, "Cannot submit a decorator type task."
             with self.store_lock:
                 if self.state == SchedulerState.STATE_STOPPED:
                     self.pending_tasks.append(
@@ -487,63 +488,6 @@ class BaseScheduler(SchedulerType):
             return self.add_task(task, replace_existing=replace_existing)
         return task
 
-    def scheduled_task(
-        self,
-        trigger: Optional[Union["TriggerType", str]] = None,
-        args: Optional[Any] = None,
-        kwargs: Optional[Any] = None,
-        id: Optional[str] = None,
-        name: Optional[str] = None,
-        mistrigger_grace_time: Union[int, UndefinedType] = undefined,
-        coalesce: Union[bool, UndefinedType] = undefined,
-        max_instances: Union[int, UndefinedType] = undefined,
-        next_run_time: Union[datetime, str, UndefinedType] = undefined,
-        store: str = "default",
-        executor: str = "default",
-        **trigger_args: Any,
-    ) -> Callable[..., Any]:
-        """
-        Functionality that can be used as a decorator for any function to schedule a task
-        with a difference that replace_existing is always True.
-
-        Args:
-            trigger: Trigger that determines when fn is called.
-            args: List of positional arguments to call fn with.
-            kwargs: Dict of keyword arguments to call fn with.
-            id: Explicit identifier for the task (for modifying it later).
-            name: Textual description of the task.
-            mistriger_grace_time: Seconds after the designated runtime that the task is still
-                allowed to be run (or None to allow the task to run no matter how late it is).
-            coalesce: Run once instead of many times if the scheduler determines that the
-                task should be run more than once in succession.
-            max_instances: Maximum number of concurrently running instances allowed for this task.
-            next_run_time: When to first run the task, regardless of the trigger (pass
-                None to add the task as paused).
-            store: Alias of the task store to store the task in.
-            executor: Alias of the executor to run the task with.
-        """
-
-        def wrap(fn: Any) -> Any:
-            self.add_task(
-                fn=fn,
-                trigger=trigger,
-                args=args,
-                kwargs=kwargs,
-                id=id,
-                name=name,
-                mistrigger_grace_time=mistrigger_grace_time,
-                coalesce=coalesce,
-                max_instances=max_instances,
-                next_run_time=next_run_time,
-                store=store,
-                executor=executor,
-                replace_existing=True,
-                **trigger_args,
-            )
-            return fn
-
-        return wrap
-
     def update_task(
         self, task_id: Union[TaskType, str], store: Optional[str] = None, **updates: Any
     ) -> "TaskType":
@@ -557,6 +501,7 @@ class BaseScheduler(SchedulerType):
             store: Alias of the store that contains the task.
         """
         if isinstance(task_id, TaskType):
+            assert task_id.id, "Cannot update a decorator type Task"
             new_updates = task_id.model_dump()
             new_updates.update(**updates)
             task_id = task_id.id
@@ -608,7 +553,9 @@ class BaseScheduler(SchedulerType):
         """
         return self.update_task(task_id, store, next_run_time=None)
 
-    def resume_task(self, task_id: str, store: Optional[str] = None) -> Union["TaskType", None]:
+    def resume_task(
+        self, task_id: Union[TaskType, str], store: Optional[str] = None
+    ) -> Union["TaskType", None]:
         """
         Resumes the schedule of the given task, or removes the task if its schedule is finished.
 
@@ -616,6 +563,9 @@ class BaseScheduler(SchedulerType):
             task_id: The identifier of the task.
             store: Alias of the task store that contains the task.
         """
+        if isinstance(task_id, TaskType):
+            assert task_id.id, "Cannot resume decorator style Task"
+            task_id = task_id.id
         with self.store_lock:
             task, store = self.lookup_task(task_id, store)
             now = datetime.now(self.timezone)
@@ -665,7 +615,9 @@ class BaseScheduler(SchedulerType):
             except TaskLookupError:
                 return None
 
-    def delete_task(self, task_id: str, store: Optional[str] = None) -> None:
+    def delete_task(
+        self, task_id: Union[TaskType, str, None], store: Optional[str] = None
+    ) -> None:
         """
         Removes a task, preventing it from being run anymore.
 
@@ -673,6 +625,10 @@ class BaseScheduler(SchedulerType):
             task_id: The identifier of the task.
             store: Alias of the task store that most likely contains the task.
         """
+        if isinstance(task_id, TaskType):
+            task_id = task_id.id
+        if not task_id:
+            return
         store_alias = None
 
         with self.store_lock:

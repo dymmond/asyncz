@@ -19,7 +19,7 @@ class TaskDefaultsType:
 class TaskType(TaskDefaultsType, ABC):
     """BaseType of task."""
 
-    id: str
+    id: Optional[str] = None
     pending: bool = True
     name: Optional[str] = None
     next_run_time: Optional[datetime] = None
@@ -43,8 +43,9 @@ class TaskType(TaskDefaultsType, ABC):
         Accepted keyword args are the same as the class variables.
         """
         scheduler = self.scheduler
-        if scheduler is not None:
-            scheduler.update_task(self.id, self.store_alias, **updates)
+        task_id = self.id
+        if scheduler is not None and task_id is not None:
+            scheduler.update_task(task_id, self.store_alias, **updates)
         return self
 
     def reschedule(self, trigger: TriggerType, **trigger_args: Any) -> TaskType:
@@ -52,8 +53,9 @@ class TaskType(TaskDefaultsType, ABC):
         Shortcut for switching the trigger on this task.
         """
         scheduler = self.scheduler
-        if scheduler is not None:
-            scheduler.reschedule_task(self.id, self.store_alias, trigger, **trigger_args)
+        task_id = self.id
+        if scheduler is not None and task_id is not None:
+            scheduler.reschedule_task(task_id, self.store_alias, trigger, **trigger_args)
         return self
 
     def pause(self) -> TaskType:
@@ -61,8 +63,9 @@ class TaskType(TaskDefaultsType, ABC):
         Temporarily suspenses the execution of a given task.
         """
         scheduler = self.scheduler
-        if scheduler is not None:
-            scheduler.pause_task(self.id, self.store_alias)
+        task_id = self.id
+        if scheduler is not None and task_id is not None:
+            scheduler.pause_task(task_id, self.store_alias)
         return self
 
     def resume(self) -> TaskType:
@@ -70,8 +73,9 @@ class TaskType(TaskDefaultsType, ABC):
         Resume the schedule of this task if previously paused.
         """
         scheduler = self.scheduler
-        if scheduler is not None:
-            scheduler.resume_task(self.id, self.store_alias)
+        task_id = self.id
+        if scheduler is not None and task_id is not None:
+            scheduler.resume_task(task_id, self.store_alias)
         return self
 
     def delete(self) -> TaskType:
@@ -79,8 +83,9 @@ class TaskType(TaskDefaultsType, ABC):
         Unschedules this task and removes it from its associated store.
         """
         scheduler = self.scheduler
-        if scheduler is not None:
-            scheduler.delete_task(self.id, self.store_alias)
+        task_id = self.id
+        if scheduler is not None and task_id is not None:
+            scheduler.delete_task(task_id, self.store_alias)
         return self
 
     @abstractmethod
@@ -90,8 +95,22 @@ class TaskType(TaskDefaultsType, ABC):
         """
 
     def __call__(self, fn: DecoratedFn) -> DecoratedFn:
-        self.update_task(fn=fn)
+        kwargs = {
+            "trigger": self.trigger,
+            "executor": self.executor,
+            "scheduler": self.scheduler,
+            "fn": fn,
+            "args": self.args,
+            "kwargs": self.kwargs,
+            "id": self.id,
+            "name": self.name,
+            "mistrigger_grace_time": self.mistrigger_grace_time,
+            "coalesce": self.coalesce,
+            "max_instances": self.max_instances,
+            "store_alias": self.store_alias,
+        }
+        task = self.__class__(**kwargs)
         scheduler = self.scheduler
         if scheduler is not None:
-            scheduler.add_task(self, replace_existing=True)
+            scheduler.add_task(task, replace_existing=True)
         return fn

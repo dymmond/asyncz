@@ -34,14 +34,17 @@ class AsyncIOExecutor(BaseExecutor):
         self.pending_futures.clear()
 
     def do_send_task(self, task: "TaskType", run_times: List[datetime]) -> None:
+        task_id = task.id
+        assert task_id is not None, "Cannot send decorator type task"
+
         def callback(fn: Any) -> None:
             self.pending_futures.discard(fn)
             try:
                 events = fn.result()
             except BaseException:
-                self.run_task_error(task.id)
+                self.run_task_error(task_id)
             else:
-                self.run_task_success(task.id, events)
+                self.run_task_success(task_id, events)
 
         if iscoroutinefunction_partial(task.fn):
             if run_coroutine_task is not None:

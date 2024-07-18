@@ -104,6 +104,7 @@ class RedisStore(BaseStore):
         return sorted(tasks, key=lambda task: task.next_run_time or paused_sort_key)
 
     def add_task(self, task: "TaskType") -> None:
+        assert task.id
         if self.redis.hexists(self.tasks_key, task.id):
             raise ConflictIdError(task.id)
 
@@ -123,6 +124,7 @@ class RedisStore(BaseStore):
             pipe.execute()  # type: ignore
 
     def update_task(self, task: "TaskType") -> None:
+        assert task.id
         if not self.redis.hexists(self.tasks_key, task.id):
             raise TaskLookupError(task.id)
 
