@@ -423,6 +423,24 @@ class TestBaseScheduler:
 
         assert task.next_run_time.tzinfo.zone == timezone.zone
 
+    def test_add_task_obj_return_value(self, scheduler, timezone):
+        """Test that when a task is added to a stopped scheduler, a Task instance is returned."""
+        task = Task(
+            fn=lambda x, y: None,
+            id="my-id",
+            name="dummy",
+            args=[1],
+            kwargs={"y": 2},
+        )
+        task = scheduler.add_task(task, trigger="date", run_at="2020-06-01 08:41:00")
+
+        assert isinstance(task, Task)
+        assert task.id == "my-id"
+
+        assert task.mistrigger_grace_time == 1
+        assert task.coalesce is True
+        assert task.max_instances == 1
+
     def test_add_task_pending(self, scheduler, scheduler_events):
         scheduler.setup(
             task_defaults={
