@@ -175,8 +175,8 @@ def test_private_update_bad_next_run_time(task):
 
 
 def test_private_update_bad_argument(task):
-    exc = pytest.raises(AttributeError, task._update, scheduler=1)
-    assert str(exc.value) == "The following are not modifiable attributes of Task: scheduler."
+    exc = pytest.raises(ValueError, task._update, scheduler=1)
+    assert str(exc.value) == "The task scheduler may not be changed."
 
 
 def test_getstate(task):
@@ -253,14 +253,12 @@ def test_repr(task):
     ],
     ids=["scheduled", "paused", "pending"],
 )
-@pytest.mark.parametrize("unicode", [False, True], ids=["nativestr", "unicode"])
-def test_str(create_task, status, unicode, expected_status):
+def test_str(create_task, status, expected_status):
     task = create_task(fn=dummyfn)
     if status == "scheduled":
         task.next_run_time = task.trigger.run_at
     elif status == "pending":
-        del task.next_run_time
-
+        task.scheduler = None
     expected = (
         b"n\xc3\xa4m\xc3\xa9 (trigger: date[2022-11-03 18:40:00 GMT], %s)".decode("utf-8")
         % expected_status

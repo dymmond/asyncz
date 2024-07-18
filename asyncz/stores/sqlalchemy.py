@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 class SQLAlchemyStore(BaseStore):
     """
-    Stores tasks in a Mongo database instance. Any remaining kwargs are passing directly to the mongo client.
+    Stores tasks via sqlalchemy in a database.
 
     Args:
         database - The database to store the tasks. String or Engine possible.
@@ -75,12 +75,12 @@ class SQLAlchemyStore(BaseStore):
         task.store_alias = self.alias
         return task
 
-    def get_due_tasks(self, now: datetime) -> List[Task]:
+    def get_due_tasks(self, now: datetime) -> List[TaskType]:
         timestamp = datetime_to_utc_timestamp(now)
         return self.get_tasks(self.table.c.next_run_time <= timestamp)
 
-    def get_tasks(self, conditions: Any = None, limit: int = 0) -> List[Task]:
-        tasks: List[Task] = []
+    def get_tasks(self, conditions: Any = None, limit: int = 0) -> List[TaskType]:
+        tasks: List[TaskType] = []
         failed_task_ids = []
         stmt = self.table.select().order_by(self.table.c.next_run_time.asc())
         if conditions is not None:
@@ -99,8 +99,8 @@ class SQLAlchemyStore(BaseStore):
                     failed_task_ids.append(task_id)
 
             if failed_task_ids:
-                stmt = self.table.delete().where(self.table.c.id.in_(failed_task_ids))
-                conn.execute(stmt)
+                stmt2 = self.table.delete().where(self.table.c.id.in_(failed_task_ids))
+                conn.execute(stmt2)
                 conn.commit()
         return tasks
 
@@ -116,7 +116,7 @@ class SQLAlchemyStore(BaseStore):
 
             return utc_timestamp_to_datetime(row.next_run_time) if row else None
 
-    def get_all_tasks(self) -> List[Task]:
+    def get_all_tasks(self) -> List[TaskType]:
         tasks = self.get_tasks()
         self.fix_paused_tasks(tasks)
         return tasks
@@ -124,7 +124,7 @@ class SQLAlchemyStore(BaseStore):
     def add_task(self, task: TaskType) -> None:
         data = {
             "id": task.id,
-            "next_run_time": datetime_to_utc_timestamp(task.next_run_time),
+            "next_run_time": datetime_to_utc_timestamp(task.next_run_time or None),
             "state": self.conditional_encrypt(
                 pickle.dumps(task.__getstate__(), self.pickle_protocol)
             ),
@@ -137,7 +137,7 @@ class SQLAlchemyStore(BaseStore):
 
     def update_task(self, task: TaskType) -> None:
         updates = {
-            "next_run_time": datetime_to_utc_timestamp(task.next_run_time),
+            "next_run_time": datetime_to_utc_timestamp(task.next_run_time or None),
             "state": self.conditional_encrypt(
                 pickle.dumps(task.__getstate__(), self.pickle_protocol)
             ),

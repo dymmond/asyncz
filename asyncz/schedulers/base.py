@@ -540,7 +540,7 @@ class BaseScheduler(SchedulerType):
 
     def update_task(self, task_id: str, store: Optional[str] = None, **updates: Any) -> "TaskType":
         """
-        Modifies the propertues of a single task.
+        Modifies the properties of a single task.
 
         Modifications are passed to this method as extra keyword arguments.
 

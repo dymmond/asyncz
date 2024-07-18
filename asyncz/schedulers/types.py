@@ -217,7 +217,7 @@ class SchedulerType(ABC):
     @abstractmethod
     def update_task(self, task_id: str, store: Optional[str] = None, **updates: Any) -> TaskType:
         """
-        Modifies the propertues of a single task.
+        Modifies the properties of a single task.
 
         Modifications are passed to this method as extra keyword arguments.
 
@@ -301,7 +301,7 @@ class SchedulerType(ABC):
     @abstractmethod
     def remove_all_tasks(self, store: Optional[str]) -> None:
         """
-        Removes all tasks from the specified task store, or all task stores if none is given.
+        Removes all tasks from the specified task store, or all task stores if None is given.
         """
 
     @abstractmethod

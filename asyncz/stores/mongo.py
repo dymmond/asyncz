@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Any, List, Optional, cast
 from asyncz.exceptions import ConflictIdError, TaskLookupError
 from asyncz.stores.base import BaseStore
 from asyncz.tasks import Task
-from asyncz.tasks.types import TaskType
 from asyncz.typing import DictAny
 from asyncz.utils import datetime_to_utc_timestamp, maybe_ref, utc_timestamp_to_datetime
 
@@ -18,6 +17,7 @@ except ImportError:
 
 if TYPE_CHECKING:
     from asyncz.schedulers.types import SchedulerType
+    from asyncz.tasks.types import TaskType
 
 
 class MongoDBStore(BaseStore):
@@ -73,12 +73,12 @@ class MongoDBStore(BaseStore):
         task.store_alias = self.alias
         return task
 
-    def get_due_tasks(self, now: datetime) -> List["Task"]:
+    def get_due_tasks(self, now: datetime) -> List["TaskType"]:
         timestamp = datetime_to_utc_timestamp(now)
         return self.get_tasks({"next_run_time": {"$lte": timestamp}})
 
-    def get_tasks(self, conditions: DictAny) -> List["Task"]:
-        tasks: List[Task] = []
+    def get_tasks(self, conditions: DictAny) -> List["TaskType"]:
+        tasks: List[TaskType] = []
         failed_task_ids = []
 
         for document in self.collection.find(
@@ -104,7 +104,7 @@ class MongoDBStore(BaseStore):
         )
         return utc_timestamp_to_datetime(document["next_run_time"]) if document else None
 
-    def get_all_tasks(self) -> List["Task"]:
+    def get_all_tasks(self) -> List["TaskType"]:
         tasks = self.get_tasks({})
         self.fix_paused_tasks(tasks)
         return tasks
@@ -114,7 +114,7 @@ class MongoDBStore(BaseStore):
             self.collection.insert_one(
                 {
                     "_id": task.id,
-                    "next_run_time": datetime_to_utc_timestamp(task.next_run_time),
+                    "next_run_time": datetime_to_utc_timestamp(task.next_run_time or None),
                     "state": Binary(
                         self.conditional_encrypt(
                             pickle.dumps(task.__getstate__(), self.pickle_protocol)
@@ -127,7 +127,7 @@ class MongoDBStore(BaseStore):
 
     def update_task(self, task: "TaskType") -> None:
         updates = {
-            "next_run_time": datetime_to_utc_timestamp(task.next_run_time),
+            "next_run_time": datetime_to_utc_timestamp(task.next_run_time or None),
             "state": Binary(
                 self.conditional_encrypt(pickle.dumps(task.__getstate__(), self.pickle_protocol))
             ),

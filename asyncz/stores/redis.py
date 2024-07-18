@@ -58,7 +58,7 @@ class RedisStore(BaseStore):
 
     def rebuild_task(self, state: Any) -> "TaskType":
         state = pickle.loads(self.conditional_decrypt(state))
-        task = Task.__new__(TaskType)
+        task = Task.__new__(Task)
         task.__setstate__(state)
         task.scheduler = cast("SchedulerType", self.scheduler)
         task.store_alias = self.alias

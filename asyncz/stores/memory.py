@@ -34,7 +34,7 @@ class MemoryStore(BaseStore):
         return pending
 
     def get_next_run_time(self) -> Optional[datetime]:
-        return self.tasks[0][0].next_run_time if self.tasks else None
+        return (self.tasks[0][0].next_run_time or None) if self.tasks else None
 
     def get_all_tasks(self) -> List["TaskType"]:
         return [task[0] for task in self.tasks]
@@ -43,7 +43,7 @@ class MemoryStore(BaseStore):
         if task.id in self.tasks_index:
             raise ConflictIdError(task.id)
 
-        timestamp = datetime_to_utc_timestamp(task.next_run_time)
+        timestamp = datetime_to_utc_timestamp(task.next_run_time or None)
         index = self.get_task_index(timestamp, task.id)
 
         self.tasks.insert(index, (task, timestamp))
@@ -55,7 +55,7 @@ class MemoryStore(BaseStore):
             raise TaskLookupError(task.id)
 
         old_index = self.get_task_index(old_timestamp, old_task.id)
-        new_timestamp = datetime_to_utc_timestamp(task.next_run_time)
+        new_timestamp = datetime_to_utc_timestamp(task.next_run_time or None)
         if old_timestamp == new_timestamp:
             self.tasks[old_index] = (task, new_timestamp)
         else:

@@ -18,6 +18,7 @@ from pydantic import Field
 from asyncz.datastructures import TaskState
 from asyncz.schedulers.types import SchedulerType
 from asyncz.state import BaseStateExtra
+from asyncz.tasks.types import TaskType
 from asyncz.triggers.types import TriggerType
 from asyncz.utils import (
     check_callable_args,
@@ -31,7 +32,7 @@ from asyncz.utils import (
 object_setattr = object.__setattr__
 
 
-class Task(BaseStateExtra):  # type: ignore
+class Task(BaseStateExtra, TaskType):  # type: ignore
     """
     Contains the options given when scheduling callables and its current schedule and other state.
     This class should never be instantiated by the user.
@@ -53,71 +54,23 @@ class Task(BaseStateExtra):  # type: ignore
         next_run_time: The next scheduled run time of this task.
     """
 
-    name: Optional[str] = None
     fn: Optional[Callable[..., Any]] = None
     fn_reference: Optional[str] = None
     args: Sequence[Any] = ()
     kwargs: Dict[str, Any] = Field(default_factory=dict)
-    next_run_time: Optional[datetime] = None
-    store_alias: Optional[str] = None
-    scheduler: SchedulerType
-    id: str
 
     def __init__(
         self,
-        scheduler: SchedulerType,
+        scheduler: Optional[SchedulerType] = None,
         id: Optional[str] = None,
         store_alias: Optional[str] = None,
         *,
         fn: Union[Callable[..., Any], str, None] = None,
         **kwargs: Any,
     ):
-        super().__init__(id=id or uuid4().hex, scheduler=scheduler, **kwargs)
+        super().__init__(id=id or uuid4().hex, **kwargs)
         self.store_alias = store_alias
-        self._update(fn=fn, **kwargs)
-
-    @property
-    def pending(self) -> bool:
-        """
-        Returns true if the referenced task is still waiting to be added to its designated task
-        store.
-        """
-        return self.store_alias is None
-
-    def update(self, **updates: Any) -> "Task":
-        """
-        Makes the given updates to this jon and save it in the associated store.
-        Accepted keyword args are the same as the class variables.
-        """
-        self.scheduler.update_task(self.id, self.store_alias, **updates)
-        return self
-
-    def reschedule(self, trigger: TriggerType, **trigger_args: Any) -> "Task":
-        """
-        Shortcut for switching the trigger on this task.
-        """
-        self.scheduler.reschedule_task(self.id, self.store_alias, trigger, **trigger_args)
-        return self
-
-    def pause(self) -> "Task":
-        """
-        Temporarily suspenses the execution of a given task.
-        """
-        self.scheduler.pause_task(self.id, self.store_alias)
-        return self
-
-    def resume(self) -> "Task":
-        """
-        Resume the schedule of this task if previously paused.
-        """
-        self.scheduler.resume_task(self.id, self.store_alias)
-        return self
-
-    def delete(self) -> None:
-        """
-        Unschedules this task and removes it from its associated store.
-        """
-        self.scheduler.delete_task(self.id, self.store_alias)
+        self._update(fn=fn, scheduler=scheduler, **kwargs)
 
     def get_run_times(self, now: datetime) -> List[datetime]:
         """
@@ -130,12 +83,34 @@ class Task(BaseStateExtra):  # type: ignore
             next_run_time = self.trigger.get_next_trigger_time(next_run_time, now)
         return run_times
 
-    def _update(self, *, fn: Any = None, **updates: Any) -> None:
+    def update(self, *, update_scheduler: bool = True, **updates: Any) -> TaskType:
+        """
+        Makes the given updates to this json and save it in the associated store.
+        Accepted keyword args are the same as the class variables.
+        """
+        if not update_scheduler:
+            self._update(**updates)
+            return self
+        scheduler = self.scheduler
+        if scheduler is not None:
+            scheduler.update_task(self.id, self.store_alias, **updates)
+        return self
+
+    def _update(
+        self, *, fn: Any = None, scheduler: Optional[SchedulerType] = None, **updates: Any
+    ) -> None:
         """
         Validates the updates to the Task and makes the modifications if and only if all of them
         validate.
         """
-        approved = {}
+        approved: Dict[str, Any] = {}
+        if scheduler is not None:
+            if self.scheduler is not None:
+                raise ValueError("The task scheduler may not be changed.")
+            approved["scheduler"] = scheduler
+        else:
+            scheduler = self.scheduler
+
         if "id" in updates:
             raise ValueError("The task ID may not be changed.")
 
@@ -210,9 +185,12 @@ class Task(BaseStateExtra):  # type: ignore
             approved["executor"] = executor
 
         if "next_run_time" in updates:
+            if not isinstance(scheduler, SchedulerType):
+                raise TypeError("Cannot set next_run_time without scheduler.")
+
             next_run_time = updates.pop("next_run_time")
             approved["next_run_time"] = to_datetime(
-                next_run_time, self.scheduler.timezone, "next_run_time"
+                next_run_time, scheduler.timezone, "next_run_time"
             )
 
         if updates:
@@ -282,7 +260,8 @@ class Task(BaseStateExtra):  # type: ignore
         return f"<Task (id={self.id} name={self.name})>"
 
     def __str__(self) -> str:
-        if hasattr(self, "next_run_time"):
+        scheduler = self.scheduler
+        if scheduler and scheduler.running:
             status = (
                 "next run at: " + datetime_repr(self.next_run_time)
                 if self.next_run_time
