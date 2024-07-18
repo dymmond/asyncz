@@ -72,7 +72,7 @@ task = Task(
 )
 scheduler.add_task(task)
 
-# Use Task as decorator (leave function empty)
+# Use Task as decorator (leave fn empty)
 decorator = scheduler.add_task(
     args=[feed_data],
     trigger=IntervalTrigger(minutes=10),
