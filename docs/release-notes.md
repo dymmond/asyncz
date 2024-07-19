@@ -6,10 +6,14 @@
 
 - Task are decorators now
 - Tasks can be added via add_task
+- Trigger can now overwrite mistrigger_grace_time via allow_misstrigger_by_default
+- Pools can now overwrite wait, and set cancel_futures
 
 ### Changed
 
-- Task id can be None
+- Task id can be None (decorator mode)
+- Task have now pending attribute
+- Tasks work more independent of schedulers
 
 ### Removed
 
