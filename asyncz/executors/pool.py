@@ -1,4 +1,5 @@
 import concurrent.futures
+import sys
 from abc import abstractmethod
 from concurrent.futures.process import BrokenProcessPool
 from datetime import datetime
@@ -14,6 +15,8 @@ if TYPE_CHECKING:
 
 class BasePoolExecutor(BaseExecutor):
     model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True, populate_by_name=True)
+    cancel_futures: bool = False
+    overwrite_wait: Optional[bool] = None
 
     @abstractmethod
     def __init__(self, pool: Any, **kwargs: Any) -> None:
@@ -45,6 +48,10 @@ class BasePoolExecutor(BaseExecutor):
         fn.add_done_callback(callback)
 
     def shutdown(self, wait: bool = True) -> None:
+        if self.overwrite_wait is not None:
+            wait = self.overwrite_wait
+        if sys.version_info >= (3, 9):
+            self.pool.shutdown(wait, cancel_futures=self.cancel_futures)
         self.pool.shutdown(wait)
 
 
@@ -57,10 +64,10 @@ class ThreadPoolExecutor(BasePoolExecutor):
         pool_kwargs: Dict of keyword arguments to pass to the underlying ThreadPoolExecutor constructor.
     """
 
-    def __init__(self, max_workers: int = 10, pool_kwargs: Optional[Any] = None):
+    def __init__(self, max_workers: int = 10, pool_kwargs: Optional[Any] = None, **kwargs: Any):
         pool_kwargs = pool_kwargs or {}
         pool = concurrent.futures.ThreadPoolExecutor(int(max_workers), **pool_kwargs)
-        super().__init__(pool)
+        super().__init__(pool, **kwargs)
 
 
 class ProcessPoolExecutor(BasePoolExecutor):
@@ -73,7 +80,9 @@ class ProcessPoolExecutor(BasePoolExecutor):
             ProcessPoolExecutor constructor.
     """
 
-    def __init__(self, max_workers: int = 10, pool_kwargs: Optional[Any] = None) -> None:
+    def __init__(
+        self, max_workers: int = 10, pool_kwargs: Optional[Any] = None, **kwargs: Any
+    ) -> None:
         pool_kwargs = pool_kwargs or {}
         pool = concurrent.futures.ProcessPoolExecutor(int(max_workers), **pool_kwargs)
-        super().__init__(pool)
+        super().__init__(pool, **kwargs)
