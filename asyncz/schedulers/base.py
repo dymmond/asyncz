@@ -1,6 +1,6 @@
 import sys
 from abc import abstractmethod
-from collections.abc import MutableMapping
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from functools import partial
 from importlib import import_module
@@ -467,7 +467,7 @@ class BaseScheduler(SchedulerType):
                         fn_or_task, fn_or_task.store_alias or store, replace_existing
                     )
             return fn_or_task
-        task_struct = {
+        task_kwargs: Dict[str, Any] = {
             "scheduler": self,
             "trigger": self.create_trigger(trigger, trigger_args),
             "executor": executor,
@@ -482,9 +482,13 @@ class BaseScheduler(SchedulerType):
             "next_run_time": next_run_time,
             "store_alias": store,
         }
-        task_kwargs: Dict[str, Any] = {
-            key: value for key, value in task_struct.items() if value is not undefined
-        }
+        task_kwargs = {key: value for key, value in task_kwargs.items() if value is not undefined}
+        if task_kwargs["trigger"].allow_misstrigger_by_default:
+            # we want to be able, to just use add_task, and the task is scheduled
+            task_kwargs.setdefault("mistrigger_grace_time", None)
+        for key, value in self.task_defaults.model_dump(exclude_none=True).items():
+            task_kwargs.setdefault(key, value)
+
         task = Task(**task_kwargs)
         if task.fn is not None:
             return self.add_task(task, replace_existing=replace_existing)
@@ -698,7 +702,8 @@ class BaseScheduler(SchedulerType):
         for alias, value in config.get("executors", {}).items():
             if isinstance(value, ExecutorType):
                 self.add_executor(value, alias)
-            elif isinstance(value, MutableMapping):
+            elif isinstance(value, Mapping):
+                value = dict(value)
                 executor_class = value.pop("class", None)
                 plugin = value.pop("type", None)
                 if plugin:
@@ -721,7 +726,8 @@ class BaseScheduler(SchedulerType):
         for alias, value in config.get("stores", {}).items():
             if isinstance(value, StoreType):
                 self.add_store(value, alias)
-            elif isinstance(value, MutableMapping):
+            elif isinstance(value, Mapping):
+                value = dict(value)
                 store_class = value.pop("class", None)
                 plugin = value.pop("type", None)
                 if plugin:
@@ -839,8 +845,6 @@ class BaseScheduler(SchedulerType):
             replace_existing: The flag indicating the replacement of the task.
         """
         replacements: Dict[str, Any] = {}
-        for key, value in self.task_defaults.model_dump(exclude_none=True).items():
-            replacements[key] = value
 
         # Calculate the next run time if there is none defined
         if not getattr(task, "next_run_time", None):
@@ -972,7 +976,7 @@ class BaseScheduler(SchedulerType):
                 for task in due_tasks:
                     try:
                         executor = self.lookup_executor(task.executor)  # type: ignore
-                    except BaseException:
+                    except Exception:
                         self.logger.error(
                             f"Executor lookup ('{task.executor}') failed for task '{task}'. Removing it from the store."
                         )

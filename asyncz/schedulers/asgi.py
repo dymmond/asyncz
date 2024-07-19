@@ -28,6 +28,7 @@ class ASGIHelper:
     app: ASGIApp
     scheduler: BaseScheduler
     handle_lifespan: bool = False
+    wait: bool = True
 
     async def __call__(
         self,
@@ -48,7 +49,7 @@ class ASGIHelper:
                         raise MuteInteruptException from None
                 elif message["type"] == "lifespan.shutdown":
                     try:
-                        self.scheduler.shutdown()
+                        self.scheduler.shutdown(self.wait)
                     except Exception as exc:
                         await send({"type": "lifespan.shutdown.failed", "msg": str(exc)})
                         raise MuteInteruptException from None

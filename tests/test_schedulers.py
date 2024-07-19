@@ -953,7 +953,7 @@ class SchedulerImpBaseTest:
 
     def test_add_pending_task(self, scheduler, freeze_time, eventqueue, start_scheduler):
         freeze_time.set_increment(timedelta(seconds=0.2))
-        scheduler.add_task(lambda x, y: x + y, "date", args=[1, 2], run_date=freeze_time.next())
+        scheduler.add_task(lambda x, y: x + y, "date", args=[1, 2], run_at=freeze_time.next())
         start_scheduler()
 
         assert self.wait_event(eventqueue).code == STORE_ADDED
@@ -977,8 +977,28 @@ class SchedulerImpBaseTest:
             lambda x, y: x + y,
             "date",
             args=[1, 2],
-            run_date=freeze_time.next() + freeze_time.increment * 2,
+            run_at=freeze_time.next() + freeze_time.increment * 2,
         )
+        assert self.wait_event(eventqueue).code == TASK_ADDED
+
+        event = self.wait_event(eventqueue)
+
+        assert event.code == TASK_EXECUTED
+        assert event.return_value == 3
+        assert self.wait_event(eventqueue).code == TASK_REMOVED
+
+    def test_add_live_task_bg(self, scheduler, freeze_time, eventqueue, start_scheduler):
+        freeze_time.set_increment(timedelta(seconds=0.2))
+        start_scheduler()
+
+        assert self.wait_event(eventqueue).code == STORE_ADDED
+        assert self.wait_event(eventqueue).code == SCHEDULER_STARTED
+
+        task = scheduler.add_task(
+            lambda x, y: x + y,
+            args=[1, 2],
+        )
+        assert task.mistrigger_grace_time is None
         assert self.wait_event(eventqueue).code == TASK_ADDED
 
         event = self.wait_event(eventqueue)
