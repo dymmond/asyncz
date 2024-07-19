@@ -25,7 +25,7 @@ def task(create_task):
 @pytest.mark.parametrize("task_id", ["testid", None])
 def test_constructor(task_id):
     scheduler_mock = MagicMock(BaseScheduler)
-    task = Task(scheduler_mock, id=task_id)
+    task = Task(scheduler=scheduler_mock, id=task_id, fn=lambda: None)
     assert task.scheduler is scheduler_mock
     assert task.store_alias is None
 
@@ -70,13 +70,6 @@ def test_weakref(create_task):
     assert ref() is None
 
 
-def test_pending(task):
-    assert task.pending
-
-    task.store_alias = "test"
-    assert not task.pending
-
-
 def test_get_run_times(create_task, timezone):
     run_time = timezone.localize(datetime(2023, 12, 13, 0, 8))
     expected_times = [run_time + timedelta(seconds=1), run_time + timedelta(seconds=2)]
@@ -103,80 +96,82 @@ def test_create_bad_id(create_task):
 
 
 def test_private_update_id(task):
-    exc = pytest.raises(ValueError, task._update, id="alternate")
+    exc = pytest.raises(ValueError, task.update_task, id="alternate")
     assert str(exc.value) == "The task ID may not be changed."
 
 
 def test_private_update_bad_fn(task):
-    exc = pytest.raises(TypeError, task._update, fn=1)
+    exc = pytest.raises(TypeError, task.update_task, fn=1)
     assert str(exc.value) == "fn must be a callable or a textual reference to a callable."
 
 
 def test_private_update_func_ref(task):
-    task._update(fn="tests.test_tasks:dummyfn")
+    task.update_task(fn="tests.test_tasks:dummyfn")
     assert task.fn is dummyfn
     assert task.fn_reference == "tests.test_tasks:dummyfn"
 
 
 def test_private_update_unreachable_fn(task):
     fn = partial(dummyfn)
-    task._update(fn=fn)
+    task.update_task(fn=fn)
     assert task.fn is fn
     assert task.fn_reference is None
 
 
 def test_private_update_name(task):
     del task.name
-    task._update(fn=dummyfn)
+    task.update_task(fn=dummyfn)
     assert task.name == "dummyfn"
 
 
 def test_private_update_bad_args(task):
-    exc = pytest.raises(TypeError, task._update, args=1)
+    exc = pytest.raises(TypeError, task.update_task, args=1)
     assert str(exc.value) == "args must be a non-string iterable."
 
 
 def test_private_update_bad_kwargs(task):
-    exc = pytest.raises(TypeError, task._update, kwargs=1)
+    exc = pytest.raises(TypeError, task.update_task, kwargs=1)
     assert str(exc.value) == "kwargs must be a dict-like object."
 
 
 @pytest.mark.parametrize("value", [1, ""], ids=["integer", "empty string"])
 def test_private_update_bad_name(task, value):
-    exc = pytest.raises(TypeError, task._update, name=value)
+    exc = pytest.raises(TypeError, task.update_task, name=value)
     assert str(exc.value) == "name must be a non empty string."
 
 
 @pytest.mark.parametrize("value", ["foo", 0, -1], ids=["string", "zero", "negative"])
 def test_private_update_bad_misfire_grace_time(task, value):
-    exc = pytest.raises(TypeError, task._update, mistrigger_grace_time=value)
-    assert str(exc.value) == "mistrigger_grace_time must be either None or a positive integer."
+    exc = pytest.raises(TypeError, task.update_task, mistrigger_grace_time=value)
+    assert (
+        str(exc.value) == "mistrigger_grace_time must be either None or a positive float/integer."
+    )
 
 
 @pytest.mark.parametrize("value", [None, "foo", 0, -1], ids=["None", "string", "zero", "negative"])
 def test_private_update_bad_max_instances(task, value):
-    exc = pytest.raises(TypeError, task._update, max_instances=value)
+    exc = pytest.raises(TypeError, task.update_task, max_instances=value)
     assert str(exc.value) == "max_instances must be a positive integer."
 
 
 def test_private_update_bad_trigger(task):
-    exc = pytest.raises(TypeError, task._update, trigger="foo")
+    exc = pytest.raises(TypeError, task.update_task, trigger="foo")
     assert str(exc.value) == "Expected a trigger instance, got str instead."
 
 
 def test_private_update_bad_executor(task):
-    exc = pytest.raises(TypeError, task._update, executor=1)
+    exc = pytest.raises(TypeError, task.update_task, executor=1)
     assert str(exc.value) == "executor must be a string."
 
 
 def test_private_update_bad_next_run_time(task):
-    exc = pytest.raises(AsynczException, task._update, next_run_time=1)
+    exc = pytest.raises(AsynczException, task.update_task, next_run_time=1)
     assert str(exc.value) == "Unsupported type for next_run_time: int."
 
 
 def test_private_update_bad_argument(task):
-    exc = pytest.raises(AttributeError, task._update, scheduler=1)
-    assert str(exc.value) == "The following are not modifiable attributes of Task: scheduler."
+    exc = pytest.raises(ValueError, task.update_task, scheduler=1)
+    assert str(exc.value) == "The task scheduler may not be changed."
 
 
 def test_getstate(task):
@@ -253,14 +248,13 @@ def test_repr(task):
     ],
     ids=["scheduled", "paused", "pending"],
 )
-@pytest.mark.parametrize("unicode", [False, True], ids=["nativestr", "unicode"])
-def test_str(create_task, status, unicode, expected_status):
+def test_str(create_task, status, expected_status):
     task = create_task(fn=dummyfn)
+    task.pending = False
     if status == "scheduled":
         task.next_run_time = task.trigger.run_at
     elif status == "pending":
-        del task.next_run_time
-
+        task.pending = True
     expected = (
         b"n\xc3\xa4m\xc3\xa9 (trigger: date[2022-11-03 18:40:00 GMT], %s)".decode("utf-8")
         % expected_status

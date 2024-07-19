@@ -54,11 +54,3 @@ The trigger must be the [alias of the trigger object](./triggers.md#alias).
 ```python hl_lines="26-30"
 {!> ../docs_src/tasks/reschedule_task.py !}
 ```
-
-
-## Note
-
-These is in raw terms what a task instance does and how to create a task but 99% of the times you
-will not work directly with a task instance like this, instead, you will be creating a task using the
-[scheduler](./schedulers.md#adding-tasks) to help you out and it is **strongly advised** to use
-the scheduler and the operations via scheduler instead of working directly via task instance.

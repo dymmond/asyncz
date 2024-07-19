@@ -6,6 +6,7 @@ from typing import ClassVar, Optional, Union, overload
 class TriggerType(ABC):
     alias: ClassVar[str]
     jitter: Optional[int] = None
+    allow_misstrigger_by_default: bool = False
 
     @abstractmethod
     def get_next_trigger_time(

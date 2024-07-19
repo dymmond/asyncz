@@ -31,12 +31,12 @@ scheduler.add_task(
 )
 
 # Run every hour and minute 1
-scheduler.add_task(
+status = scheduler.add_task(
     id="status",
     fn=check_status,
     trigger=CronTrigger(hour="0-23", minute="1"),
 )
 
-# Remove the tasks by ID and store alias
+# Remove the tasks by ID or task object
 scheduler.delete_task("send_newsletter")
-scheduler.delete_task("status")
+scheduler.delete_task(status)

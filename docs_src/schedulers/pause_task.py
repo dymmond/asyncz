@@ -26,7 +26,7 @@ scheduler.add_task(
 )
 
 # Run every hour and minute 1
-scheduler.add_task(
+status = scheduler.add_task(
     id="status",
     fn=check_status,
     trigger=CronTrigger(hour="0-23", minute="1"),
@@ -34,4 +34,4 @@ scheduler.add_task(
 
 # Pause the tasks by ID and store alias
 scheduler.pause_task("send_newsletter")
-scheduler.pause_task("status")
+scheduler.pause_task(status)
