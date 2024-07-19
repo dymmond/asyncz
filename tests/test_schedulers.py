@@ -359,6 +359,8 @@ class TestBaseScheduler:
     def test_add_store(self, scheduler, scheduler_events, start_scheduler):
         if start_scheduler:
             scheduler.start()
+        else:
+            scheduler.wakeup = MagicMock().assert_not_called()
 
         del scheduler_events[:]
         store = DummyStore()

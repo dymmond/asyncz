@@ -353,7 +353,7 @@ class BaseScheduler(SchedulerType):
 
         self.dispatch_event(SchedulerEvent(code=STORE_ADDED, alias=alias))
 
-        if self.state == SchedulerState.STATE_STOPPED:
+        if self.state == SchedulerState.STATE_RUNNING:
             self.wakeup()
 
     def remove_store(self, alias: str, shutdown: bool = True) -> None:
