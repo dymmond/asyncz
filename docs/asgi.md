@@ -10,13 +10,13 @@ This way it is compatible to lifespan and nested contextmanager calls.
 
 The asgi call of a scheduler object supports following argument:
 
-- `app`: (Optionally) The ASGI application to wrap. If not specified, a decorator is returned
+* **app**: (Optionally) The ASGI application to wrap. If not specified, a decorator is returned
 
 And following keyword arguments
 
-- `handle_lifespan`: Fixes the issue with lifespan and django. Django doesn't support the lifespan protocol and fails horrible.
-                     This argument fixes this by handling the lifespan protocol and don't passing it through to django.
-- `wait`: (Default: True) Set the wait argument of shutdown. If wait is False all tasks are cancelled on shutdown.
+* **handle_lifespan**: (Default: False) Fixes the issue with lifespan and django. Django doesn't support the lifespan protocol and fails horrible.
+                       This argument fixes this by handling the lifespan protocol and don't passing it through to django.
+* **wait**: (Default: True) Set the wait argument of shutdown. If wait is False all tasks are cancelled on shutdown.
 
 === "Wrapping an asgi application"
 

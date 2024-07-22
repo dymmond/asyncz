@@ -41,6 +41,11 @@ from asyncz.executors import ThreadPoolExecutor
 * **max_workers** – Maximum number of spawned threads.
 * **pool_kwargs** – Dict of keyword arguments to pass to the underlying ThreadPoolExecutor
 constructor.
+* **cancel_futures** – (Default: False) Cancel futures on shutdown. Has only an effect since python 3.9.
+* **overwrite_wait** – (Default: Unset) Overwrite wait method used.
+
+    cancel_futures: bool = False
+    overwrite_wait: Optional[bool] = None
 
 ## ProcessPoolExecutor
 
@@ -55,6 +60,8 @@ from asyncz.executors import ProcessPoolExecutor
 * **max_workers** – Maximum number of spawned processes.
 * **pool_kwargs** – Dict of keyword arguments to pass to the underlying ProcessPoolExecutor
 constructor.
+* **cancel_futures** – (Default: False) Cancel futures on shutdown. Has only an effect since python 3.9.
+* **overwrite_wait** – (Default: Unset) Overwrite wait method used.
 
 ## Custom executor
 
