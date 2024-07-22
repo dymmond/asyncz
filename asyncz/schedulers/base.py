@@ -271,19 +271,30 @@ class BaseScheduler(SchedulerType):
 
     @overload
     def asgi(
-        self, app: None, handle_lifespan: bool = False
+        self,
+        app: None,
+        handle_lifespan: bool = False,
+        wait: bool = False,
     ) -> Callable[[ASGIApp], ASGIHelper]: ...
 
     @overload
-    def asgi(self, app: ASGIApp, handle_lifespan: bool = False) -> ASGIHelper: ...
+    def asgi(
+        self,
+        app: ASGIApp,
+        handle_lifespan: bool = False,
+        wait: bool = False,
+    ) -> ASGIHelper: ...
 
     def asgi(
-        self, app: Optional[ASGIApp] = None, handle_lifespan: bool = False
+        self,
+        app: Optional[ASGIApp] = None,
+        handle_lifespan: bool = False,
+        wait: bool = False,
     ) -> Union[ASGIHelper, Callable[[ASGIApp], ASGIHelper]]:
         """Return wrapper for asgi integration."""
         if app is not None:
-            return ASGIHelper(app=app, scheduler=self, handle_lifespan=handle_lifespan)
-        return partial(ASGIHelper, scheduler=self, handle_lifespan=handle_lifespan)
+            return ASGIHelper(app=app, scheduler=self, handle_lifespan=handle_lifespan, wait=wait)
+        return partial(ASGIHelper, scheduler=self, handle_lifespan=handle_lifespan, wait=wait)
 
     def add_executor(
         self, executor: Union["ExecutorType", str], alias: str = "default", **executor_options: Any
