@@ -6,8 +6,8 @@
 
 - Task are decorators now
 - Tasks can be added via add_task
-- Trigger can now overwrite mistrigger_grace_time via allow_misstrigger_by_default
-- Pools can now overwrite wait, and set cancel_futures
+- Trigger can now overwrite `mistrigger_grace_time` via `allow_mistrigger_by_default`
+- Pools can now overwrite `wait` and can set `cancel_futures`
 
 ### Changed
 
@@ -17,7 +17,13 @@
 
 ### Removed
 
-- schedule_task call (superseeded by add_task overloads)
+- `schedule_task` call (superseeded by add_task overloads)
+
+### Fixed
+
+- `task_defaults` overwrite settings.
+- Fix one-off tasks in background with add_task (before with asgi a misstrigger can happen because of a lag of > 1 second).
+- Fix `add_store` call on stopped scheduler.
 
 ## 0.9.0
 

@@ -494,7 +494,7 @@ class BaseScheduler(SchedulerType):
             "store_alias": store,
         }
         task_kwargs = {key: value for key, value in task_kwargs.items() if value is not undefined}
-        if task_kwargs["trigger"].allow_misstrigger_by_default:
+        if task_kwargs["trigger"].allow_mistrigger_by_default:
             # we want to be able, to just use add_task, and the task is scheduled
             task_kwargs.setdefault("mistrigger_grace_time", None)
         for key, value in self.task_defaults.model_dump(exclude_none=True).items():

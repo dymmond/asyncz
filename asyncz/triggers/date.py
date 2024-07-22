@@ -31,7 +31,7 @@ class DateTrigger(BaseTrigger):
             kwargs["run_at"] = to_datetime(run_at, timezone, "run_at")
         else:
             kwargs["run_at"] = datetime.now(timezone)
-            kwargs["allow_misstrigger_by_default"] = True
+            kwargs["allow_mistrigger_by_default"] = True
         super().__init__(**kwargs)
 
     def get_next_trigger_time(
