@@ -152,8 +152,8 @@ fun 😁🎉.
 
 ## ASGI support
 
-Asyncz currently supports the [Esmerald framework](https://asyncz.dymmond.com/contrib/esmerald/index.md)
-and brings some batteries that are currently used by the framework and leveraging Asyncz.
+Asyncz currently supports ASGI, the [Esmerald framework](https://asyncz.dymmond.com/contrib/esmerald/)
+and brings some batteries that are currently used by Esmerald and leveraging Asyncz.
 
 
 ```python
