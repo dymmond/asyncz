@@ -2,6 +2,7 @@ from datetime import timezone as tz
 
 from asyncz.schedulers.asyncio import AsyncIOScheduler
 from asyncz.triggers import CronTrigger, IntervalTrigger
+from asyncz.tasks import Task
 
 # Create the scheduler
 scheduler = AsyncIOScheduler(timezone=tz.utc)
@@ -58,6 +59,28 @@ scheduler.add_task(
     replace_existing=True,
     coalesce=False,
 )
+
+# Add Task object
+
+task = Task(
+    fn=send_email_newsletter,
+    args=[feed_data],
+    trigger=IntervalTrigger(minutes=10),
+    max_instances=1,
+    replace_existing=True,
+    coalesce=False,
+)
+scheduler.add_task(task)
+
+# Use Task as decorator (leave fn empty)
+decorator = scheduler.add_task(
+    args=[feed_data],
+    trigger=IntervalTrigger(minutes=10),
+    max_instances=1,
+    replace_existing=True,
+    coalesce=False,
+)
+decorator(send_email_newsletter)
 
 
 # Start the scheduler

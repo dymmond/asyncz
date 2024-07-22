@@ -62,6 +62,7 @@ class BaseExecutor(BaseStateExtra, ExecutorType):
             run_times: A list of datetimes specifying when the task should have been run.
         """
         assert self.lock is not None, "This executor has not been started yet."
+        assert task.id is not None, "The task is in decorator mode."
         with self.lock:
             if self.instances[task.id] >= task.max_instances:
                 raise MaximumInstancesError(task.id, task.max_instances)
@@ -111,9 +112,10 @@ def run_task(
 
     events = []
     for run_time in run_times:
-        if getattr(task, "mistrigger_grace_time", None) is not None:
+        mistrigger_grace_time = task.mistrigger_grace_time
+        if mistrigger_grace_time is not None:
             difference = datetime.now(tz.utc) - run_time
-            grace_time = timedelta(seconds=task.mistrigger_grace_time)
+            grace_time = timedelta(seconds=mistrigger_grace_time)
             if difference > grace_time:
                 events.append(
                     TaskExecutionEvent(
@@ -175,9 +177,10 @@ async def run_coroutine_task(
 
     events = []
     for run_time in run_times:
-        if getattr(task, "mistrigger_grace_time", None) is not None:
+        mistrigger_grace_time = task.mistrigger_grace_time
+        if mistrigger_grace_time is not None:
             difference = datetime.now(tz.utc) - run_time
-            grace_time = timedelta(seconds=task.mistrigger_grace_time)
+            grace_time = timedelta(seconds=mistrigger_grace_time)
             if difference > grace_time:
                 events.append(
                     TaskExecutionEvent(

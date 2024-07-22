@@ -26,7 +26,7 @@ scheduler.add_task(
 )
 
 # Run every 10 minutes
-scheduler.add_task(
+check_status = scheduler.add_task(
     id="check_status",
     fn=check_status,
     trigger=IntervalTrigger(minutes=10),
@@ -35,9 +35,9 @@ scheduler.add_task(
     coalesce=False,
 )
 
-# Update the task
+# Update the task by id or object
 scheduler.update_task("send_email_newsletter", coalesce=False, max_instances=4)
-scheduler.update_task("check_status", coalesce=True, max_instances=3)
+scheduler.update_task(check_status, coalesce=True, max_instances=3)
 
 # Start the scheduler
 scheduler.start()

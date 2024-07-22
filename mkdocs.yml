@@ -33,8 +33,7 @@ repo_url: https://github.com/dymmond/asyncz
 edit_uri: ""
 plugins:
   - search
-  - markdownextradata:
-      data: data
+  - macros
 
 nav:
   - Asyncz: "index.md"
@@ -49,6 +48,7 @@ nav:
           - Overview: "contrib/esmerald/index.md"
           - Scheduler: "contrib/esmerald/scheduler.md"
           - Decorator: "contrib/esmerald/decorator.md"
+      - asgi.md
   - Contributing: "contributing.md"
   - Vendors: "vendors.md"
   - Sponsorship: "sponsorship.md"

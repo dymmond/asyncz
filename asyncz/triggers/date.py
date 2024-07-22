@@ -18,6 +18,7 @@ class DateTrigger(BaseTrigger):
     """
 
     alias: ClassVar[str] = "date"
+    run_at: datetime
 
     def __init__(
         self,
@@ -25,12 +26,13 @@ class DateTrigger(BaseTrigger):
         timezone: Optional[Union[tzinfo, str]] = None,
         **kwargs: Any,
     ):
-        super().__init__(**kwargs)
         timezone = to_timezone(timezone) or get_localzone()
         if run_at is not None:
-            self.run_at = to_datetime(run_at, timezone, "run_at")
+            kwargs["run_at"] = to_datetime(run_at, timezone, "run_at")
         else:
-            self.run_at = datetime.now(timezone)
+            kwargs["run_at"] = datetime.now(timezone)
+            kwargs["allow_misstrigger_by_default"] = True
+        super().__init__(**kwargs)
 
     def get_next_trigger_time(
         self, previous_time: Optional[datetime], now: Optional[datetime] = None

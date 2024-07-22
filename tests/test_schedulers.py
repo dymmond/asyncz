@@ -42,7 +42,6 @@ from asyncz.stores.memory import MemoryStore
 from asyncz.tasks import Task
 from asyncz.tasks.types import TaskType
 from asyncz.triggers.base import BaseTrigger
-from asyncz.typing import undefined
 
 try:
     from zoneinfo import ZoneInfo
@@ -360,6 +359,8 @@ class TestBaseScheduler:
     def test_add_store(self, scheduler, scheduler_events, start_scheduler):
         if start_scheduler:
             scheduler.start()
+        else:
+            scheduler.wakeup = MagicMock().assert_not_called()
 
         del scheduler_events[:]
         store = DummyStore()
@@ -418,11 +419,29 @@ class TestBaseScheduler:
         assert isinstance(task, Task)
         assert task.id == "my-id"
 
-        assert not hasattr(task, "mistrigger_grace_time")
-        assert not hasattr(task, "coalesce")
-        assert not hasattr(task, "max_instances")
+        assert task.mistrigger_grace_time == 1
+        assert task.coalesce is True
+        assert task.max_instances == 1
 
         assert task.next_run_time.tzinfo.zone == timezone.zone
+
+    def test_add_task_obj_return_value(self, scheduler, timezone):
+        """Test that when a task is added to a stopped scheduler, a Task instance is returned."""
+        task = Task(
+            fn=lambda x, y: None,
+            id="my-id",
+            name="dummy",
+            args=[1],
+            kwargs={"y": 2},
+        )
+        task = scheduler.add_task(task, trigger="date", run_at="2020-06-01 08:41:00")
+
+        assert isinstance(task, Task)
+        assert task.id == "my-id"
+
+        assert task.mistrigger_grace_time == 1
+        assert task.coalesce is True
+        assert task.max_instances == 1
 
     def test_add_task_pending(self, scheduler, scheduler_events):
         scheduler.setup(
@@ -471,31 +490,37 @@ class TestBaseScheduler:
         assert len(tasks) == 1
         assert tasks[0].name == "replacement"
 
-    def test_scheduled_task(self, scheduler):
+    def test_add_task_task(self, scheduler):
+        scheduler.start(paused=True)
+        scheduler.add_task(lambda: None, "interval", id="testtask", seconds=1, name="original")
+        decorator = scheduler.add_task(
+            None,
+            "cron",
+            id="testtask",
+            name="replacement",
+        )
+        tasks = scheduler.get_tasks()
+        assert len(tasks) == 1
+        assert tasks[0].name == "original"
+
+        def fn():
+            return None
+
+        assert decorator(fn) is fn
+        tasks = scheduler.get_tasks()
+        assert len(tasks) == 1
+        assert tasks[0].name == "replacement"
+
+    def test_add_task_to_decorator(self, scheduler):
         def fn(x, y): ...
 
-        object_setter(scheduler, "add_task", MagicMock())
-        decorator = scheduler.scheduled_task(
-            "date", [1], {"y": 2}, "my-id", "dummy", run_at="2022-06-01 08:41:00"
+        decorator = scheduler.add_task(
+            None, "date", [1], {"y": 2}, "my-id", "dummy", run_at="2022-06-01 08:41:00"
         )
+        object_setter(scheduler, "add_task", MagicMock())
         decorator(fn)
 
-        scheduler.add_task.assert_called_once_with(
-            fn=fn,
-            trigger="date",
-            args=[1],
-            kwargs={"y": 2},
-            id="my-id",
-            name="dummy",
-            mistrigger_grace_time=undefined,
-            coalesce=undefined,
-            max_instances=undefined,
-            next_run_time=undefined,
-            store="default",
-            executor="default",
-            replace_existing=True,
-            run_at="2022-06-01 08:41:00",
-        )
+        scheduler.add_task.assert_called_once()
 
     @pytest.mark.parametrize("pending", [True, False], ids=["pending task", "scheduled task"])
     def test_update_task(self, scheduler, pending, timezone):
@@ -900,7 +925,7 @@ class TestProcessTasks:
 
         assert scheduler.process_tasks() is None
 
-        task._update.assert_called_once_with(next_run_time=next_run_time)
+        task.update_task.assert_called_once_with(next_run_time=next_run_time)
         store.update_task.assert_called_once_with(task)
 
 
@@ -928,7 +953,7 @@ class SchedulerImpBaseTest:
 
     def test_add_pending_task(self, scheduler, freeze_time, eventqueue, start_scheduler):
         freeze_time.set_increment(timedelta(seconds=0.2))
-        scheduler.add_task(lambda x, y: x + y, "date", args=[1, 2], run_date=freeze_time.next())
+        scheduler.add_task(lambda x, y: x + y, "date", args=[1, 2], run_at=freeze_time.next())
         start_scheduler()
 
         assert self.wait_event(eventqueue).code == STORE_ADDED
@@ -952,8 +977,28 @@ class SchedulerImpBaseTest:
             lambda x, y: x + y,
             "date",
             args=[1, 2],
-            run_date=freeze_time.next() + freeze_time.increment * 2,
+            run_at=freeze_time.next() + freeze_time.increment * 2,
         )
+        assert self.wait_event(eventqueue).code == TASK_ADDED
+
+        event = self.wait_event(eventqueue)
+
+        assert event.code == TASK_EXECUTED
+        assert event.return_value == 3
+        assert self.wait_event(eventqueue).code == TASK_REMOVED
+
+    def test_add_live_task_bg(self, scheduler, freeze_time, eventqueue, start_scheduler):
+        freeze_time.set_increment(timedelta(seconds=0.2))
+        start_scheduler()
+
+        assert self.wait_event(eventqueue).code == STORE_ADDED
+        assert self.wait_event(eventqueue).code == SCHEDULER_STARTED
+
+        task = scheduler.add_task(
+            lambda x, y: x + y,
+            args=[1, 2],
+        )
+        assert task.mistrigger_grace_time is None
         assert self.wait_event(eventqueue).code == TASK_ADDED
 
         event = self.wait_event(eventqueue)

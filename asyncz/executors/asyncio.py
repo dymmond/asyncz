@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, List, Set
 
-from asyncz.exceptions import AsynczException
 from asyncz.executors.base import BaseExecutor, run_coroutine_task, run_task
 from asyncz.utils import iscoroutinefunction_partial
 
@@ -34,23 +33,21 @@ class AsyncIOExecutor(BaseExecutor):
         self.pending_futures.clear()
 
     def do_send_task(self, task: "TaskType", run_times: List[datetime]) -> None:
+        task_id = task.id
+        assert task_id is not None, "Cannot send decorator type task"
+
         def callback(fn: Any) -> None:
             self.pending_futures.discard(fn)
             try:
                 events = fn.result()
             except BaseException:
-                self.run_task_error(task.id)
+                self.run_task_error(task_id)
             else:
-                self.run_task_success(task.id, events)
+                self.run_task_success(task_id, events)
 
         if iscoroutinefunction_partial(task.fn):
-            if run_coroutine_task is not None:
-                coroutine = run_coroutine_task(task, task.store_alias, run_times, self.logger)  # type: ignore
-                fn = self.event_loop.create_task(coroutine)
-            else:
-                raise AsynczException(
-                    detail="Executing coroutine based tasks is not supported with Trollius."
-                )
+            coroutine = run_coroutine_task(task, task.store_alias, run_times, self.logger)  # type: ignore
+            fn = self.event_loop.create_task(coroutine)
         else:
             fn = self.event_loop.run_in_executor(
                 None, run_task, task, task.store_alias, run_times, self.logger

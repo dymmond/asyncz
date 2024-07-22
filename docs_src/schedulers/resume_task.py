@@ -26,12 +26,12 @@ scheduler.add_task(
 )
 
 # Run every hour and minute 1
-scheduler.add_task(
+status = scheduler.add_task(
     id="status",
     fn=check_status,
     trigger=CronTrigger(hour="0-23", minute="1"),
 )
 
-# Resume the tasks by ID and store alias
+# Resume the tasks by ID or task object
 scheduler.resume_task("send_newsletter")
-scheduler.resume_task("status")
+scheduler.resume_task(status)

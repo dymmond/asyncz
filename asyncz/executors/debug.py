@@ -18,6 +18,7 @@ class DebugExecutor(BaseExecutor):
         task: "TaskType",
         run_times: List[datetime],
     ) -> None:
+        assert task.id is not None, "Cannot send decorator type task"
         try:
             events = run_task(task, task.store_alias, run_times, self.logger)  # type: ignore
         except Exception:

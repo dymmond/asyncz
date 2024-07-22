@@ -55,7 +55,7 @@ class SchedulerLookupError(BaseLookupError):
 class TaskLookupError(BaseLookupError):
     detail = "No task with the id {task_id} has been found."
 
-    def __init__(self, task_id: str) -> None:
+    def __init__(self, task_id: Optional[str]) -> None:
         detail = self.detail.format(task_id=task_id)
         super().__init__(detail=detail)
 
@@ -71,7 +71,7 @@ class ConflictError(KeyError):
 class ConflictIdError(KeyError):
     detail = "Task identifier ({task_id}) conflicts with an existing task."
 
-    def __init__(self, task_id: str) -> None:
+    def __init__(self, task_id: Optional[str]) -> None:
         detail = self.detail.format(task_id=task_id)
         super().__init__(detail)
 
