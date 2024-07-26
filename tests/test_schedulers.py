@@ -515,12 +515,19 @@ class TestBaseScheduler:
         def fn(x, y): ...
 
         decorator = scheduler.add_task(
-            None, "date", [1], {"y": 2}, "my-id", "dummy", run_at="2022-06-01 08:41:00"
+            None,
+            "date",
+            [1],
+            {"y": 2},
+            description="dummy",
+            run_at="2022-06-01 08:41:00",
         )
         object_setter(scheduler, "add_task", MagicMock())
         decorator(fn)
 
         scheduler.add_task.assert_called_once()
+        assert hasattr(fn, "asyncz_tasks")
+        assert len(fn.asyncz_tasks) == 1
 
     @pytest.mark.parametrize("pending", [True, False], ids=["pending task", "scheduled task"])
     def test_update_task(self, scheduler, pending, timezone):

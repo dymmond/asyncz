@@ -1,16 +1,6 @@
 import inspect
 from datetime import datetime
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Mapping,
-    Optional,
-    Sequence,
-    Union,
-)
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Union, cast
 from uuid import uuid4
 
 from pydantic import Field
@@ -18,7 +8,7 @@ from pydantic import Field
 from asyncz.datastructures import TaskState
 from asyncz.schedulers.types import SchedulerType
 from asyncz.state import BaseState
-from asyncz.tasks.types import TaskType
+from asyncz.tasks.types import DecoratedFn, TaskType
 from asyncz.triggers.types import TriggerType
 from asyncz.utils import (
     check_callable_args,
@@ -54,7 +44,6 @@ class Task(BaseState, TaskType):  # type: ignore
         next_run_time: The next scheduled run time of this task.
     """
 
-    fn: Optional[Callable[..., Any]] = None
     fn_reference: Optional[str] = None
     args: Sequence[Any] = ()
     kwargs: Dict[str, Any] = Field(default_factory=dict)
@@ -84,7 +73,11 @@ class Task(BaseState, TaskType):  # type: ignore
         return run_times
 
     def update_task(  # type: ignore
-        self, *, fn: Any = None, scheduler: Optional[SchedulerType] = None, **updates: Any
+        self,
+        *,
+        fn: Union[Callable[..., Any], str, None] = None,
+        scheduler: Optional[SchedulerType] = None,
+        **updates: Any,
     ) -> None:
         """
         Validates the updates to the Task and makes the modifications if and only if all of them
@@ -120,8 +113,12 @@ class Task(BaseState, TaskType):  # type: ignore
             else:
                 raise TypeError("fn must be a callable or a textual reference to a callable.")
 
-            if not getattr(self, "name", None) and updates.get("name", None) is None:
-                updates["name"] = get_callable_name(fn)
+            if (
+                fn is not None
+                and not getattr(self, "name", None)
+                and updates.get("name", None) is None
+            ):
+                updates["name"] = get_callable_name(cast(Callable[..., Any], fn))
 
             if isinstance(args, str) or not isinstance(args, Iterable):
                 raise TypeError("args must be a non-string iterable.")
@@ -129,18 +126,21 @@ class Task(BaseState, TaskType):  # type: ignore
                 raise TypeError("kwargs must be a dict-like object.")
 
             if fn is not None:
-                check_callable_args(fn, args, kwargs)
+                check_callable_args(cast(Callable[..., Any], fn), args, kwargs)
 
             approved["fn"] = fn
             approved["fn_reference"] = fn_reference
             approved["args"] = args
             approved["kwargs"] = kwargs
 
-        if "name" in updates:
+        if updates.get("name") is not None:
             name = updates.pop("name")
             if not name or not isinstance(name, str):
                 raise TypeError("name must be a non empty string.")
             approved["name"] = name
+        else:
+            # pop Nones
+            updates.pop("name", None)
 
         if "mistrigger_grace_time" in updates:
             mistrigger_grace_time = updates.pop("mistrigger_grace_time")
@@ -268,3 +268,23 @@ class Task(BaseState, TaskType):  # type: ignore
             status = "pending"
 
         return f"{self.name} (trigger: {self.trigger}, {status})"
+
+    def __call__(self, fn: DecoratedFn) -> DecoratedFn:
+        new_dict: Dict[str, Any] = dict(self.__dict__)
+        new_dict.pop("pending", None)
+        new_dict.pop("fn_reference", None)
+        new_dict["fn"] = fn
+        replace_existing = True
+        if not new_dict.get("id"):
+            replace_existing = False
+            new_dict["id"] = uuid4().hex
+
+        task = self.__class__(**new_dict)
+        scheduler = self.scheduler
+        if scheduler is not None:
+            scheduler.add_task(task, replace_existing=replace_existing)
+        if not replace_existing:
+            if not hasattr(fn, "asyncz_tasks"):
+                object_setattr(fn, "asyncz_tasks", [])
+            fn.asyncz_tasks.append(task)
+        return fn
