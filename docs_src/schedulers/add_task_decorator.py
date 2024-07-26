@@ -37,5 +37,8 @@ def check_status():
     ...
 
 
+# has now asyncz_tasks containing the copy
+hasattr(check_status, "asyncz_tasks")
+
 # Start the scheduler
 scheduler.start()
