@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, Callable, List, Optional, TypeVar
+from typing import Any, Callable, Dict, List, Optional, Sequence, TypeVar
 
 from asyncz.schedulers.types import SchedulerType
 from asyncz.triggers.types import TriggerType
@@ -27,6 +27,9 @@ class TaskType(TaskDefaultsType, ABC):
     scheduler: Optional[SchedulerType] = None
     trigger: Optional[TriggerType] = None
     executor: Optional[str] = None
+    fn: Optional[Callable[..., Any]] = None
+    args: Sequence[Any]
+    kwargs: Dict[str, Any]
 
     @abstractmethod
     def update_task(self, **updates: Any) -> TaskType:
@@ -94,23 +97,5 @@ class TaskType(TaskDefaultsType, ABC):
         Computes the scheduled run times `next_run_time` and `now`, inclusive.
         """
 
-    def __call__(self, fn: DecoratedFn) -> DecoratedFn:
-        kwargs = {
-            "trigger": self.trigger,
-            "executor": self.executor,
-            "scheduler": self.scheduler,
-            "fn": fn,
-            "args": self.args,
-            "kwargs": self.kwargs,
-            "id": self.id,
-            "name": self.name,
-            "mistrigger_grace_time": self.mistrigger_grace_time,
-            "coalesce": self.coalesce,
-            "max_instances": self.max_instances,
-            "store_alias": self.store_alias,
-        }
-        task = self.__class__(**kwargs)
-        scheduler = self.scheduler
-        if scheduler is not None:
-            scheduler.add_task(task, replace_existing=True)
-        return fn
+    @abstractmethod
+    def __call__(self, fn: DecoratedFn) -> DecoratedFn: ...
