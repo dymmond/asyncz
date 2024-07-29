@@ -1,5 +1,13 @@
 # Release Notes
 
+## 0.10.1
+
+### Added
+- Decorated functions have now the `asyncz_tasks` attribute if Tasks are used in decorator mode without a provided `id`.
+
+### Fixed
+- Fix backward compatibility in passing functions via fn keyword to add_task
+
 ## 0.10.0
 
 ### Added
