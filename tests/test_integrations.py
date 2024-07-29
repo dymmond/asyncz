@@ -1,5 +1,4 @@
 import contextlib
-from unittest.mock import MagicMock
 
 import pytest
 from esmerald import Gateway, Request
@@ -16,22 +15,11 @@ from starlette.responses import JSONResponse as StarletteJSONResponse
 from starlette.routing import Route
 from starlette.testclient import TestClient
 
-from asyncz.schedulers.base import BaseScheduler
-
-
-class DummyScheduler(BaseScheduler):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        object.__setattr__(self, "wakeup", MagicMock())
-
-    def shutdown(self, wait=True):
-        super().shutdown(wait)
-
-    def wakeup(self): ...
+from asyncz.schedulers.asyncio import AsyncIOScheduler
 
 
 def get_starlette_app():
-    scheduler = DummyScheduler()
+    scheduler = AsyncIOScheduler()
 
     @contextlib.asynccontextmanager
     async def lifespan(app):
@@ -53,7 +41,7 @@ def get_starlette_app():
 
 
 def get_asgi_app():
-    scheduler = DummyScheduler()
+    scheduler = AsyncIOScheduler()
 
     async def list_notes(request: StarletteRequest):
         return StarletteJSONResponse([])
@@ -70,7 +58,7 @@ def get_asgi_app():
 
 
 def get_asgi_app2():
-    scheduler = DummyScheduler()
+    scheduler = AsyncIOScheduler()
 
     async def list_notes(request: StarletteRequest):
         return StarletteJSONResponse([])
@@ -88,7 +76,7 @@ def get_asgi_app2():
 
 
 def get_lilya_app():
-    scheduler = DummyScheduler()
+    scheduler = AsyncIOScheduler()
 
     async def list_notes(request: Request) -> LilyaJSONResponse:
         return LilyaJSONResponse([])
@@ -107,7 +95,7 @@ def get_lilya_app():
 
 
 def get_lilya_start_shutdown_app():
-    scheduler = DummyScheduler()
+    scheduler = AsyncIOScheduler()
 
     async def list_notes(request: Request) -> LilyaJSONResponse:
         return LilyaJSONResponse([])
@@ -132,7 +120,7 @@ def get_lilya_start_shutdown_app():
 
 
 def get_esmerald_app():
-    scheduler = DummyScheduler()
+    scheduler = AsyncIOScheduler()
 
     @esmerald_route("/notes", methods=["GET"])
     async def list_notes(request: Request) -> EsmeraldJSONResponse:
@@ -159,7 +147,7 @@ def get_esmerald_app2():
     app = Esmerald(
         routes=[Gateway(handler=list_notes)],
         enable_scheduler=True,
-        scheduler_config=AsynczConfig(tasks={}, scheduler_class=DummyScheduler),
+        scheduler_config=AsynczConfig(tasks={}, scheduler_class=AsyncIOScheduler),
     )
     scheduler = app.scheduler_config.handler
 
@@ -180,6 +168,29 @@ def get_esmerald_app2():
 )
 def test_integrations(get_app):
     app, scheduler = get_app()
+    dummy_job_called = 0
+    async_dummy_job_called = 0
+
+    # better use real fns here for checking all behavior, like retrieving name
+    def dummy_job():
+        nonlocal dummy_job_called
+        dummy_job_called += 1
+
+    scheduler.add_task(dummy_job)
+    with pytest.warns(DeprecationWarning):
+        scheduler.add_task(fn=dummy_job)
+
+    assert dummy_job_called == 0
+
+    async def async_dummy_job():
+        nonlocal async_dummy_job_called
+        async_dummy_job_called += 1
+
+    assert async_dummy_job_called == 0
+
+    scheduler.add_task(async_dummy_job)
+    with pytest.warns(DeprecationWarning):
+        scheduler.add_task(fn=async_dummy_job)
 
     with TestClient(app) as client:
         assert scheduler.running
@@ -189,3 +200,5 @@ def test_integrations(get_app):
         assert response.json() == []
 
     assert not scheduler.running
+    assert dummy_job_called == 2
+    assert async_dummy_job_called == 2
