@@ -1,4 +1,5 @@
 import sys
+import warnings
 from abc import abstractmethod
 from collections.abc import Mapping
 from datetime import datetime, timedelta
@@ -423,6 +424,8 @@ class BaseScheduler(SchedulerType):
         store: str = "default",
         executor: str = "default",
         replace_existing: bool = False,
+        # old name
+        fn: Optional[Any] = None,
         **trigger_args: Any,
     ) -> "TaskType":
         """
@@ -462,6 +465,11 @@ class BaseScheduler(SchedulerType):
             replace_existing: True to replace an existing task with the same id
                               (but retain the number of runs from the existing one).
         """
+        if fn is not None:
+            warnings.warn(
+                "The parameter 'fn' was renamed to 'fn_or_task'", DeprecationWarning, stacklevel=2
+            )
+            fn_or_task = fn
         if isinstance(fn_or_task, TaskType):
             assert fn_or_task.id is not None, "Cannot submit a decorator type task."
             fn_or_task.scheduler = self
