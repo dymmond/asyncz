@@ -17,6 +17,8 @@ class Undefined:
 
 
 undefined = Undefined()
+# legacy shim
+UndefinedType = Undefined
 
 DictAny = Dict[Any, Any]
 DictStrAny = Dict[str, Any]
