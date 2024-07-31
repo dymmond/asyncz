@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from datetime import datetime, timedelta
 from functools import partial
 from importlib import import_module
-from threading import Lock, RLock
+from threading import TIMEOUT_MAX, Lock, RLock
 from typing import (
     Any,
     Callable,
@@ -20,7 +20,6 @@ from typing import (
 )
 
 from loguru import logger
-from tzlocal import get_localzone
 
 from asyncz.enums import PluginInstance, SchedulerState
 from asyncz.events.base import SchedulerEvent, TaskEvent, TaskSubmissionEvent
@@ -59,8 +58,8 @@ from asyncz.stores.types import StoreType
 from asyncz.tasks import Task
 from asyncz.tasks.types import TaskType
 from asyncz.triggers.types import TriggerType
-from asyncz.typing import UndefinedType, undefined
-from asyncz.utils import TIMEOUT_MAX, maybe_ref, timedelta_seconds, to_timezone
+from asyncz.typing import Undefined, undefined
+from asyncz.utils import maybe_ref, timedelta_seconds, to_datetime, to_timezone_with_fallback
 
 
 class BaseScheduler(SchedulerType):
@@ -96,7 +95,7 @@ class BaseScheduler(SchedulerType):
         self.store_lock: RLock = self.create_lock()
         self.listeners: List[Any] = []
         self.listeners_lock: RLock = self.create_lock()
-        self.pending_tasks: List[Tuple[TaskType, str, bool]] = []
+        self.pending_tasks: List[Tuple[TaskType, str, bool, bool]] = []
         self.state: Union[SchedulerState, Any] = SchedulerState.STATE_STOPPED
         self.logger: Any = logger
 
@@ -197,8 +196,8 @@ class BaseScheduler(SchedulerType):
             for alias, store in self.stores.items():
                 store.start(self, alias)
 
-            for task, store_alias, replace_existing in self.pending_tasks:
-                self.real_add_task(task, store_alias, replace_existing)
+            for task, store_alias, replace_existing, start_task in self.pending_tasks:
+                self.real_add_task(task, store_alias, replace_existing, start_task)
             del self.pending_tasks[:]
 
         self.state = SchedulerState.STATE_PAUSED if paused else SchedulerState.STATE_RUNNING
@@ -417,10 +416,10 @@ class BaseScheduler(SchedulerType):
         kwargs: Optional[Any] = None,
         id: Optional[str] = None,
         name: Optional[str] = None,
-        mistrigger_grace_time: Union[int, UndefinedType, None] = undefined,
-        coalesce: Union[bool, UndefinedType] = undefined,
-        max_instances: Union[int, UndefinedType, None] = undefined,
-        next_run_time: Union[datetime, str, UndefinedType, None] = undefined,
+        mistrigger_grace_time: Union[int, Undefined, None] = undefined,
+        coalesce: Union[bool, Undefined] = undefined,
+        max_instances: Union[int, Undefined, None] = undefined,
+        next_run_time: Union[datetime, str, Undefined, None] = undefined,
         store: str = "default",
         executor: str = "default",
         replace_existing: bool = False,
@@ -474,16 +473,30 @@ class BaseScheduler(SchedulerType):
             assert fn_or_task.id is not None, "Cannot submit a decorator type task."
             fn_or_task.scheduler = self
             with self.store_lock:
+                if next_run_time is not undefined:
+                    fn_or_task.next_run_time = to_datetime(
+                        cast(Union[datetime, str, None], next_run_time),
+                        self.timezone,
+                        "next_run_time",
+                    )
                 if self.state == SchedulerState.STATE_STOPPED:
                     self.pending_tasks.append(
-                        (fn_or_task, fn_or_task.store_alias or store, replace_existing)
+                        (
+                            fn_or_task,
+                            fn_or_task.store_alias or store,
+                            replace_existing,
+                            next_run_time is not None,
+                        )
                     )
                     self.logger.info(
                         "Adding task tentatively. It will be properly scheduled when the scheduler starts."
                     )
                 else:
                     self.real_add_task(
-                        fn_or_task, fn_or_task.store_alias or store, replace_existing
+                        fn_or_task,
+                        fn_or_task.store_alias or store,
+                        replace_existing,
+                        next_run_time is not None,
                     )
             return fn_or_task
         task_kwargs: Dict[str, Any] = {
@@ -565,7 +578,7 @@ class BaseScheduler(SchedulerType):
         """
         trigger = self.create_trigger(trigger, trigger_args)
         now = datetime.now(self.timezone)
-        next_run_time = trigger.get_next_trigger_time(None, now)
+        next_run_time = trigger.get_next_trigger_time(self.timezone, None, now)
         return self.update_task(task_id, store, trigger=trigger, next_run_time=next_run_time)
 
     def pause_task(self, task_id: Union[TaskType, str], store: Optional[str] = None) -> "TaskType":
@@ -594,7 +607,7 @@ class BaseScheduler(SchedulerType):
         with self.store_lock:
             task, store = self.lookup_task(task_id, store)
             now = datetime.now(self.timezone)
-            next_run_time = task.trigger.get_next_trigger_time(None, now)  # type: ignore
+            next_run_time = task.trigger.get_next_trigger_time(self.timezone, None, now)  # type: ignore
 
             if next_run_time:
                 return self.update_task(task_id, store, next_run_time=next_run_time)
@@ -616,7 +629,7 @@ class BaseScheduler(SchedulerType):
         with self.store_lock:
             tasks = []
             if self.state == SchedulerState.STATE_STOPPED:
-                for task, alias, _ in self.pending_tasks:
+                for task, alias, _, _ in self.pending_tasks:
                     if store is None or alias == store:
                         tasks.append(task)
             else:
@@ -658,7 +671,7 @@ class BaseScheduler(SchedulerType):
 
         with self.store_lock:
             if self.state == SchedulerState.STATE_STOPPED:
-                for index, (task, alias, _) in enumerate(self.pending_tasks):
+                for index, (task, alias, _, _) in enumerate(self.pending_tasks):
                     if task.id == task_id and store in (None, alias):
                         del self.pending_tasks[index]
                         store_alias = alias
@@ -712,7 +725,7 @@ class BaseScheduler(SchedulerType):
         Applies initial configurations called by the Base constructor.
         """
         self.logger = maybe_ref(config.pop("logger", None)) or logger
-        self.timezone = to_timezone(config.pop("timezone", None)) or get_localzone()
+        self.timezone = to_timezone_with_fallback(config.pop("timezone", None))
         self.store_retry_interval = float(config.pop("store_retry_interval", 10))
 
         self.task_defaults = TaskDefaultStruct(**(config.get("task_defaults", None) or {}))
@@ -813,7 +826,7 @@ class BaseScheduler(SchedulerType):
             alias: Alias of a task store to look in.
         """
         if self.state == SchedulerState.STATE_STOPPED:
-            for task, _, _ in self.pending_tasks:
+            for task, _, _, _ in self.pending_tasks:
                 if task.id == task_id:
                     return task, None
         else:
@@ -854,7 +867,9 @@ class BaseScheduler(SchedulerType):
                 "option for the scheduler to work."
             )
 
-    def real_add_task(self, task: "TaskType", store_alias: str, replace_existing: bool) -> None:
+    def real_add_task(
+        self, task: "TaskType", store_alias: str, replace_existing: bool, start_task: bool
+    ) -> None:
         """
         Adds the task.
 
@@ -863,15 +878,17 @@ class BaseScheduler(SchedulerType):
             store_alias: The alias of the store to add the task to.
             replace_existing: The flag indicating the replacement of the task.
         """
+        assert task.trigger is not None, "Submitted task has no trigger set."
         replacements: Dict[str, Any] = {}
 
         # Calculate the next run time if there is none defined
-        if not getattr(task, "next_run_time", None):
+        if task.next_run_time is None and start_task:
             now = datetime.now(self.timezone)
-            replacements["next_run_time"] = task.trigger.get_next_trigger_time(None, now)  # type: ignore
+            replacements["next_run_time"] = task.trigger.get_next_trigger_time(
+                self.timezone, None, now
+            )
 
         # Apply replacements
-        task.pending = False
         task.update_task(**replacements)
         # Add the task to the given store
         store = self.lookup_store(store_alias)
@@ -882,6 +899,7 @@ class BaseScheduler(SchedulerType):
                 store.update_task(task)
             else:
                 raise
+        task.pending = False
 
         task.store_alias = store_alias
 
@@ -891,7 +909,7 @@ class BaseScheduler(SchedulerType):
         self.logger.info(f"Added task '{task.name}' to store '{store_alias}'.")
 
         # Notify the scheduler about the new task.
-        if self.state == SchedulerState.STATE_RUNNING:
+        if start_task and self.state == SchedulerState.STATE_RUNNING:
             self.wakeup()
 
     def resolve_load_plugin(self, module_name: str) -> Any:
@@ -1002,7 +1020,7 @@ class BaseScheduler(SchedulerType):
                         self.delete_task(task.id, store_alias)
                         continue
 
-                    run_times = task.get_run_times(now)
+                    run_times = task.get_run_times(self.timezone, now)
                     run_times = run_times[-1:] if run_times and task.coalesce else run_times
 
                     if run_times:
@@ -1033,7 +1051,9 @@ class BaseScheduler(SchedulerType):
                             )
                             events.append(event)
 
-                        next_run = task.trigger.get_next_trigger_time(run_times[-1], now)  # type: ignore
+                        next_run = task.trigger.get_next_trigger_time(  # type: ignore
+                            self.timezone, run_times[-1], now
+                        )
                         if next_run:
                             task.update_task(next_run_time=next_run)
                             store.update_task(task)

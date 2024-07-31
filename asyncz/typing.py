@@ -1,4 +1,4 @@
-from typing import Any, Dict, Type, TypeVar, Union
+from typing import Any, Dict
 
 
 class Undefined:
@@ -17,8 +17,6 @@ class Undefined:
 
 
 undefined = Undefined()
-UndefinedTypeVar = TypeVar("UndefinedTypeVar", bound=Undefined)
-UndefinedType = Union[Type[UndefinedTypeVar], Undefined]
 
 DictAny = Dict[Any, Any]
 DictStrAny = Dict[str, Any]

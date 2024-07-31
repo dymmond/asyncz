@@ -1,8 +1,6 @@
 from datetime import datetime, tzinfo
 from typing import Any, ClassVar, Optional, Union
 
-from tzlocal import get_localzone
-
 from asyncz.datastructures import DateState
 from asyncz.triggers.base import BaseTrigger
 from asyncz.utils import datetime_repr, to_datetime, to_timezone
@@ -26,7 +24,7 @@ class DateTrigger(BaseTrigger):
         timezone: Optional[Union[tzinfo, str]] = None,
         **kwargs: Any,
     ):
-        timezone = to_timezone(timezone) or get_localzone()
+        timezone = to_timezone(timezone)
         if run_at is not None:
             kwargs["run_at"] = to_datetime(run_at, timezone, "run_at")
         else:
@@ -35,10 +33,10 @@ class DateTrigger(BaseTrigger):
         super().__init__(**kwargs)
 
     def get_next_trigger_time(
-        self, previous_time: Optional[datetime], now: Optional[datetime] = None
+        self, timezone: tzinfo, previous_time: Optional[datetime], now: Optional[datetime] = None
     ) -> Union[datetime, None]:
         if previous_time is None:
-            return self.run_at
+            return self.run_at.astimezone(timezone)
         return None
 
     def __getstate__(self) -> Any:

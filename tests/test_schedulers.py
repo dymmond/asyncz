@@ -1,6 +1,6 @@
 import logging
 import pickle
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, tzinfo
 from threading import Thread
 from typing import Any, List, Optional, Union
 from unittest.mock import MagicMock, patch
@@ -68,7 +68,7 @@ class DummyTrigger(BaseTrigger):
         self.args = args
 
     def get_next_trigger_time(
-        self, previous_time: datetime, now: Optional[datetime] = None
+        self, timezone: tzinfo, previous_time: datetime, now: Optional[datetime] = None
     ) -> Union[datetime, None]: ...
 
 
@@ -249,7 +249,7 @@ class TestBaseScheduler:
             "store2": MagicMock(BaseStore),
         }
         task = create_task(fn=lambda: None)
-        scheduler.pending_tasks = [(task, "store1", False)]
+        scheduler.pending_tasks = [(task, "store1", False, True)]
         scheduler.start()
 
         scheduler.executors["exec1"].start.assert_called_once_with(scheduler, "exec1")
@@ -262,7 +262,7 @@ class TestBaseScheduler:
         assert "default" in scheduler.executors
         assert "default" in scheduler.stores
 
-        scheduler.real_add_task.assert_called_once_with(task, "store1", False)
+        scheduler.real_add_task.assert_called_once_with(task, "store1", False, True)
         assert scheduler.pending_tasks == []
 
         assert scheduler.dispatch_event.call_count == 3
@@ -567,7 +567,7 @@ class TestBaseScheduler:
 
     def test_reschedule_task(self, scheduler):
         object_setter(scheduler, "update_task", MagicMock())
-        trigger = MagicMock(get_next_trigger_time=lambda previous, now: 1)
+        trigger = MagicMock(get_next_trigger_time=lambda timezone, previous, now: 1)
         object_setter(scheduler, "create_trigger", MagicMock(return_value=trigger))
         scheduler.reschedule_task("my-id", "store", "date", run_at="2022-06-01 08:41:00")
 
@@ -587,7 +587,9 @@ class TestBaseScheduler:
     @pytest.mark.parametrize("dead_task", [True, False], ids=["dead task", "live task"])
     def test_resume_task(self, scheduler, freeze_time, dead_task):
         next_trigger_time = None if dead_task else freeze_time.current + timedelta(seconds=1)
-        trigger = MagicMock(BaseTrigger, get_next_trigger_time=lambda prev, now: next_trigger_time)
+        trigger = MagicMock(
+            BaseTrigger, get_next_trigger_time=lambda timezone, prev, now: next_trigger_time
+        )
         returned_task = MagicMock(Task, id="foo", trigger=trigger)
         object_setter(scheduler, "lookup_task", MagicMock(return_value=(returned_task, "bar")))
         object_setter(scheduler, "update_task", MagicMock())

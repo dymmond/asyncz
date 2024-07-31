@@ -1,5 +1,5 @@
 import inspect
-from datetime import datetime
+from datetime import datetime, tzinfo
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Union, cast
 from uuid import uuid4
 
@@ -60,7 +60,7 @@ class Task(BaseState, TaskType):  # type: ignore
         super().__init__(id=id, **kwargs)
         self.update_task(fn=fn, **kwargs)
 
-    def get_run_times(self, now: datetime) -> List[datetime]:
+    def get_run_times(self, timezone: tzinfo, now: datetime) -> List[datetime]:
         """
         Computes the scheduled run times `next_run_time` and `now`, inclusive.
         """
@@ -69,7 +69,7 @@ class Task(BaseState, TaskType):  # type: ignore
         assert self.trigger
         while next_run_time and next_run_time <= now:
             run_times.append(next_run_time)
-            next_run_time = self.trigger.get_next_trigger_time(next_run_time, now)
+            next_run_time = self.trigger.get_next_trigger_time(timezone, next_run_time, now)
         return run_times
 
     def update_task(  # type: ignore

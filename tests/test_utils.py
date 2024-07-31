@@ -19,7 +19,6 @@ from asyncz.utils import (
     obj_to_ref,
     ref_to_obj,
     timedelta_seconds,
-    to_bool,
     to_datetime,
     to_float,
     to_int,
@@ -69,41 +68,6 @@ class TestToInt:
 
     def test_none(self):
         assert to_int(None) is None
-
-
-class TestToBool:
-    @pytest.mark.parametrize(
-        "value",
-        [" True", "true ", "Yes", " yes ", "1  ", True],
-        ids=[
-            "capital true",
-            "lowercase true",
-            "capital yes",
-            "lowercase yes",
-            "one",
-            "True",
-        ],
-    )
-    def test_true(self, value):
-        assert to_bool(value) is True
-
-    @pytest.mark.parametrize(
-        "value",
-        [" False", "false ", "No", " no ", "0  ", False],
-        ids=[
-            "capital",
-            "lowercase false",
-            "capital no",
-            "lowercase no",
-            "zero",
-            "False",
-        ],
-    )
-    def test_false(self, value):
-        assert to_bool(value) is False
-
-    def test_bad_value(self):
-        assert to_bool("yep") is False
 
 
 class TestToTimezone:

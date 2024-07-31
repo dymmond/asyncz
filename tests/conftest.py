@@ -12,7 +12,7 @@ from asyncz.tasks import Task
 @pytest.fixture(scope="function")
 def timezone(monkeypatch):
     tz = pytz.timezone("Europe/London")
-    monkeypatch.setattr("asyncz.schedulers.base.get_localzone", Mock(return_value=tz))
+    monkeypatch.setattr("asyncz.utils.get_localzone", Mock(return_value=tz))
     return tz
 
 

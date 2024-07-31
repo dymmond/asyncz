@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, Union
 from asyncz.events.constants import (
     ALL_EVENTS,
 )
-from asyncz.typing import UndefinedType, undefined
+from asyncz.typing import Undefined, undefined
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -130,10 +130,10 @@ class SchedulerType(ABC):
         kwargs: Optional[Any] = None,
         id: Optional[str] = None,
         name: Optional[str] = None,
-        mistrigger_grace_time: Union[int, UndefinedType, None] = undefined,
-        coalesce: Union[bool, UndefinedType] = undefined,
-        max_instances: Union[int, UndefinedType, None] = undefined,
-        next_run_time: Union[datetime, str, UndefinedType, None] = undefined,
+        mistrigger_grace_time: Union[int, Undefined, None] = undefined,
+        coalesce: Union[bool, Undefined] = undefined,
+        max_instances: Union[int, Undefined, None] = undefined,
+        next_run_time: Union[datetime, str, Undefined, None] = undefined,
         store: str = "default",
         executor: str = "default",
         replace_existing: bool = False,

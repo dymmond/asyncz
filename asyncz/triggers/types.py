@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, tzinfo
 from typing import ClassVar, Optional, Union, overload
 
 
@@ -10,7 +10,7 @@ class TriggerType(ABC):
 
     @abstractmethod
     def get_next_trigger_time(
-        self, previous_time: Optional[datetime], now: Optional[datetime] = None
+        self, timezone: tzinfo, previous_time: Optional[datetime], now: Optional[datetime] = None
     ) -> Union[datetime, None]:
         """
         Returns the next datetime to trigger. If the datetime cannot be calculated, then returns None.
