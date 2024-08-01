@@ -64,11 +64,10 @@ class TaskState(BaseDatastructureState):  # type: ignore
     args: Optional[Any] = None
     kwargs: Optional[Any] = None
     coalesce: Optional[bool] = None
-    trigger: Optional[Union[str, TriggerType]] = None
+    trigger: Optional[TriggerType] = None
     executor: Optional[str] = None
     mistrigger_grace_time: Optional[int] = None
     max_instances: Optional[int] = None
     next_run_time: Optional[datetime] = None
     scheduler: Optional[Any] = None
     store_alias: Optional[str] = None
-    store: Optional[Union[str, StoreType]] = None

@@ -20,7 +20,6 @@ class TaskType(TaskDefaultsType, ABC):
     """BaseType of task."""
 
     id: Optional[str] = None
-    pending: bool = True
     name: Optional[str] = None
     next_run_time: Optional[datetime] = None
     fn: Optional[Callable[..., Any]] = None
@@ -29,9 +28,11 @@ class TaskType(TaskDefaultsType, ABC):
     # are set by add_task if not set
     store_alias: Optional[str] = None
     executor: Optional[str] = None
-
-    scheduler: Optional[SchedulerType] = None
     trigger: Optional[TriggerType] = None
+    scheduler: Optional[SchedulerType] = None
+    # are exclusively set by scheduler
+    pending: bool = True
+    submitted: bool = False
 
     @abstractmethod
     def update_task(self, **updates: Any) -> TaskType:

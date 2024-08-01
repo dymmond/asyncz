@@ -445,6 +445,10 @@ class TestBaseScheduler:
         assert task.mistrigger_grace_time == 1
         assert task.coalesce is True
         assert task.max_instances == 1
+        assert task.submitted
+        # test that submitting works only once
+        with pytest.raises(AssertionError):
+            scheduler.add_task(task)
 
     def test_add_task_obj_paused_update(self, scheduler, timezone):
         """Test that when a task is added to a stopped scheduler, a Task instance is returned."""

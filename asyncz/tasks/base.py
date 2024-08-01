@@ -208,11 +208,9 @@ class Task(BaseState, TaskType):  # type: ignore
         for name, value in self.__dict__.items():
             if name == "fn":
                 self.__dict__[name] = ref_to_obj(value)
-
-        for name, value in state.__private_attributes__.items():
-            if name == "fn":
-                value = ref_to_obj(value)
-            object_setattr(self, name, value)
+        # the task was serialized in a store, so it is active
+        self.submitted = True
+        self.pending = False
         return self
 
     def __getstate__(self) -> "TaskState":  # type: ignore
@@ -274,6 +272,7 @@ class Task(BaseState, TaskType):  # type: ignore
     def __call__(self, fn: DecoratedFn) -> DecoratedFn:
         new_dict: Dict[str, Any] = dict(self.__dict__)
         new_dict.pop("pending", None)
+        new_dict.pop("submitted", None)
         new_dict.pop("fn_reference", None)
         new_dict["fn"] = fn
         if new_dict["store_alias"] is None:
@@ -288,6 +287,7 @@ class Task(BaseState, TaskType):  # type: ignore
         task = self.__class__(**new_dict)
         scheduler = self.scheduler
         if scheduler is not None:
+            # in decorator mode tasks are simply started
             scheduler.add_task(task, replace_existing=replace_existing)
         if not replace_existing:
             if not hasattr(fn, "asyncz_tasks"):
