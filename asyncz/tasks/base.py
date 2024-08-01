@@ -158,6 +158,8 @@ class Task(BaseState, TaskType):  # type: ignore
 
         if "store_alias" in updates:
             store_alias = updates.pop("store_alias")
+            if not isinstance(store_alias, str):
+                raise TypeError("store_alias must be a string.")
             approved["store_alias"] = store_alias
 
         if "max_instances" in updates:
@@ -274,6 +276,10 @@ class Task(BaseState, TaskType):  # type: ignore
         new_dict.pop("pending", None)
         new_dict.pop("fn_reference", None)
         new_dict["fn"] = fn
+        if new_dict["store_alias"] is None:
+            del new_dict["store_alias"]
+        if new_dict["executor"] is None:
+            del new_dict["executor"]
         replace_existing = True
         if not new_dict.get("id"):
             replace_existing = False

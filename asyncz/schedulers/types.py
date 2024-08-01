@@ -134,8 +134,8 @@ class SchedulerType(ABC):
         coalesce: Union[bool, Undefined] = undefined,
         max_instances: Union[int, Undefined, None] = undefined,
         next_run_time: Union[datetime, str, Undefined, None] = undefined,
-        store: str = "default",
-        executor: str = "default",
+        store: Optional[str] = None,
+        executor: Optional[str] = None,
         replace_existing: bool = False,
         **trigger_args: Any,
     ) -> TaskType:

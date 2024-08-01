@@ -23,11 +23,12 @@ class TaskType(TaskDefaultsType, ABC):
     pending: bool = True
     name: Optional[str] = None
     next_run_time: Optional[datetime] = None
-    store_alias: Optional[str] = None
-    executor: Optional[str] = None
     fn: Optional[Callable[..., Any]] = None
     args: Sequence[Any]
     kwargs: Dict[str, Any]
+    # are set by add_task if not set
+    store_alias: Optional[str] = None
+    executor: Optional[str] = None
 
     scheduler: Optional[SchedulerType] = None
     trigger: Optional[TriggerType] = None
