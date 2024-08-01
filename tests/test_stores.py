@@ -99,6 +99,7 @@ def create_add_task(timezone, create_task):
             None if paused else task.trigger.get_next_trigger_time(timezone, None, run_at)
         )
         if store:
+            store.start(task.scheduler, "default")
             store.add_task(task)
         return task
 

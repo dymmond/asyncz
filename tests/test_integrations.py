@@ -16,6 +16,7 @@ from starlette.routing import Route
 from starlette.testclient import TestClient
 
 from asyncz.schedulers.asyncio import AsyncIOScheduler
+from asyncz.schedulers.base import ClassicLogging, LoguruLogging
 
 
 def get_starlette_app():
@@ -155,6 +156,14 @@ def get_esmerald_app2():
 
 
 @pytest.mark.parametrize(
+    "loggers_class_string,loggers_class",
+    [
+        ["asyncz.schedulers.base:ClassicLogging", ClassicLogging],
+        ["asyncz.schedulers.base:LoguruLogging", LoguruLogging],
+    ],
+    ids=["ClassicLogging", "LoguruLogging"],
+)
+@pytest.mark.parametrize(
     "get_app",
     [
         get_starlette_app,
@@ -166,8 +175,10 @@ def get_esmerald_app2():
         get_esmerald_app2,
     ],
 )
-def test_integrations(get_app):
+def test_integrations(get_app, loggers_class_string, loggers_class):
     app, scheduler = get_app()
+    scheduler.setup(loggers_class=loggers_class_string)
+    assert isinstance(scheduler.loggers, loggers_class)
     dummy_job_called = 0
     async_dummy_job_called = 0
 

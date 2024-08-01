@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, List, Set
+from typing import TYPE_CHECKING, Any, List, Set, cast
 
 from asyncz.executors.base import BaseExecutor, run_coroutine_task, run_task
 from asyncz.utils import iscoroutinefunction_partial
@@ -35,6 +35,7 @@ class AsyncIOExecutor(BaseExecutor):
     def do_send_task(self, task: "TaskType", run_times: List[datetime]) -> None:
         task_id = task.id
         assert task_id is not None, "Cannot send decorator type task"
+        assert self.logger is not None, "logger is None"
 
         def callback(fn: Any) -> None:
             self.pending_futures.discard(fn)
@@ -46,11 +47,13 @@ class AsyncIOExecutor(BaseExecutor):
                 self.run_task_success(task_id, events)
 
         if iscoroutinefunction_partial(task.fn):
-            coroutine = run_coroutine_task(task, task.store_alias, run_times, self.logger)  # type: ignore
+            coroutine = run_coroutine_task(
+                task, cast(str, task.store_alias), run_times, self.logger
+            )
             fn = self.event_loop.create_task(coroutine)
         else:
             fn = self.event_loop.run_in_executor(
-                None, run_task, task, task.store_alias, run_times, self.logger
+                None, run_task, task, cast(str, task.store_alias), run_times, self.logger
             )
 
         fn.add_done_callback(callback)

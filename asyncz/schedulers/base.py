@@ -1,3 +1,4 @@
+import logging
 import sys
 import warnings
 from abc import abstractmethod
@@ -18,8 +19,6 @@ from typing import (
     cast,
     overload,
 )
-
-from loguru import logger
 
 from asyncz.enums import PluginInstance, SchedulerState
 from asyncz.events.base import SchedulerEvent, TaskEvent, TaskSubmissionEvent
@@ -52,7 +51,7 @@ from asyncz.executors.types import ExecutorType
 from asyncz.schedulers import defaults
 from asyncz.schedulers.asgi import ASGIApp, ASGIHelper
 from asyncz.schedulers.datastructures import TaskDefaultStruct
-from asyncz.schedulers.types import SchedulerType
+from asyncz.schedulers.types import LoggersType, SchedulerType
 from asyncz.stores.memory import MemoryStore
 from asyncz.stores.types import StoreType
 from asyncz.tasks import Task
@@ -60,6 +59,45 @@ from asyncz.tasks.types import TaskType
 from asyncz.triggers.types import TriggerType
 from asyncz.typing import Undefined, undefined
 from asyncz.utils import maybe_ref, timedelta_seconds, to_timezone_with_fallback
+
+
+class ClassicLogging(LoggersType):
+    def __missing__(self, item: str) -> logging.Logger:
+        return logging.getLogger(item)
+
+
+class LoguruLoggerFnWrapper:
+    def __init__(self, logger: Any, fn_name: str) -> None:
+        self.logger = logger
+        self.fn_name = fn_name
+
+    def __call__(self, *args: Any, exc_info: bool = False, **kwargs: Any) -> Any:
+        logger = self.logger
+        if exc_info:
+            logger = logger.opt(exception=True)
+        return getattr(logger, self.fn_name)(*args, **kwargs)
+
+
+class LoguruLoggerWrapper:
+    def __init__(self, logger: Any) -> None:
+        self.logger = logger
+
+    def __getattr__(self, item: str) -> LoguruLoggerFnWrapper:
+        return LoguruLoggerFnWrapper(self.logger, item)
+
+
+default_loggers_class: Type[LoggersType] = ClassicLogging
+
+try:
+    from loguru import logger
+
+    class LoguruLogging(LoggersType):
+        def __missing__(self, item: str) -> logging.Logger:
+            return cast(logging.Logger, LoguruLoggerWrapper(logger.bind(name=item)))
+
+    default_loggers_class = LoguruLogging
+except ImportError:
+    pass
 
 
 class BaseScheduler(SchedulerType):
@@ -80,9 +118,12 @@ class BaseScheduler(SchedulerType):
         state: current running state of the scheduler.
     """
 
-    def __init__(self, global_config: Optional[Any] = None, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        global_config: Optional[Any] = None,
+        **kwargs: Any,
+    ) -> None:
         super().__init__()
-        self.global_config: Dict[str, Any] = global_config or {}
         self.trigger_plugins = dict(defaults.triggers.items())
         self.trigger_classes: Dict[str, Type[TriggerType]] = {}
         self.executor_plugins: Dict[str, str] = dict(defaults.executors.items())
@@ -97,11 +138,10 @@ class BaseScheduler(SchedulerType):
         self.listeners_lock: RLock = self.create_lock()
         self.pending_tasks: List[Tuple[TaskType, bool, bool]] = []
         self.state: Union[SchedulerState, Any] = SchedulerState.STATE_STOPPED
-        self.logger: Any = logger
 
         self.ref_counter: int = 0
         self.ref_lock: Lock = Lock()
-        self.setup(self.global_config, **kwargs)
+        self.setup(global_config, **kwargs)
 
     def __getstate__(self) -> None:
         raise TypeError(
@@ -201,7 +241,7 @@ class BaseScheduler(SchedulerType):
             del self.pending_tasks[:]
 
         self.state = SchedulerState.STATE_PAUSED if paused else SchedulerState.STATE_RUNNING
-        self.logger.info("Scheduler started.")
+        self.loggers[self.logger_name].info("Scheduler started.")
         self.dispatch_event(SchedulerEvent(code=SCHEDULER_START))
 
         if not paused:
@@ -231,7 +271,7 @@ class BaseScheduler(SchedulerType):
             for store in self.stores.values():
                 store.shutdown()
 
-        self.logger.info("Scheduler has been shutdown.")
+        self.loggers[self.logger_name].info("Scheduler has been shutdown.")
         self.dispatch_event(SchedulerEvent(code=SCHEDULER_SHUTDOWN))
         return True
 
@@ -246,7 +286,7 @@ class BaseScheduler(SchedulerType):
             raise SchedulerNotRunningError()
         elif self.state == SchedulerState.STATE_RUNNING:
             self.state = SchedulerState.STATE_PAUSED
-            self.logger.info("Paused scheduler task processing.")
+            self.loggers[self.logger_name].info("Paused scheduler task processing.")
             self.dispatch_event(SchedulerEvent(code=SCHEDULER_PAUSED))
 
     def resume(self) -> None:
@@ -257,7 +297,7 @@ class BaseScheduler(SchedulerType):
             raise SchedulerNotRunningError
         elif self.state == SchedulerState.STATE_PAUSED:
             self.state = SchedulerState.STATE_RUNNING
-            self.logger.info("Resumed scheduler task processing.")
+            self.loggers[self.logger_name].info("Resumed scheduler task processing.")
             self.dispatch_event(SchedulerEvent(code=SCHEDULER_RESUMED))
             self.wakeup()
 
@@ -511,7 +551,7 @@ class BaseScheduler(SchedulerType):
                             next_run_time is not None,
                         )
                     )
-                    self.logger.info(
+                    self.loggers[self.logger_name].info(
                         "Adding task tentatively. It will be properly scheduled when the scheduler starts."
                     )
                 else:
@@ -716,7 +756,7 @@ class BaseScheduler(SchedulerType):
         event = TaskEvent(code=TASK_REMOVED, task_id=task_id, store=store_alias)
         self.dispatch_event(event)
 
-        self.logger.info(f"Removed task {task_id}.")
+        self.loggers[self.logger_name].info(f"Removed task {task_id}.")
 
     def remove_all_tasks(self, store: Optional[str]) -> None:
         """
@@ -750,11 +790,21 @@ class BaseScheduler(SchedulerType):
         """
         Applies initial configurations called by the Base constructor.
         """
-        self.logger = maybe_ref(config.pop("logger", None)) or logger
         self.timezone = to_timezone_with_fallback(config.pop("timezone", None))
         self.store_retry_interval = float(config.pop("store_retry_interval", 10))
 
         self.task_defaults = TaskDefaultStruct(**(config.get("task_defaults", None) or {}))
+        loggers_class: Type[LoggersType] = (
+            maybe_ref(config.pop("loggers_class", None)) or default_loggers_class
+        )
+        self.loggers = loggers_class()
+        logger_name = config.pop("logger_name", None)
+        if logger_name:
+            self.logger_name = f"asyncz.schedulers.{logger_name}"
+        else:
+            self.logger_name = "asyncz.schedulers"
+        # initialize logger for scheduler
+        self.loggers[self.logger_name]
 
         self.executors.clear()
         for alias, value in config.get("executors", {}).items():
@@ -879,7 +929,7 @@ class BaseScheduler(SchedulerType):
                 try:
                     callback(event)
                 except BaseException:
-                    self.logger.exception("Error notifying listener.")
+                    self.loggers[self.logger_name].exception("Error notifying listener.")
 
     def check_uwsgi(self) -> None:
         """
@@ -930,7 +980,9 @@ class BaseScheduler(SchedulerType):
         event = TaskEvent(code=TASK_ADDED, task_id=task.id, alias=task.store_alias)
         self.dispatch_event(event)
 
-        self.logger.info(f"Added task '{task.name}' to store '{task.store_alias}'.")
+        self.loggers[self.logger_name].info(
+            f"Added task '{task.name}' to store '{task.store_alias}'."
+        )
 
         # Notify the scheduler about the new task.
         if start_task and self.state == SchedulerState.STATE_RUNNING:
@@ -1013,10 +1065,10 @@ class BaseScheduler(SchedulerType):
         store_retry_interval seconds.
         """
         if self.state == SchedulerState.STATE_PAUSED:
-            self.logger.debug("Scheduler is paused. Not processing tasks.")
+            self.loggers[self.logger_name].debug("Scheduler is paused. Not processing tasks.")
             return None
 
-        self.logger.debug("Looking for tasks to run.")
+        self.loggers[self.logger_name].debug("Looking for tasks to run.")
         now = datetime.now(self.timezone)
         next_wakeup_time: Optional[datetime] = None
         events = []
@@ -1026,7 +1078,7 @@ class BaseScheduler(SchedulerType):
                 try:
                     due_tasks: List[TaskType] = store.get_due_tasks(now)
                 except Exception as e:
-                    self.logger.warning(
+                    self.loggers[self.logger_name].warning(
                         f"Error getting due tasks from the store {store_alias}: {e}."
                     )
                     retry_wakeup_time = now + timedelta(seconds=self.store_retry_interval)
@@ -1038,7 +1090,7 @@ class BaseScheduler(SchedulerType):
                     try:
                         executor = self.lookup_executor(task.executor)  # type: ignore
                     except Exception:
-                        self.logger.error(
+                        self.loggers[self.logger_name].error(
                             f"Executor lookup ('{task.executor}') failed for task '{task}'. Removing it from the store."
                         )
                         self.delete_task(task.id, store_alias)
@@ -1051,7 +1103,7 @@ class BaseScheduler(SchedulerType):
                         try:
                             executor.send_task(task, run_times)
                         except MaxInterationsReached:
-                            self.logger.warning(
+                            self.loggers[self.logger_name].warning(
                                 f"Execution of task '{task}' skipped: Maximum number of running "
                                 f"instances reached '({task.max_instances})'."
                             )
@@ -1062,9 +1114,10 @@ class BaseScheduler(SchedulerType):
                                 scheduled_run_times=run_times,
                             )
                             events.append(event)
-                        except BaseException:
-                            self.logger.exception(
-                                f"Error submitting task '{task}' to executor '{task.executor}'."
+                        except Exception:
+                            self.loggers[self.logger_name].exception(
+                                f"Error submitting task '{task}' to executor '{task.executor}'.",
+                                exc_info=True,
                             )
                         else:
                             event = TaskSubmissionEvent(
@@ -1095,12 +1148,14 @@ class BaseScheduler(SchedulerType):
 
         wait_seconds: Optional[float] = None
         if self.state == SchedulerState.STATE_PAUSED:
-            self.logger.debug("Scheduler is paused. Waiting until resume() is called.")
+            self.loggers[self.logger_name].debug(
+                "Scheduler is paused. Waiting until resume() is called."
+            )
         elif next_wakeup_time is None:
-            self.logger.debug("No tasks. Waiting until task is added.")
+            self.loggers[self.logger_name].debug("No tasks. Waiting until task is added.")
         else:
             wait_seconds = min(max(timedelta_seconds(next_wakeup_time - now), 0), TIMEOUT_MAX)
-            self.logger.debug(
+            self.loggers[self.logger_name].debug(
                 f"Next wakeup is due at {next_wakeup_time} (in {wait_seconds} seconds)."
             )
         return wait_seconds

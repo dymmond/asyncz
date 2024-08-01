@@ -1,7 +1,8 @@
 from .asyncio import AsyncIOExecutor
 from .base import BaseExecutor
 from .debug import DebugExecutor
-from .pool import ProcessPoolExecutor, ThreadPoolExecutor
+from .pool import ThreadPoolExecutor
+from .process_pool import ProcessPoolExecutor
 
 __all__ = [
     "BaseExecutor",

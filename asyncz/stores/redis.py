@@ -80,7 +80,9 @@ class RedisStore(BaseStore):
             try:
                 tasks.append(self.rebuild_task(state))
             except BaseException:
-                self.logger.exception(f"Unable to restore task '{task_id}'. Removing it...")
+                cast("SchedulerType", self.scheduler).loggers[self.logger_name].exception(
+                    f"Unable to restore task '{task_id}'. Removing it..."
+                )
                 failed_task_ids.append(task_id)
 
         if failed_task_ids:

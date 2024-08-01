@@ -39,9 +39,11 @@ class BasePoolExecutor(BaseExecutor):
                 self.run_task_success(task_id, fn.result())
 
         try:
-            fn = self.pool.submit(run_task, task, task.store_alias, run_times)
+            fn = self.pool.submit(run_task, task, task.store_alias, run_times, self.logger)
         except (BrokenProcessPool, TypeError):
-            self.logger.warning("Process pool is broken. Replacing pool with a new instance.")
+            self.scheduler.loggers[self.logger_name].warning(
+                "Process pool is broken. Replacing pool with a new instance."
+            )
             self.pool = self.pool.__class__(self.pool.max_workers)
             fn = self.pool.submit(run_task, task, task.store_alias, run_times, self.logger)
 
@@ -67,22 +69,4 @@ class ThreadPoolExecutor(BasePoolExecutor):
     def __init__(self, max_workers: int = 10, pool_kwargs: Optional[Any] = None, **kwargs: Any):
         pool_kwargs = pool_kwargs or {}
         pool = concurrent.futures.ThreadPoolExecutor(int(max_workers), **pool_kwargs)
-        super().__init__(pool, **kwargs)
-
-
-class ProcessPoolExecutor(BasePoolExecutor):
-    """
-    An executor that runs tasks in a concurrent.futures process pool.
-
-    Args:
-        max_workers: The maximum number of spawned processes.
-        pool_kwargs: Dict of keyword arguments to pass to the underlying
-            ProcessPoolExecutor constructor.
-    """
-
-    def __init__(
-        self, max_workers: int = 10, pool_kwargs: Optional[Any] = None, **kwargs: Any
-    ) -> None:
-        pool_kwargs = pool_kwargs or {}
-        pool = concurrent.futures.ProcessPoolExecutor(int(max_workers), **pool_kwargs)
         super().__init__(pool, **kwargs)

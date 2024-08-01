@@ -13,7 +13,7 @@ executors: Dict[str, str] = {
     "debug": "asyncz.executors.debug:DebugExecutor",
     "pool": "asyncz.executors.pool:ThreadPoolExecutor",
     "threadpool": "asyncz.executors.pool:ThreadPoolExecutor",
-    "processpool": "asyncz.executors.pool:ProcessPoolExecutor",
+    "processpool": "asyncz.executors.process_pool:ProcessPoolExecutor",
     "asyncio": "asyncz.executors.asyncio:AsyncIOExecutor",
 }
 
