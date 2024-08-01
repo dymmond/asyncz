@@ -18,6 +18,17 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+    services:
+      redis:
+        image: redis
+        ports:
+          - 127.0.0.1:6379:6379
+
+      mongodb:
+        image: mongo
+        ports:
+          - 127.0.0.1:27017:27017
+
     steps:
       - uses: "actions/checkout@v4"
       - uses: "actions/setup-python@v5"
@@ -29,14 +40,12 @@ jobs:
         with:
           path: ${{ env.pythonLocation }}
           key: ${{ runner.os }}-python-${{ env.pythonLocation }}-${{ hashFiles('pyproject.toml') }}-test-v02
-      - name: "Start docker services"
-        run: docker-compose up -d
       - name: "Install dependencies"
         if: steps.cache.outputs.cache-hit != 'true'
         run: "pip install hatch"
       - name: "Run linting"
         run: "hatch fmt --check"
-      # - name: "Run mypy"
-      #  run: "hatch run test:check_types"
+      - name: "Run mypy"
+        run: "hatch run test:check_types"
       - name: "Run tests"
         run: "hatch test"
