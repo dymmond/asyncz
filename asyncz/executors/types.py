@@ -2,15 +2,19 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, Any, List, Optional
 
 if TYPE_CHECKING:
+    import logging
+
     from asyncz.events import TaskExecutionEvent
     from asyncz.schedulers.types import SchedulerType
     from asyncz.tasks.types import TaskType
 
 
 class ExecutorType(ABC):
+    logger: Optional[logging.Logger]
+
     @abstractmethod
     def start(self, scheduler: SchedulerType, alias: str) -> None:
         """

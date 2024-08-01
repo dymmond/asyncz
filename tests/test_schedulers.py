@@ -36,7 +36,7 @@ from asyncz.exceptions import (
 )
 from asyncz.executors.base import BaseExecutor
 from asyncz.executors.debug import DebugExecutor
-from asyncz.schedulers.base import BaseScheduler
+from asyncz.schedulers.base import BaseScheduler, ClassicLogging
 from asyncz.stores.base import BaseStore
 from asyncz.stores.memory import MemoryStore
 from asyncz.tasks import Task
@@ -204,6 +204,57 @@ class TestBaseScheduler:
                 },
             }
         )
+
+    def test_scheduler_change_logger_direct_class(self):
+        """
+        Test scheduler is picking up the right loggers class
+        """
+        scheduler = DummyScheduler(loggers_class=ClassicLogging)
+        scheduler.start(paused=True)
+        assert isinstance(scheduler.loggers, ClassicLogging)
+        assert scheduler.logger_name == "asyncz.schedulers"
+
+    def test_scheduler_change_logger_class_path(self):
+        """
+        Test scheduler is picking up the right loggers class
+        """
+        scheduler = DummyScheduler(loggers_class="asyncz.schedulers.base:ClassicLogging")
+        scheduler.start(paused=True)
+        assert isinstance(scheduler.loggers, ClassicLogging)
+        assert scheduler.logger_name == "asyncz.schedulers"
+
+    def test_scheduler_change_logger_config(self):
+        """
+        Test scheduler is picking up the right loggers class
+        """
+        scheduler = DummyScheduler(
+            global_config={"asyncz.loggers_class": "asyncz.schedulers.base:ClassicLogging"}
+        )
+        scheduler.start(paused=True)
+        assert isinstance(scheduler.loggers, ClassicLogging)
+        assert scheduler.logger_name == "asyncz.schedulers"
+
+    def test_scheduler_change_logger_name(self):
+        """
+        Test scheduler is picking up the right logger name for loggers
+        """
+        scheduler = DummyScheduler(
+            global_config={"asyncz.loggers_class": "asyncz.schedulers.base:ClassicLogging"},
+            logger_name="test",
+        )
+        scheduler.start(paused=True)
+        assert isinstance(scheduler.loggers, ClassicLogging)
+        assert scheduler.logger_name == "asyncz.schedulers.test"
+
+    @patch("asyncz.schedulers.base.default_loggers_class", side_effect=ClassicLogging)
+    def test_scheduler_change_logger_change_default(self, patched):
+        """
+        Test scheduler is picking up the right loggers class
+        """
+        scheduler = DummyScheduler()
+        scheduler.start(paused=True)
+        assert isinstance(scheduler.loggers, ClassicLogging)
+        assert scheduler.logger_name == "asyncz.schedulers"
 
     @pytest.mark.parametrize("method", [BaseScheduler.setup, BaseScheduler.start])
     def test_scheduler_already_running(self, method, scheduler):

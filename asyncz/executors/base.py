@@ -1,3 +1,4 @@
+import logging
 import sys
 import traceback
 from collections import defaultdict
@@ -5,22 +6,18 @@ from datetime import datetime, timedelta
 from datetime import timezone as tz
 from threading import RLock
 from traceback import format_tb
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, cast
-
-from loguru import logger
-from loguru._logger import Logger
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, cast
 
 from asyncz.events import TaskExecutionEvent
 from asyncz.events.constants import TASK_ERROR, TASK_EXECUTED, TASK_MISSED
 from asyncz.exceptions import MaximumInstancesError
 from asyncz.executors.types import ExecutorType
-from asyncz.state import BaseStateExtra
 
 if TYPE_CHECKING:
     from asyncz.tasks.types import TaskType
 
 
-class BaseExecutor(BaseStateExtra, ExecutorType):
+class BaseExecutor(ExecutorType):
     """
     Base model for the executors. It defines the interface for all the executors used by the Asyncz.
 
@@ -28,7 +25,7 @@ class BaseExecutor(BaseStateExtra, ExecutorType):
     """
 
     def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
+        super().__init__()
         self.instances: Dict[str, int] = defaultdict(lambda: 0)
 
     def start(self, scheduler: Any, alias: str) -> None:
@@ -42,8 +39,9 @@ class BaseExecutor(BaseStateExtra, ExecutorType):
         """
         self.scheduler = scheduler
         self.lock: RLock = scheduler.create_lock()
-        self.logger: Any = logger
-        self.logger.bind(logger_name=f"asyncz.executors.{alias}")
+        self.logger_name = f"asyncz.executors.{alias}"
+        # send to tasks
+        self.logger = self.scheduler.loggers[self.logger_name]
 
     def shutdown(self, wait: bool = True) -> None:
         """
@@ -92,14 +90,16 @@ class BaseExecutor(BaseStateExtra, ExecutorType):
             if self.instances[task_id] == 0:
                 del self.instances[task_id]
 
-        self.logger.opt(exception=True).error(f"Error running task {task_id}", exc_info=True)
+        self.scheduler.loggers[self.logger_name].error(
+            f"Error running task {task_id}", exc_info=True
+        )
 
 
 def run_task(
     task: "TaskType",
     store_alias: str,
     run_times: List[datetime],
-    _logger: Optional[Any] = None,
+    logger: logging.Logger,
 ) -> List[TaskExecutionEvent]:
     """
     Called by executors to run the task. Returns a list of scheduler events to be dispatched by the
@@ -107,8 +107,6 @@ def run_task(
 
     The run task is made to run in async mode.
     """
-    if not _logger:
-        _logger = logger
 
     events = []
     for run_time in run_times:
@@ -125,10 +123,10 @@ def run_task(
                         scheduled_run_time=run_time,
                     )
                 )
-                _logger.warning(f"Run time of task '{task}' was missed by {difference}")
+                logger.warning(f"Run time of task '{task}' was missed by {difference}")
                 continue
 
-        _logger.info(f'Running task "{task}" (scheduled at {run_time})')
+        logger.info(f'Running task "{task}" (scheduled at {run_time})')
         try:
             return_value = cast(Callable[..., Any], task.fn)(*task.args, **task.kwargs)
         except Exception as exc:
@@ -156,7 +154,7 @@ def run_task(
                     return_value=return_value,
                 )
             )
-            _logger.info(f"Task '{task}' executed successfully.")
+            logger.info(f"Task '{task}' executed successfully.")
     return events
 
 
@@ -164,7 +162,7 @@ async def run_coroutine_task(
     task: "TaskType",
     store_alias: str,
     run_times: List[datetime],
-    _logger: Optional["Logger"] = None,
+    logger: logging.Logger,
 ) -> List[TaskExecutionEvent]:
     """
     Called by executors to run the task. Returns a list of scheduler events to be dispatched by the
@@ -172,9 +170,6 @@ async def run_coroutine_task(
 
     The run task is made to run in async mode.
     """
-    if not _logger:
-        _logger = logger  # type: ignore
-
     events = []
     for run_time in run_times:
         mistrigger_grace_time = task.mistrigger_grace_time
@@ -190,10 +185,10 @@ async def run_coroutine_task(
                         scheduled_run_time=run_time,
                     )
                 )
-                _logger.warning(f"Run time of task '{task}' was missed by {difference}")  # type: ignore
+                logger.warning(f"Run time of task '{task}' was missed by {difference}")
                 continue
 
-        _logger.info(f'Running task "{task}" (scheduled at {run_time})')  # type: ignore
+        logger.info(f'Running task "{task}" (scheduled at {run_time})')
         try:
             return_value = await cast(Callable[..., Any], task.fn)(*task.args, **task.kwargs)
         except Exception as exc:
@@ -221,6 +216,6 @@ async def run_coroutine_task(
                     return_value=return_value,
                 )
             )
-            _logger.info(f"Task '{task}' executed successfully")  # type: ignore
+            logger.info(f"Task '{task}' executed successfully")
 
     return events

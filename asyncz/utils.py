@@ -80,7 +80,8 @@ def to_timezone(value: Any) -> Optional[tzinfo]:
     Converts a value to timezone object.
     """
     if isinstance(value, str):
-        return ZoneInfo(value)
+        # python 3.8 typing issue
+        return cast(tzinfo, ZoneInfo(value))
     if isinstance(value, tzinfo):
         return value
     if value is not None:
@@ -164,7 +165,8 @@ def to_datetime(
         )
 
     if isinstance(tz, str):
-        tz = ZoneInfo(tz)
+        # python 3.8 typing issue
+        tz = cast(tzinfo, ZoneInfo(tz))
 
     return localize(_datetime, tz)
 

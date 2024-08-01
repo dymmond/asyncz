@@ -85,11 +85,30 @@ instantiation.
 
 #### Third option
 
-The third option is by starting the scheduler and use the `configure` method.
+The third option is by starting the scheduler and use the `setup` method.
 
 ```python
 {!> ../docs_src/schedulers/method3.py !}
 ```
+
+## Changing logger name and class
+
+`asyncz` uses a custom way of logging: it builds up a dictionary store with loggers of the standard logger interface.
+They are retrieved from schedulers via their alias name plus prefix.
+
+e.g. `asyncz.schedulers`, `asyncz.stores.default`, `asyncz.executors.default`
+
+Scheduler has an optional parameter named `logger_name`. If set the the schedulers logger becomes:
+
+`asyncz.schedulers.<name specified>`
+
+By default `asyncz` uses loguru as logger (when available) and falls back to classical logging.
+
+If this is not wished there are some methods:
+
+- setting either via global config or direct the value of `loggers_class` to `asyncz.schedulers.base:ClassicLogging` (or the class itself instead of the string) when creating a scheduler object
+- setting `asyncz.schedulers.base.default_loggers_class` to ClassicLogging (same file, only class is possible here)
+
 
 ## Starting and stopping the scheduler
 

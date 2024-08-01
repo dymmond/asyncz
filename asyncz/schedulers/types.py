@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union
 
 from asyncz.events.constants import (
     ALL_EVENTS,
@@ -10,6 +10,7 @@ from asyncz.typing import Undefined, undefined
 
 if TYPE_CHECKING:
     from datetime import datetime
+    from logging import Logger
     from threading import RLock
 
     from asyncz.events.base import SchedulerEvent
@@ -19,7 +20,22 @@ if TYPE_CHECKING:
     from asyncz.triggers.types import TriggerType
 
 
+class LoggersType(ABC):
+    def __init__(self) -> None:
+        self.data: Dict[str, Logger] = {}
+
+    @abstractmethod
+    def __missing__(self, item: str) -> Logger: ...
+
+    def __getitem__(self, item: str) -> Logger:
+        if item not in self.data:
+            self.data[item] = self.__missing__(item)
+        return self.data[item]
+
+
 class SchedulerType(ABC):
+    loggers: LoggersType
+
     @abstractmethod
     def start(self, paused: bool = False) -> bool:
         """
