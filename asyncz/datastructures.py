@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta, tzinfo
-from datetime import timezone as dt_timezone
 from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
 
 from pydantic import BaseModel, ConfigDict
@@ -29,10 +28,10 @@ class IntervalState(BaseDatastructureState):
     Handles the state for a IntervalTrigger.
     """
 
-    timezone: Union[dt_timezone, str, tzinfo]
+    timezone: Optional[tzinfo] = None
     start_at: datetime
     end_at: Optional[datetime] = None
-    interval: Optional[Union[dt_timezone, timedelta]] = None
+    interval: Optional[timedelta] = None
     jitter: Optional[int] = None
 
 
@@ -50,7 +49,7 @@ class CronState(BaseDatastructureState):
     Handles the state of the CronTrigger.
     """
 
-    timezone: Optional[Union[dt_timezone, str, tzinfo]] = None
+    timezone: Optional[tzinfo] = None
     start_at: Optional[datetime] = None
     end_at: Optional[datetime] = None
     fields: Optional[List[Any]] = None
@@ -65,11 +64,10 @@ class TaskState(BaseDatastructureState):  # type: ignore
     args: Optional[Any] = None
     kwargs: Optional[Any] = None
     coalesce: Optional[bool] = None
-    trigger: Optional[Union[str, TriggerType]] = None
+    trigger: Optional[TriggerType] = None
     executor: Optional[str] = None
     mistrigger_grace_time: Optional[int] = None
     max_instances: Optional[int] = None
     next_run_time: Optional[datetime] = None
     scheduler: Optional[Any] = None
     store_alias: Optional[str] = None
-    store: Optional[Union[str, StoreType]] = None

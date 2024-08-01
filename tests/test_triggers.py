@@ -1,8 +1,7 @@
 import pickle
 import random
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, tzinfo
 from typing import Optional
-from unittest.mock import Mock
 
 import pytest
 import pytz
@@ -25,8 +24,11 @@ class DummyTriggerWithJitter(BaseTrigger):
         self.dt = dt
         self.jitter = jitter
 
-    def get_next_trigger_time(self, previous_time: datetime, now: datetime):
-        return self.apply_jitter(self.dt, self.jitter, now)
+    def get_next_trigger_time(self, timezone: tzinfo, previous_time: datetime, now: datetime):
+        dt = self.dt
+        if dt and not dt.tzinfo:
+            dt = self.dt.replace(tzinfo=timezone)
+        return self.apply_jitter(dt, self.jitter, now)
 
 
 class TestDateTrigger:
@@ -71,7 +73,7 @@ class TestDateTrigger:
         previous = timezone.localize(previous) if previous else None
         now = timezone.localize(now)
         expected = timezone.localize(expected) if expected else None
-        assert trigger.get_next_trigger_time(previous, now) == expected
+        assert trigger.get_next_trigger_time(timezone, previous, now) == expected
 
     @pytest.mark.parametrize("is_dst", [True, False], ids=["daylight saving", "standard time"])
     def test_dst_change(self, is_dst):
@@ -87,7 +89,7 @@ class TestDateTrigger:
 
         trigger_date = eastern.normalize(run_at + timedelta(minutes=55))
         trigger = DateTrigger(run_at=trigger_date, timezone=eastern)
-        assert str(trigger.get_next_trigger_time(None, trigger_date)) == str(trigger_date)
+        assert str(trigger.get_next_trigger_time(eastern, None, trigger_date)) == str(trigger_date)
 
     def test_repr(self, timezone):
         trigger = DateTrigger(datetime(2022, 11, 3), timezone)
@@ -111,16 +113,16 @@ class TestIntervalTrigger:
     def test_invalid_interval(self, timezone):
         pytest.raises(TypeError, IntervalTrigger, "1-6", timezone=timezone)
 
-    def test_start_end_times_string(self, timezone, monkeypatch):
-        monkeypatch.setattr("asyncz.triggers.interval.get_localzone", Mock(return_value=timezone))
+    def test_start_end_times_string(self):
         trigger = IntervalTrigger(start_at="2022-11-05 05:06:53", end_at="2023-11-05 05:11:32")
-        assert trigger.start_at == timezone.localize(datetime(2022, 11, 5, 5, 6, 53))
-        assert trigger.end_at == timezone.localize(datetime(2023, 11, 5, 5, 11, 32))
+        assert trigger.start_at == datetime(2022, 11, 5, 5, 6, 53)
+        assert trigger.end_at == datetime(2023, 11, 5, 5, 11, 32)
 
     def test_before(self, trigger, timezone):
         """Tests that if "start_at" is later than "now", it will return start_at."""
         now = trigger.start_at - timedelta(seconds=2)
-        assert trigger.get_next_trigger_time(None, now) == trigger.start_at
+        assert now.tzinfo is not None
+        assert trigger.get_next_trigger_time(timezone, None, now) == trigger.start_at
 
     def test_within(self, trigger, timezone):
         """
@@ -128,12 +130,16 @@ class TestIntervalTrigger:
         interval.
         """
         now = trigger.start_at + timedelta(microseconds=1000)
-        assert trigger.get_next_trigger_time(None, now) == trigger.start_at + trigger.interval
+        assert now.tzinfo is not None
+        assert (
+            trigger.get_next_trigger_time(timezone, None, now)
+            == trigger.start_at + trigger.interval
+        )
 
     def test_no_start_at(self, timezone):
         trigger = IntervalTrigger(seconds=2, timezone=timezone)
         now = datetime.now(timezone)
-        assert (trigger.get_next_trigger_time(None, now) - now) <= timedelta(seconds=2)
+        assert (trigger.get_next_trigger_time(timezone, None, now) - now) <= timedelta(seconds=2)
 
     def test_end_at(self, timezone):
         """Tests that the interval trigger won't return any datetimes past the set end time."""
@@ -145,9 +151,11 @@ class TestIntervalTrigger:
             timezone=timezone,
         )
         assert trigger.get_next_trigger_time(
-            None, start_at + timedelta(minutes=2)
+            timezone, None, start_at + timedelta(minutes=2)
         ) == start_at.replace(minute=5)
-        assert trigger.get_next_trigger_time(None, start_at + timedelta(minutes=6)) is None
+        assert (
+            trigger.get_next_trigger_time(timezone, None, start_at + timedelta(minutes=6)) is None
+        )
 
     def test_dst_change(self):
         """
@@ -161,11 +169,15 @@ class TestIntervalTrigger:
 
         datetime_edt = eastern.localize(datetime(2013, 3, 10, 1, 5), is_dst=False)
         correct_next_date = eastern.localize(datetime(2013, 3, 10, 3), is_dst=True)
-        assert str(trigger.get_next_trigger_time(None, datetime_edt)) == str(correct_next_date)
+        assert str(trigger.get_next_trigger_time(eastern, None, datetime_edt)) == str(
+            correct_next_date
+        )
 
         datetime_est = eastern.localize(datetime(2013, 11, 3, 1, 5), is_dst=True)
         correct_next_date = eastern.localize(datetime(2013, 11, 3, 1), is_dst=False)
-        assert str(trigger.get_next_trigger_time(None, datetime_est)) == str(correct_next_date)
+        assert str(trigger.get_next_trigger_time(eastern, None, datetime_est)) == str(
+            correct_next_date
+        )
 
     def test_space_in_expr(self, timezone):
         trigger = CronTrigger(day="1-2, 4-7", timezone=timezone)
@@ -208,7 +220,7 @@ class TestIntervalTrigger:
 
         results = set()
         for _ in range(0, 100):
-            next_trigger_time = trigger.get_next_trigger_time(None, now)
+            next_trigger_time = trigger.get_next_trigger_time(timezone, None, now)
             results.add(next_trigger_time)
             assert timedelta(seconds=2) <= (next_trigger_time - now) <= timedelta(seconds=8)
         assert len(results) > 1
@@ -229,7 +241,7 @@ class TestIntervalTrigger:
         correct_next_date = timezone.localize(correct_next_date, is_dst=not start_at_dst)
 
         for _ in range(0, 100):
-            next_trigger_time = trigger.get_next_trigger_time(None, start_at + epsilon)
+            next_trigger_time = trigger.get_next_trigger_time(timezone, None, start_at + epsilon)
             assert abs(next_trigger_time - correct_next_date) <= timedelta(seconds=5)
 
     def test_jitter_with_end_at(self, timezone):
@@ -238,7 +250,7 @@ class TestIntervalTrigger:
         trigger = IntervalTrigger(seconds=5, jitter=5, end_at=end_at)
 
         for _ in range(0, 100):
-            next_trigger_time = trigger.get_next_trigger_time(None, now)
+            next_trigger_time = trigger.get_next_trigger_time(timezone, None, now)
             assert next_trigger_time is None or next_trigger_time <= end_at
 
 
@@ -263,13 +275,16 @@ class TestOrTrigger:
     )
     def test_next_fire_time(self, trigger, timezone, start_time, expected):
         expected = timezone.localize(expected) if expected else None
-        assert trigger.get_next_trigger_time(None, timezone.localize(start_time)) == expected
+        assert (
+            trigger.get_next_trigger_time(timezone, None, timezone.localize(start_time))
+            == expected
+        )
 
     def test_jitter(self, trigger, timezone):
         trigger.jitter = 5
         start_time = expected = timezone.localize(datetime(2022, 8, 6))
         for _ in range(100):
-            next_trigger_time = trigger.get_next_trigger_time(None, start_time)
+            next_trigger_time = trigger.get_next_trigger_time(timezone, None, start_time)
             assert abs(expected - next_trigger_time) <= timedelta(seconds=5)
 
     @pytest.mark.parametrize("jitter", [None, 5], ids=["nojitter", "jitter"])
@@ -318,14 +333,17 @@ class TestAndTrigger:
     )
     def test_next_trigger_time(self, trigger, timezone, start_time, expected):
         expected = timezone.localize(expected) if expected else None
-        assert trigger.get_next_trigger_time(None, timezone.localize(start_time)) == expected
+        assert (
+            trigger.get_next_trigger_time(timezone, None, timezone.localize(start_time))
+            == expected
+        )
 
     def test_jitter(self, trigger, timezone):
         trigger.jitter = 5
         start_time = timezone.localize(datetime(2022, 8, 6))
         expected = timezone.localize(datetime(2022, 8, 7))
         for _ in range(100):
-            next_trigger_time = trigger.get_next_trigger_time(None, start_time)
+            next_trigger_time = trigger.get_next_trigger_time(timezone, None, start_time)
             assert abs(expected - next_trigger_time) <= timedelta(seconds=5)
 
     @pytest.mark.parametrize("jitter", [None, 5], ids=["nojitter", "jitter"])
@@ -354,57 +372,61 @@ class TestAndTrigger:
 
 
 class TestJitter:
-    def test_jitter_disabled(self):
-        dt = datetime(2022, 5, 25, 14, 49, 50)
+    def test_jitter_disabled(self, timezone):
+        dt = datetime(2022, 5, 25, 14, 49, 50, tzinfo=timezone)
         trigger = DummyTriggerWithJitter(dt, None)
 
-        now = datetime(2022, 5, 25, 13, 40, 44)
-        assert trigger.get_next_trigger_time(None, now) == dt
+        now = datetime(2022, 5, 25, 13, 40, 44, tzinfo=timezone)
+        assert trigger.get_next_trigger_time(timezone, None, now) == dt
 
-    def test_jitter_with_none_next_fire_time(self):
+    def test_jitter_with_none_next_fire_time(self, timezone):
         trigger = DummyTriggerWithJitter(None, 5)
-        now = datetime(2022, 5, 25, 13, 40, 44)
-        assert trigger.get_next_trigger_time(None, now) is None
+        now = datetime(2022, 5, 25, 13, 40, 44, tzinfo=timezone)
+        assert trigger.get_next_trigger_time(timezone, None, now) is None
 
-    def test_jitter_positive(self, monkeypatch):
+    def test_jitter_positive(self, monkeypatch, timezone):
         monkeypatch.setattr(random, "uniform", lambda a, b: 30.0)
 
-        now = datetime(2022, 5, 25, 13, 40, 44)
+        now = datetime(2022, 5, 25, 13, 40, 44, tzinfo=timezone)
         dt = datetime(2022, 5, 25, 14, 49, 50)
-        expected_dt = datetime(2022, 5, 25, 14, 50, 20)
+        expected_dt = datetime(2022, 5, 25, 14, 50, 20, tzinfo=timezone)
 
         trigger = DummyTriggerWithJitter(dt, 60)
-        assert trigger.get_next_trigger_time(None, now) == expected_dt
+        assert trigger.get_next_trigger_time(timezone, None, now) == expected_dt
 
-    def test_jitter_in_future_but_initial_date_in_past(self, monkeypatch):
+    def test_jitter_in_future_but_initial_date_in_past(self, monkeypatch, timezone):
         monkeypatch.setattr(random, "uniform", lambda a, b: 30.0)
 
-        now = datetime(2022, 5, 25, 13, 40, 44)
+        now = datetime(2022, 5, 25, 13, 40, 44, tzinfo=timezone)
         dt = datetime(2022, 5, 25, 13, 40, 30)
-        expected_dt = datetime(2022, 5, 25, 13, 41, 0)
+        expected_dt = datetime(2022, 5, 25, 13, 41, 0, tzinfo=timezone)
 
         trigger = DummyTriggerWithJitter(dt, 60)
-        assert trigger.get_next_trigger_time(None, now) == expected_dt
+        assert trigger.get_next_trigger_time(timezone, None, now) == expected_dt
 
-    def test_jitter_is_now(self, monkeypatch):
+    def test_jitter_is_now(self, monkeypatch, timezone):
         monkeypatch.setattr(random, "uniform", lambda a, b: 4.0)
 
-        now = datetime(2022, 5, 25, 13, 40, 44)
+        now = datetime(2022, 5, 25, 13, 40, 44, tzinfo=timezone)
         dt = datetime(2022, 5, 25, 13, 40, 40)
         expected_dt = now
 
         trigger = DummyTriggerWithJitter(dt, 60)
-        assert trigger.get_next_trigger_time(None, now) == expected_dt
+        assert trigger.get_next_trigger_time(timezone, None, now) == expected_dt
 
-    def test_jitter(self):
-        now = datetime(2022, 5, 25, 13, 36, 44)
+    def test_jitter(self, timezone):
+        now = datetime(2022, 5, 25, 13, 36, 44, tzinfo=timezone)
         dt = datetime(2022, 5, 25, 13, 40, 45)
-        min_expected_dt = datetime(2022, 5, 25, 13, 40, 40)
-        max_expected_dt = datetime(2022, 5, 25, 13, 40, 50)
+        min_expected_dt = datetime(2022, 5, 25, 13, 40, 40, tzinfo=timezone)
+        max_expected_dt = datetime(2022, 5, 25, 13, 40, 50, tzinfo=timezone)
 
         trigger = DummyTriggerWithJitter(dt, 5)
         for _ in range(0, 100):
-            assert min_expected_dt <= trigger.get_next_trigger_time(None, now) <= max_expected_dt
+            assert (
+                min_expected_dt
+                <= trigger.get_next_trigger_time(timezone, None, now)
+                <= max_expected_dt
+            )
 
 
 class TestCronTrigger:
@@ -416,13 +438,13 @@ class TestCronTrigger:
         assert str(trigger) == "cron[year='2022/2', month='1/3', day='5-13']"
         start_at = timezone.localize(datetime(2021, 12, 1))
         correct_next_date = timezone.localize(datetime(2022, 1, 5))
-        assert trigger.get_next_trigger_time(None, start_at) == correct_next_date
+        assert trigger.get_next_trigger_time(timezone, None, start_at) == correct_next_date
 
     def test_cron_trigger_2(self, timezone):
         trigger = CronTrigger(year="2022/2", month="1/3", day="5-13", timezone=timezone)
         start_at = timezone.localize(datetime(2022, 10, 14))
         correct_next_date = timezone.localize(datetime(2024, 1, 5))
-        assert trigger.get_next_trigger_time(None, start_at) == correct_next_date
+        assert trigger.get_next_trigger_time(timezone, None, start_at) == correct_next_date
 
     def test_cron_trigger_3(self, timezone):
         trigger = CronTrigger(year="2022", month="feb-dec", hour="8-10", timezone=timezone)
@@ -432,24 +454,21 @@ class TestCronTrigger:
         )
         start_at = timezone.localize(datetime(2022, 1, 1))
         correct_next_date = timezone.localize(datetime(2022, 2, 1, 8))
-        assert trigger.get_next_trigger_time(None, start_at) == correct_next_date
+        assert trigger.get_next_trigger_time(timezone, None, start_at) == correct_next_date
 
     def test_cron_trigger_4(self, timezone):
         trigger = CronTrigger(year="2022", month="2", day="last", timezone=timezone)
         assert repr(trigger) == (
-            "<CronTrigger (year='2022', month='2', day='last', " "timezone='Europe/London')>"
+            "<CronTrigger (year='2022', month='2', day='last', timezone='Europe/London')>"
         )
         start_at = timezone.localize(datetime(2022, 2, 1))
         correct_next_date = timezone.localize(datetime(2022, 2, 28))
-        assert trigger.get_next_trigger_time(None, start_at) == correct_next_date
+        assert trigger.get_next_trigger_time(timezone, None, start_at) == correct_next_date
 
     def test_start_end_times_string(self, timezone, monkeypatch):
-        monkeypatch.setattr(
-            "asyncz.triggers.cron.trigger.get_localzone", Mock(return_value=timezone)
-        )
         trigger = CronTrigger(start_at="2022-11-05 05:06:53", end_at="2023-11-05 05:11:32")
-        assert trigger.start_at == timezone.localize(datetime(2022, 11, 5, 5, 6, 53))
-        assert trigger.end_at == timezone.localize(datetime(2023, 11, 5, 5, 11, 32))
+        assert trigger.start_at == datetime(2022, 11, 5, 5, 6, 53)
+        assert trigger.end_at == datetime(2023, 11, 5, 5, 11, 32)
 
     def test_cron_zero_value(self, timezone):
         trigger = CronTrigger(year=2022, month=2, hour=0, timezone=timezone)
@@ -463,7 +482,7 @@ class TestCronTrigger:
         assert str(trigger) == "cron[year='2023,2022']"
         start_at = timezone.localize(datetime(2023, 1, 1))
         correct_next_date = timezone.localize(datetime(2023, 1, 1))
-        assert trigger.get_next_trigger_time(None, start_at) == correct_next_date
+        assert trigger.get_next_trigger_time(timezone, None, start_at) == correct_next_date
 
     def test_cron_start_at(self, timezone):
         trigger = CronTrigger(
@@ -477,28 +496,34 @@ class TestCronTrigger:
         assert str(trigger) == "cron[year='2022', month='2', hour='8-10']"
         start_at = timezone.localize(datetime(2022, 1, 1))
         correct_next_date = timezone.localize(datetime(2022, 2, 4, 8))
-        assert trigger.get_next_trigger_time(None, start_at) == correct_next_date
+        assert trigger.get_next_trigger_time(timezone, None, start_at) == correct_next_date
 
     def test_previous_trigger_time_1(self, timezone):
         trigger = CronTrigger(day="*", timezone=timezone)
         previous_fire_time = timezone.localize(datetime(2022, 11, 23))
         now = timezone.localize(datetime(2022, 11, 26))
         correct_next_date = timezone.localize(datetime(2022, 11, 24))
-        assert trigger.get_next_trigger_time(previous_fire_time, now) == correct_next_date
+        assert (
+            trigger.get_next_trigger_time(timezone, previous_fire_time, now) == correct_next_date
+        )
 
     def test_previous_trigger_time_2(self, timezone):
         trigger = CronTrigger(day="*", timezone=timezone)
         previous_fire_time = timezone.localize(datetime(2022, 11, 23))
         now = timezone.localize(datetime(2022, 11, 22))
         correct_next_date = timezone.localize(datetime(2022, 11, 22))
-        assert trigger.get_next_trigger_time(previous_fire_time, now) == correct_next_date
+        assert (
+            trigger.get_next_trigger_time(timezone, previous_fire_time, now) == correct_next_date
+        )
 
     def test_previous_trigger_time_3(self, timezone):
         trigger = CronTrigger(day="*", timezone=timezone)
         previous_fire_time = timezone.localize(datetime(2022, 4, 25))
         now = timezone.localize(datetime(2022, 4, 25))
         correct_next_date = timezone.localize(datetime(2022, 4, 26))
-        assert trigger.get_next_trigger_time(previous_fire_time, now) == correct_next_date
+        assert (
+            trigger.get_next_trigger_time(timezone, previous_fire_time, now) == correct_next_date
+        )
 
     def test_cron_weekday_overlap(self, timezone):
         trigger = CronTrigger(year=2009, month=1, day="6-10", day_of_week="2-4", timezone=timezone)
@@ -509,7 +534,7 @@ class TestCronTrigger:
         assert str(trigger) == "cron[year='2009', month='1', day='6-10', day_of_week='2-4']"
         start_at = timezone.localize(datetime(2009, 1, 1))
         correct_next_date = timezone.localize(datetime(2009, 1, 7))
-        assert trigger.get_next_trigger_time(None, start_at) == correct_next_date
+        assert trigger.get_next_trigger_time(timezone, None, start_at) == correct_next_date
 
     def test_cron_weekday_nomatch(self, timezone):
         trigger = CronTrigger(year=2009, month=1, day="6-10", day_of_week="0,6", timezone=timezone)
@@ -520,7 +545,7 @@ class TestCronTrigger:
         assert str(trigger) == "cron[year='2009', month='1', day='6-10', day_of_week='0,6']"
         start_at = timezone.localize(datetime(2009, 1, 1))
         correct_next_date = None
-        assert trigger.get_next_trigger_time(None, start_at) == correct_next_date
+        assert trigger.get_next_trigger_time(timezone, None, start_at) == correct_next_date
 
     def test_cron_weekday_positional(self, timezone):
         trigger = CronTrigger(year=2009, month=1, day="6-10", day_of_week="0,6", timezone=timezone)
@@ -531,7 +556,7 @@ class TestCronTrigger:
         assert str(trigger) == "cron[year='2009', month='1', day='6-10', day_of_week='0,6']"
         start_at = timezone.localize(datetime(2009, 1, 1))
         correct_next_date = None
-        assert trigger.get_next_trigger_time(None, start_at) == correct_next_date
+        assert trigger.get_next_trigger_time(timezone, None, start_at) == correct_next_date
 
     def test_week_1(self, timezone):
         trigger = CronTrigger(year=2009, month=2, week=8, timezone=timezone)
@@ -541,7 +566,7 @@ class TestCronTrigger:
         assert str(trigger) == "cron[year='2009', month='2', week='8']"
         start_at = timezone.localize(datetime(2009, 1, 1))
         correct_next_date = timezone.localize(datetime(2009, 2, 16))
-        assert trigger.get_next_trigger_time(None, start_at) == correct_next_date
+        assert trigger.get_next_trigger_time(timezone, None, start_at) == correct_next_date
 
     def test_week_2(self, timezone):
         trigger = CronTrigger(year=2009, week=15, day_of_week=2, timezone=timezone)
@@ -551,7 +576,7 @@ class TestCronTrigger:
         assert str(trigger) == "cron[year='2009', week='15', day_of_week='2']"
         start_at = timezone.localize(datetime(2009, 1, 1))
         correct_next_date = timezone.localize(datetime(2009, 4, 8))
-        assert trigger.get_next_trigger_time(None, start_at) == correct_next_date
+        assert trigger.get_next_trigger_time(timezone, None, start_at) == correct_next_date
 
     def test_cron_extra_coverage(self, timezone):
         trigger = CronTrigger(day="6,8", timezone=timezone)
@@ -559,7 +584,7 @@ class TestCronTrigger:
         assert str(trigger) == "cron[day='6,8']"
         start_at = timezone.localize(datetime(2022, 12, 31))
         correct_next_date = timezone.localize(datetime(2023, 1, 6))
-        assert trigger.get_next_trigger_time(None, start_at) == correct_next_date
+        assert trigger.get_next_trigger_time(timezone, None, start_at) == correct_next_date
 
     def test_cron_faulty_expr(self, timezone):
         pytest.raises(ValueError, CronTrigger, year="2009-fault", timezone=timezone)
@@ -574,13 +599,13 @@ class TestCronTrigger:
         assert str(trigger) == "cron[hour='5-6']"
         start_at = timezone.localize(datetime(2022, 9, 25, 7))
         correct_next_date = timezone.localize(datetime(2022, 9, 26, 5))
-        assert trigger.get_next_trigger_time(None, start_at) == correct_next_date
+        assert trigger.get_next_trigger_time(timezone, None, start_at) == correct_next_date
 
     def test_month_rollover(self, timezone):
         trigger = CronTrigger(timezone=timezone, day=30)
         now = timezone.localize(datetime(2022, 2, 1))
         expected = timezone.localize(datetime(2022, 3, 30))
-        assert trigger.get_next_trigger_time(None, now) == expected
+        assert trigger.get_next_trigger_time(timezone, None, now) == expected
 
     def test_timezone_from_start_at(self, timezone):
         """
@@ -597,10 +622,14 @@ class TestCronTrigger:
         trigger = CronTrigger(year=2022, hour=4, end_at=end_at)
 
         start_at = timezone.localize(datetime(2022, 4, 13, 2, 30))
-        assert trigger.get_next_trigger_time(None, start_at - timedelta(1)) == start_at.replace(
-            day=12, hour=4, minute=0
+        assert trigger.get_next_trigger_time(
+            timezone, None, start_at - timedelta(1)
+        ) == start_at.replace(
+            day=12,
+            hour=4,
+            minute=0,
         )
-        assert trigger.get_next_trigger_time(None, start_at) is None
+        assert trigger.get_next_trigger_time(timezone, None, start_at) is None
 
     def test_different_tz(self, timezone):
         alter_tz = pytz.FixedOffset(-600)
@@ -611,7 +640,7 @@ class TestCronTrigger:
         assert str(trigger) == "cron[year='2009', week='15', day_of_week='2']"
         start_at = alter_tz.localize(datetime(2008, 12, 31, 22))
         correct_next_date = timezone.localize(datetime(2009, 4, 8))
-        assert trigger.get_next_trigger_time(None, start_at) == correct_next_date
+        assert trigger.get_next_trigger_time(timezone, None, start_at) == correct_next_date
 
     @pytest.mark.parametrize(
         "trigger_args, start_at, start_at_dst, correct_next_date",
@@ -634,9 +663,11 @@ class TestCronTrigger:
         trigger = CronTrigger(timezone=timezone, **trigger_args)
         start_at = timezone.localize(start_at, is_dst=start_at_dst)
         correct_next_date = timezone.localize(correct_next_date, is_dst=not start_at_dst)
-        assert str(trigger.get_next_trigger_time(None, start_at)) == str(correct_next_date)
+        assert str(trigger.get_next_trigger_time(timezone, None, start_at)) == str(
+            correct_next_date
+        )
 
-    def test_timezone_change(self, timezone):
+    def test_timezone_change(self):
         """
         Ensure that get_next_fire_time method returns datetimes in the timezone of the trigger and
         not in the timezone of the passed in start_at.
@@ -647,7 +678,7 @@ class TestCronTrigger:
         trigger = CronTrigger(hour=11, minute="*/5", timezone=est)
         start_at = cst.localize(datetime(2022, 9, 26, 10, 16))
         correct_next_date = est.localize(datetime(2022, 9, 26, 11, 20))
-        assert str(trigger.get_next_trigger_time(None, start_at)) == str(correct_next_date)
+        assert str(trigger.get_next_trigger_time(est, None, start_at)) == str(correct_next_date)
 
     def test_pickle(self, timezone):
         trigger = CronTrigger(
@@ -664,13 +695,13 @@ class TestCronTrigger:
 
         results = set()
         for _ in range(0, 100):
-            next_trigger_time = trigger.get_next_trigger_time(None, now)
+            next_trigger_time = trigger.get_next_trigger_time(timezone, None, now)
             results.add(next_trigger_time)
             assert timedelta(seconds=25) <= (next_trigger_time - now) <= timedelta(seconds=35)
 
         assert len(results) > 1
 
-    def test_jitter_with_timezone(self, timezone):
+    def test_jitter_with_timezone(self):
         est = pytz.FixedOffset(-300)
         cst = pytz.FixedOffset(-360)
         trigger = CronTrigger(hour=11, minute="*/5", timezone=est, jitter=5)
@@ -678,7 +709,7 @@ class TestCronTrigger:
         correct_next_date = est.localize(datetime(2022, 9, 26, 11, 20))
         for _ in range(0, 100):
             assert abs(
-                trigger.get_next_trigger_time(None, start_at) - correct_next_date
+                trigger.get_next_trigger_time(est, None, start_at) - correct_next_date
             ) <= timedelta(seconds=5)
 
     @pytest.mark.parametrize(
@@ -698,7 +729,7 @@ class TestCronTrigger:
         correct_next_date = timezone.localize(correct_next_date, is_dst=not start_at_dst)
 
         for _ in range(0, 100):
-            next_trigger_time = trigger.get_next_trigger_time(None, start_at)
+            next_trigger_time = trigger.get_next_trigger_time(timezone, None, start_at)
             assert abs(next_trigger_time - correct_next_date) <= timedelta(seconds=5)
 
     def test_jitter_with_end_at(self, timezone):
@@ -707,7 +738,7 @@ class TestCronTrigger:
         trigger = CronTrigger(minute="*", jitter=5, end_at=end_at)
 
         for _ in range(0, 100):
-            next_trigger_time = trigger.get_next_trigger_time(None, now)
+            next_trigger_time = trigger.get_next_trigger_time(timezone, None, now)
             assert next_trigger_time is None or next_trigger_time <= end_at
 
     @pytest.mark.parametrize(

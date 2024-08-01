@@ -26,13 +26,13 @@ def check_status():
 # Create the tasks
 # Run every Monday, Wednesday and Friday
 scheduler.add_task(
-    fn=send_email_newsletter,
+    send_email_newsletter,
     trigger=CronTrigger(day_of_week="mon,wed,fri", hour="8", minute="1", second="5"),
 )
 
 # Run every 2 minutes
 scheduler.add_task(
-    fn=collect_www_info,
+    collect_www_info,
     trigger=IntervalTrigger(minutes=2),
     max_instances=1,
     replace_existing=True,
@@ -41,7 +41,7 @@ scheduler.add_task(
 
 # Run every 10 minutes
 scheduler.add_task(
-    fn=check_status,
+    check_status,
     trigger=IntervalTrigger(minutes=10),
     max_instances=1,
     replace_existing=True,
@@ -52,7 +52,7 @@ scheduler.add_task(
 feed_data = collect_www_info()
 
 scheduler.add_task(
-    fn=send_email_newsletter,
+    fn_or_task=send_email_newsletter,
     args=[feed_data],
     trigger=IntervalTrigger(minutes=10),
     max_instances=1,
@@ -70,6 +70,7 @@ task = Task(
     replace_existing=True,
     coalesce=False,
 )
+# you can update most attributes here. Note: a task can be only submitted once
 scheduler.add_task(task)
 
 # Use Task as decorator (leave fn empty)
@@ -85,3 +86,15 @@ decorator(send_email_newsletter)
 
 # Start the scheduler
 scheduler.start()
+
+# Add paused Task
+scheduler.add_task(
+    send_email_newsletter,
+    args=[feed_data],
+    trigger=IntervalTrigger(minutes=10),
+    max_instances=1,
+    replace_existing=True,
+    coalesce=False,
+    # this pauses the task on submit
+    next_run_time=None,
+)

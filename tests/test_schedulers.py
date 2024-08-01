@@ -1,6 +1,6 @@
 import logging
 import pickle
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, tzinfo
 from threading import Thread
 from typing import Any, List, Optional, Union
 from unittest.mock import MagicMock, patch
@@ -68,7 +68,7 @@ class DummyTrigger(BaseTrigger):
         self.args = args
 
     def get_next_trigger_time(
-        self, previous_time: datetime, now: Optional[datetime] = None
+        self, timezone: tzinfo, previous_time: datetime, now: Optional[datetime] = None
     ) -> Union[datetime, None]: ...
 
 
@@ -249,7 +249,7 @@ class TestBaseScheduler:
             "store2": MagicMock(BaseStore),
         }
         task = create_task(fn=lambda: None)
-        scheduler.pending_tasks = [(task, "store1", False)]
+        scheduler.pending_tasks = [(task, False, True)]
         scheduler.start()
 
         scheduler.executors["exec1"].start.assert_called_once_with(scheduler, "exec1")
@@ -262,7 +262,7 @@ class TestBaseScheduler:
         assert "default" in scheduler.executors
         assert "default" in scheduler.stores
 
-        scheduler.real_add_task.assert_called_once_with(task, "store1", False)
+        scheduler.real_add_task.assert_called_once_with(task, False, True)
         assert scheduler.pending_tasks == []
 
         assert scheduler.dispatch_event.call_count == 3
@@ -434,10 +434,36 @@ class TestBaseScheduler:
             args=[1],
             kwargs={"y": 2},
         )
+        assert task.scheduler is None
         task = scheduler.add_task(task, trigger="date", run_at="2020-06-01 08:41:00")
 
         assert isinstance(task, Task)
         assert task.id == "my-id"
+        assert task.trigger is not None
+        assert task.scheduler is not None
+
+        assert task.mistrigger_grace_time == 1
+        assert task.coalesce is True
+        assert task.max_instances == 1
+        assert task.submitted
+        # test that submitting works only once
+        with pytest.raises(AssertionError):
+            scheduler.add_task(task)
+
+    def test_add_task_obj_paused_update(self, scheduler, timezone):
+        """Test that when a task is added to a stopped scheduler, a Task instance is returned."""
+        task = Task(
+            fn=lambda x, y: None,
+            id="my-id",
+            name="dummy",
+            args=[1],
+            kwargs={"y": 2},
+        )
+        task = scheduler.add_task(task, trigger="date", run_at="2020-06-01 08:41:00")
+
+        assert isinstance(task, Task)
+        assert task.id == "my-id"
+        assert task.trigger
 
         assert task.mistrigger_grace_time == 1
         assert task.coalesce is True
@@ -463,6 +489,25 @@ class TestBaseScheduler:
         assert task.mistrigger_grace_time == 3
         assert not task.coalesce
         assert task.max_instances == 6
+
+    def test_add_paused_task(self, scheduler, scheduler_events):
+        scheduler.setup(
+            task_defaults={
+                "mistrigger_grace_time": 3,
+                "coalesce": False,
+                "max_instances": 6,
+            }
+        )
+        task = scheduler.add_task(lambda: None, trigger="interval", hours=1, next_run_time=None)
+        assert not scheduler_events
+
+        scheduler.start()
+
+        assert len(scheduler_events) == 3
+        assert scheduler_events[2].code == TASK_ADDED
+        assert scheduler_events[2].task_id is task.id
+
+        assert task.next_run_time is None
 
     def test_add_task_id_conflict(self, scheduler):
         scheduler.start(paused=True)
@@ -567,7 +612,7 @@ class TestBaseScheduler:
 
     def test_reschedule_task(self, scheduler):
         object_setter(scheduler, "update_task", MagicMock())
-        trigger = MagicMock(get_next_trigger_time=lambda previous, now: 1)
+        trigger = MagicMock(get_next_trigger_time=lambda timezone, previous, now: 1)
         object_setter(scheduler, "create_trigger", MagicMock(return_value=trigger))
         scheduler.reschedule_task("my-id", "store", "date", run_at="2022-06-01 08:41:00")
 
@@ -587,7 +632,9 @@ class TestBaseScheduler:
     @pytest.mark.parametrize("dead_task", [True, False], ids=["dead task", "live task"])
     def test_resume_task(self, scheduler, freeze_time, dead_task):
         next_trigger_time = None if dead_task else freeze_time.current + timedelta(seconds=1)
-        trigger = MagicMock(BaseTrigger, get_next_trigger_time=lambda prev, now: next_trigger_time)
+        trigger = MagicMock(
+            BaseTrigger, get_next_trigger_time=lambda timezone, prev, now: next_trigger_time
+        )
         returned_task = MagicMock(Task, id="foo", trigger=trigger)
         object_setter(scheduler, "lookup_task", MagicMock(return_value=(returned_task, "bar")))
         object_setter(scheduler, "update_task", MagicMock())

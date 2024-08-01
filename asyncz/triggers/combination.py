@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, tzinfo
 from typing import ClassVar, Optional, Union
 
 from asyncz.triggers.base import BaseCombinationTrigger
@@ -17,14 +17,14 @@ class AndTrigger(BaseCombinationTrigger):
     alias: ClassVar[str] = "and"
 
     def get_next_trigger_time(
-        self, previous_time: Optional[datetime], now: Optional[datetime] = None
+        self, timezone: tzinfo, previous_time: Optional[datetime], now: Optional[datetime] = None
     ) -> Union[datetime, None]:
         if now is None:
-            now = datetime.now()
+            now = datetime.now(timezone)
         while True:
             trigger_times = []
             for trigger in self.triggers:
-                next_trigger_time = trigger.get_next_trigger_time(previous_time, now)
+                next_trigger_time = trigger.get_next_trigger_time(timezone, previous_time, now)
                 # bail out early
                 if next_trigger_time is None:
                     return None
@@ -32,6 +32,7 @@ class AndTrigger(BaseCombinationTrigger):
             if min(trigger_times) == max(trigger_times):
                 return self.apply_jitter(trigger_times[0], self.jitter, now)
             else:
+                # recheck
                 now = max(trigger_times)
 
 
@@ -48,13 +49,13 @@ class OrTrigger(BaseCombinationTrigger):
     alias: ClassVar[str] = "or"
 
     def get_next_trigger_time(
-        self, previous_time: Optional[datetime], now: Optional[datetime] = None
+        self, timezone: tzinfo, previous_time: Optional[datetime], now: Optional[datetime] = None
     ) -> Union[datetime, None]:
         if now is None:
-            now = datetime.now()
+            now = datetime.now(timezone)
         trigger_times = []
         for trigger in self.triggers:
-            next_trigger_time = trigger.get_next_trigger_time(previous_time, now)
+            next_trigger_time = trigger.get_next_trigger_time(timezone, previous_time, now)
             if next_trigger_time is not None:
                 trigger_times.append(next_trigger_time)
 

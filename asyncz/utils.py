@@ -1,7 +1,6 @@
 import inspect
 import re
 from asyncio import iscoroutinefunction
-from calendar import timegm
 from datetime import date, datetime, time, timedelta, tzinfo
 from datetime import timezone as dttz
 from functools import partial
@@ -10,18 +9,21 @@ from typing import Any, Callable, Optional, Union, cast, overload
 from asyncz.exceptions import AsynczException, AsynczLookupError
 
 try:
-    from threading import TIMEOUT_MAX
+    from tzlocal import get_localzone as _get_localzone
+
+    def get_localzone() -> tzinfo:
+        return _get_localzone()
 except ImportError:
-    TIMEOUT_MAX = 4294967
+
+    def get_localzone() -> tzinfo:
+        return dttz.utc
+
+
 try:
     from zoneinfo import ZoneInfo  # type: ignore[import-not-found,unused-ignore]
 except ImportError:
     from backports.zoneinfo import ZoneInfo  # type: ignore[no-redef,unused-ignore]
 
-BOOL_VALIDATION = {
-    "true": ["true", "yes", "on", "y", "t", "1", True],
-    "false": ["false", "no", "off", "f", "0", False],
-}
 
 DATE_REGEX = re.compile(
     r"(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})"
@@ -65,19 +67,6 @@ def to_float(value: Union[str, int, float, None]) -> Optional[float]:
     return None
 
 
-def to_bool(value: Union[str, bool, None]) -> bool:
-    """
-    Converts the given value into a boolean.
-    """
-    if isinstance(value, str):
-        value = value.strip().lower()
-    if value in BOOL_VALIDATION["true"]:
-        return True
-    elif value in BOOL_VALIDATION["false"]:
-        return False
-    return False
-
-
 @overload
 def to_timezone(value: None) -> None: ...
 
@@ -99,18 +88,33 @@ def to_timezone(value: Any) -> Optional[tzinfo]:
     return None
 
 
-@overload
-def to_datetime(value: None, tz: Union[tzinfo, str], arg_name: str) -> None: ...
+def to_timezone_with_fallback(value: Any = None) -> tzinfo:
+    timezone: Optional[tzinfo] = to_timezone(value)
+    if timezone is None:
+        timezone = get_localzone()
+    return timezone
 
 
 @overload
 def to_datetime(
-    value: Union[str, datetime, date], tz: Union[tzinfo, str], arg_name: str
+    value: None, tz: Union[tzinfo, str, None], arg_name: str, require_tz: bool = True
+) -> None: ...
+
+
+@overload
+def to_datetime(
+    value: Union[str, datetime, date],
+    tz: Union[tzinfo, str, None],
+    arg_name: str,
+    require_tz: bool = True,
 ) -> Union[datetime, Any]: ...
 
 
 def to_datetime(
-    value: Union[str, datetime, date, None], tz: Union[tzinfo, str], arg_name: str
+    value: Union[str, datetime, date, None],
+    tz: Union[tzinfo, str, None],
+    arg_name: str,
+    require_tz: bool = True,
 ) -> Union[datetime, None, Any]:
     """
     Converts the given value to a timezone compatible aware datetime object.
@@ -153,6 +157,8 @@ def to_datetime(
         return _datetime
 
     if tz is None:
+        if not require_tz:
+            return _datetime
         raise AsynczException(
             detail=f'The "tz" argument must be specified if {arg_name} has no timezone information'
         )
@@ -176,7 +182,7 @@ def datetime_to_utc_timestamp(timeval: Optional[datetime]) -> Optional[float]:
     Converts a datetime instance to a timestamp.
     """
     if timeval is not None:
-        return timegm(timeval.utctimetuple()) + timeval.microsecond / 1000000
+        return timeval.timestamp()
     return None
 
 
@@ -403,11 +409,13 @@ def iscoroutinefunction_partial(f: Any) -> bool:
 
 
 def normalize(value: datetime) -> datetime:
+    # applies dst change
     return datetime.fromtimestamp(value.timestamp(), value.tzinfo)
 
 
 def localize(value: datetime, tzinfo: tzinfo) -> datetime:
     if hasattr(tzinfo, "localize"):
+        # pytz localize
         return cast(datetime, tzinfo.localize(value))
 
     return normalize(value.replace(tzinfo=tzinfo))

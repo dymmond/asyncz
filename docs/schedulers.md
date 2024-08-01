@@ -145,6 +145,30 @@ and simpler.
 When adding tasks there is not a specific order. **You can add tasks at any given time**. If the
 scheduler is not yet running, once it does it will add the tasks to it.
 
+
+### Parameters
+
+* **fn_or_task** - (positional or via this name). The callable function to execute or the task to submit.
+* **id** - The unique identifier of this task. Leave empty to autogenerate an id or switch to the
+* **name** - The description of this task.
+* **args** - Positional arguments to the callable.
+* **kwargs** - Keyword arguments to the callable.
+* **coalesce** - Whether to only run the task once when several run times are due.
+* **trigger** - The trigger object that controls the schedule of this task.
+* **executor** - The name of the executor that will run this task.
+* **mistrigger_grace_time** - The time (in seconds) how much this task's execution is allowed to
+be late (None means "allow the task to run no matter how late it is").
+* **max_instances** - The maximum number of concurrently executing instances allowed for this task.
+* **next_run_time** - The next scheduled run time of this task. If set to None, the task start paused.
+* **replace_existing** - The submitted task replaces an existing task with the same id. Otherwise a `ConflictId` error is thrown.
+
+!!! Note
+    `add_task` has a special pause mode: `next_run_time` can be set to None for starting a Task paused. This works also with Task objects.
+
+!!! Tip
+    When submitting a Task object, most attributes can be changed by providing arguments for e.g. trigger, name and other kwargs. However the task is updated in-place. No copy is made.
+    This has interesting effects: for example a decorator mode Task can be turned in a normal one by providing an id and is submitted in-place.
+
 ## Add tasks as decorator
 
 When leaving out the `fn` parameter, you get back a decorator mode Task.

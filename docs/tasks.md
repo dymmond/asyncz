@@ -22,7 +22,8 @@ from asyncz.tasks import Task
 * **mistrigger_grace_time** - The time (in seconds) how much this task's execution is allowed to
 be late (None means "allow the task to run no matter how late it is").
 * **max_instances** - The maximum number of concurrently executing instances allowed for this task.
-* **next_run_time** - The next scheduled run time of this task.
+* **next_run_time** - The next scheduled run time of this task. (Note: this has not the pause mode effect like in add_task)
+
 
 ## Create a task
 
