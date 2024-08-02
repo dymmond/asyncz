@@ -1,4 +1,5 @@
 import contextlib
+import time
 
 import pytest
 from esmerald import Gateway, Request
@@ -209,6 +210,9 @@ def test_integrations(get_app, loggers_class_string, loggers_class):
         response = client.get("/notes")
         assert response.status_code == 200
         assert response.json() == []
+        # fix CancelledError, by giving scheduler more time to send the tasks to the  pool
+        # if the pool is closed, newly submitted tasks are cancelled
+        time.sleep(0.01)
 
     assert not scheduler.running
     assert dummy_job_called == 2

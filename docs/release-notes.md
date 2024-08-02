@@ -22,10 +22,6 @@
 - Tasks use the timezone of the scheduler for their triggers which require a timezone.
 - `loguru` is now optional.
 
-### Unresolved
-
-- The esmerald integration tests are flaky. This can only be resolved after the release.
-
 ## 0.10.1
 
 ### Added
