@@ -1,6 +1,6 @@
 from asyncz.schedulers.asyncio import AsyncIOScheduler
 
-# Start the scheduler
+# Create the scheduler
 scheduler = AsyncIOScheduler(
     global_config={
         "asyncz.stores.mongo": {"type": "mongodb"},
@@ -15,3 +15,8 @@ scheduler = AsyncIOScheduler(
         "asyncz.task_defaults.timezone": "UTC",
     },
 )
+
+# Start the scheduler
+with scheduler:
+    ...
+    # your code

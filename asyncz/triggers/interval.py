@@ -2,8 +2,6 @@ from datetime import datetime, timedelta, tzinfo
 from math import ceil
 from typing import Any, ClassVar, Optional, Union
 
-from tzlocal import get_localzone
-
 from asyncz.datastructures import IntervalState
 from asyncz.triggers.base import BaseTrigger
 from asyncz.utils import datetime_repr, normalize, timedelta_seconds, to_datetime, to_timezone
@@ -26,6 +24,7 @@ class IntervalTrigger(BaseTrigger):
     """
 
     alias: ClassVar[str] = "interval"
+    timezone: Optional[tzinfo] = None
 
     def __init__(
         self,
@@ -57,33 +56,46 @@ class IntervalTrigger(BaseTrigger):
         elif isinstance(end_at, datetime) and end_at.tzinfo:
             self.timezone = end_at.tzinfo
         else:
-            self.timezone = get_localzone()
+            self.timezone = None
 
         start_at = start_at or (datetime.now(self.timezone) + self.interval)
-        self.start_at = to_datetime(start_at, self.timezone, "start_at")
-        self.end_at = to_datetime(end_at, self.timezone, "end_at")
+        self.start_at = to_datetime(start_at, self.timezone, "start_at", require_tz=False)
+        self.end_at = to_datetime(end_at, self.timezone, "end_at", require_tz=False)
 
     def get_next_trigger_time(
-        self, previous_time: Optional[datetime], now: Union[datetime, None] = None
+        self,
+        timezone: tzinfo,
+        previous_time: Optional[datetime],
+        now: Union[datetime, None] = None,
     ) -> Union[datetime, None]:
         if now is None:
-            now = datetime.now()
+            now = datetime.now(timezone)
         next_trigger_time: Optional[datetime]
+        start_at = (
+            self.start_at.replace(tzinfo=timezone)
+            if self.start_at and self.start_at.tzinfo is None
+            else self.start_at
+        )
         if previous_time:
             next_trigger_time = previous_time + self.interval
-        elif self.start_at > now:
-            next_trigger_time = self.start_at
+        elif start_at > now:
+            next_trigger_time = start_at
         else:
-            time_difference_seconds = timedelta_seconds(now - self.start_at)
+            time_difference_seconds = timedelta_seconds(now - start_at)
             next_interval_number = int(ceil(time_difference_seconds / self.interval_size))
-            next_trigger_time = self.start_at + self.interval * next_interval_number
+            next_trigger_time = start_at + self.interval * next_interval_number
 
         if self.jitter is not None:
             next_trigger_time = self.apply_jitter(
                 next_trigger_time=next_trigger_time, jitter=self.jitter, now=now
             )
+        end_at = (
+            self.end_at.replace(tzinfo=timezone)
+            if self.end_at and self.end_at.tzinfo is None
+            else self.end_at
+        )
 
-        if not self.end_at or next_trigger_time <= self.end_at:
+        if not end_at or next_trigger_time <= end_at:
             return normalize(value=next_trigger_time)
         return None
 

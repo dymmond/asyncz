@@ -1,5 +1,27 @@
 # Release Notes
 
+## 0.11.0
+
+### Added
+
+- Allow submitting paused tasks.
+- Allow changing in-place attributes of tasks when submitting with `add_task`.
+- Allow selecting logger (classical, loguru).
+- Allow naming schedulers with an extra logger name.
+
+### Fixed
+
+- `remove_all_tasks` didn't check the store of tasks when pending_tasks was used (stopped scheduler).
+
+### Changed
+
+- Replace `UndefinedType` with `Undefined`. Shim provided for backwards compatibility.
+- `add_task` has now more arguments with undefined as default.
+- `pending_tasks` has now no more store alias in it.
+- `tzlocal` is now optional.
+- Tasks use the timezone of the scheduler for their triggers which require a timezone.
+- `loguru` is now optional.
+
 ## 0.10.1
 
 ### Added

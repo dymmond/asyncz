@@ -1,8 +1,6 @@
 from datetime import datetime, timedelta, tzinfo
 from typing import Any, ClassVar, Optional, Tuple, Union
 
-from tzlocal import get_localzone
-
 from asyncz.datastructures import CronState
 from asyncz.triggers.base import BaseTrigger
 from asyncz.triggers.cron.constants import DEFAULT_VALUES
@@ -56,6 +54,7 @@ class CronTrigger(BaseTrigger):
     """
 
     alias: ClassVar[str] = "cron"
+    timezone: Optional[tzinfo] = None
 
     def __init__(
         self,
@@ -111,10 +110,10 @@ class CronTrigger(BaseTrigger):
         elif isinstance(end_at, datetime) and end_at.tzinfo:
             self.timezone = end_at.tzinfo
         else:
-            self.timezone = get_localzone()
+            self.timezone = None
 
-        self.start_at = to_datetime(start_at, self.timezone, "start_at")
-        self.end_at = to_datetime(end_at, self.timezone, "end_at")
+        self.start_at = to_datetime(start_at, self.timezone, "start_at", require_tz=False)
+        self.end_at = to_datetime(end_at, self.timezone, "end_at", require_tz=False)
         self.jitter = jitter
 
         values = {
@@ -206,7 +205,9 @@ class CronTrigger(BaseTrigger):
         difference = datetime(**values) - dateval.replace(tzinfo=None)
         return normalize(dateval + difference), field_number
 
-    def set_field_value(self, dateval: datetime, field_number: int, new_value: Any) -> datetime:
+    def set_field_value(
+        self, dateval: datetime, field_number: int, new_value: Any, timezone: tzinfo
+    ) -> datetime:
         values = {}
         for i, field in enumerate(self.fields):
             if field.real:
@@ -217,22 +218,34 @@ class CronTrigger(BaseTrigger):
                 else:
                     values[field.name] = new_value
 
-        return localize(datetime(**values), self.timezone)
+        return localize(datetime(**values), timezone)
 
     def get_next_trigger_time(
-        self, previous_time: Optional[datetime], now: Optional[datetime] = None
+        self, timezone: tzinfo, previous_time: Optional[datetime], now: Optional[datetime] = None
     ) -> Union[datetime, None]:
         if now is None:
-            now = datetime.now()
+            now = datetime.now(timezone)
+        start_at_field = (
+            self.start_at.replace(tzinfo=timezone)
+            if self.start_at and self.start_at.tzinfo is None
+            else self.start_at
+        )
+        end_at_field = (
+            self.end_at.replace(tzinfo=timezone)
+            if self.end_at and self.end_at.tzinfo is None
+            else self.end_at
+        )
         if previous_time:
             start_at = min(now, previous_time + timedelta(microseconds=1))
             if start_at == previous_time:
                 start_at += timedelta(microseconds=1)
         else:
-            start_at = max(now, self.start_at) if self.start_at else now
+            start_at = max(now, start_at_field) if start_at_field else now
+        if start_at.tzinfo != timezone:
+            start_at = start_at.astimezone(timezone)
 
         fieldnum = 0
-        next_date = datetime_ceil(start_at).astimezone(self.timezone)
+        next_date = datetime_ceil(start_at)
         while 0 <= fieldnum < len(self.fields):
             field = self.fields[fieldnum]
             curr_value = field.get_value(next_date)
@@ -242,19 +255,19 @@ class CronTrigger(BaseTrigger):
                 next_date, fieldnum = self.increment_field_value(next_date, fieldnum - 1)
             elif next_value > curr_value:
                 if field.real:
-                    next_date = self.set_field_value(next_date, fieldnum, next_value)
+                    next_date = self.set_field_value(next_date, fieldnum, next_value, timezone)
                     fieldnum += 1
                 else:
                     next_date, fieldnum = self.increment_field_value(next_date, fieldnum)
             else:
                 fieldnum += 1
 
-            if self.end_at and next_date > self.end_at:
+            if end_at_field and next_date > end_at_field:
                 return None
 
         if fieldnum >= 0:
             next_date = self.apply_jitter(next_date, self.jitter, now)
-            return min(next_date, self.end_at) if self.end_at else next_date
+            return min(next_date, end_at_field) if end_at_field else next_date
         return None
 
     def __getstate__(self) -> Any:

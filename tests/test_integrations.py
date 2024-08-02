@@ -1,4 +1,5 @@
 import contextlib
+import time
 
 import pytest
 from esmerald import Gateway, Request
@@ -16,6 +17,7 @@ from starlette.routing import Route
 from starlette.testclient import TestClient
 
 from asyncz.schedulers.asyncio import AsyncIOScheduler
+from asyncz.schedulers.base import ClassicLogging, LoguruLogging
 
 
 def get_starlette_app():
@@ -155,6 +157,14 @@ def get_esmerald_app2():
 
 
 @pytest.mark.parametrize(
+    "loggers_class_string,loggers_class",
+    [
+        ["asyncz.schedulers.base:ClassicLogging", ClassicLogging],
+        ["asyncz.schedulers.base:LoguruLogging", LoguruLogging],
+    ],
+    ids=["ClassicLogging", "LoguruLogging"],
+)
+@pytest.mark.parametrize(
     "get_app",
     [
         get_starlette_app,
@@ -166,8 +176,10 @@ def get_esmerald_app2():
         get_esmerald_app2,
     ],
 )
-def test_integrations(get_app):
+def test_integrations(get_app, loggers_class_string, loggers_class):
     app, scheduler = get_app()
+    scheduler.setup(loggers_class=loggers_class_string)
+    assert isinstance(scheduler.loggers, loggers_class)
     dummy_job_called = 0
     async_dummy_job_called = 0
 
@@ -198,6 +210,9 @@ def test_integrations(get_app):
         response = client.get("/notes")
         assert response.status_code == 200
         assert response.json() == []
+        # fix CancelledError, by giving scheduler more time to send the tasks to the  pool
+        # if the pool is closed, newly submitted tasks are cancelled
+        time.sleep(0.01)
 
     assert not scheduler.running
     assert dummy_job_called == 2

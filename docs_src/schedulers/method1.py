@@ -19,7 +19,25 @@ executors = {
 # Set the defaults
 task_defaults = {"coalesce": False, "max_instances": 4}
 
-# Start the scheduler
+# Create the scheduler
 scheduler = AsyncIOScheduler(
     stores=stores, executors=executors, task_defaults=task_defaults, timezone=tz.utc
 )
+
+# Start the scheduler
+with scheduler:
+    # note: you can also use start() and shutdown() manually
+    # Nesting is also not a problem (start and shutdown are refcounted and only the outermost scope does start and shutdown the scheduler)
+
+    scheduler.start()
+
+    scheduler.stop()
+
+# manually you have more control like:
+scheduler.start(paused=True)
+scheduler.resume()
+
+# noop because not outermost scope
+with scheduler:
+    ...
+scheduler.shutdown(wait=False)

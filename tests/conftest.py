@@ -5,14 +5,14 @@ import pytest
 import pytz
 
 from asyncz.schedulers.asyncio import AsyncIOScheduler
-from asyncz.schedulers.base import BaseScheduler
+from asyncz.schedulers.base import BaseScheduler, LoguruLogging
 from asyncz.tasks import Task
 
 
 @pytest.fixture(scope="function")
 def timezone(monkeypatch):
     tz = pytz.timezone("Europe/London")
-    monkeypatch.setattr("asyncz.schedulers.base.get_localzone", Mock(return_value=tz))
+    monkeypatch.setattr("asyncz.utils.get_localzone", Mock(return_value=tz))
     return tz
 
 
@@ -69,7 +69,8 @@ def task_defaults(timezone):
 @pytest.fixture(scope="function")
 def create_task(task_defaults, timezone):
     def create(**kwargs):
-        kwargs.setdefault("scheduler", Mock(BaseScheduler, timezone=timezone))
+        mock_scheduler = Mock(BaseScheduler, timezone=timezone, loggers=LoguruLogging())
+        kwargs.setdefault("scheduler", mock_scheduler)
         task_kwargs = task_defaults.copy()
         task_kwargs.update(kwargs)
         task_kwargs["trigger"] = AsyncIOScheduler().create_trigger(

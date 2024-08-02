@@ -1,5 +1,5 @@
 import inspect
-from datetime import datetime
+from datetime import datetime, tzinfo
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Union, cast
 from uuid import uuid4
 
@@ -60,7 +60,7 @@ class Task(BaseState, TaskType):  # type: ignore
         super().__init__(id=id, **kwargs)
         self.update_task(fn=fn, **kwargs)
 
-    def get_run_times(self, now: datetime) -> List[datetime]:
+    def get_run_times(self, timezone: tzinfo, now: datetime) -> List[datetime]:
         """
         Computes the scheduled run times `next_run_time` and `now`, inclusive.
         """
@@ -69,7 +69,7 @@ class Task(BaseState, TaskType):  # type: ignore
         assert self.trigger
         while next_run_time and next_run_time <= now:
             run_times.append(next_run_time)
-            next_run_time = self.trigger.get_next_trigger_time(next_run_time, now)
+            next_run_time = self.trigger.get_next_trigger_time(timezone, next_run_time, now)
         return run_times
 
     def update_task(  # type: ignore
@@ -158,6 +158,8 @@ class Task(BaseState, TaskType):  # type: ignore
 
         if "store_alias" in updates:
             store_alias = updates.pop("store_alias")
+            if not isinstance(store_alias, str):
+                raise TypeError("store_alias must be a string.")
             approved["store_alias"] = store_alias
 
         if "max_instances" in updates:
@@ -206,11 +208,9 @@ class Task(BaseState, TaskType):  # type: ignore
         for name, value in self.__dict__.items():
             if name == "fn":
                 self.__dict__[name] = ref_to_obj(value)
-
-        for name, value in state.__private_attributes__.items():
-            if name == "fn":
-                value = ref_to_obj(value)
-            object_setattr(self, name, value)
+        # the task was serialized in a store, so it is active
+        self.submitted = True
+        self.pending = False
         return self
 
     def __getstate__(self) -> "TaskState":  # type: ignore
@@ -272,8 +272,13 @@ class Task(BaseState, TaskType):  # type: ignore
     def __call__(self, fn: DecoratedFn) -> DecoratedFn:
         new_dict: Dict[str, Any] = dict(self.__dict__)
         new_dict.pop("pending", None)
+        new_dict.pop("submitted", None)
         new_dict.pop("fn_reference", None)
         new_dict["fn"] = fn
+        if new_dict["store_alias"] is None:
+            del new_dict["store_alias"]
+        if new_dict["executor"] is None:
+            del new_dict["executor"]
         replace_existing = True
         if not new_dict.get("id"):
             replace_existing = False
@@ -282,6 +287,7 @@ class Task(BaseState, TaskType):  # type: ignore
         task = self.__class__(**new_dict)
         scheduler = self.scheduler
         if scheduler is not None:
+            # in decorator mode tasks are simply started
             scheduler.add_task(task, replace_existing=replace_existing)
         if not replace_existing:
             if not hasattr(fn, "asyncz_tasks"):

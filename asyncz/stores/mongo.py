@@ -88,7 +88,9 @@ class MongoDBStore(BaseStore):
                 tasks.append(self.rebuild_task(document["state"]))
             except BaseException:
                 doc_id = document["_id"]
-                self.logger.exception(f"Unable to restore task '{doc_id}'. Removing it...")
+                cast("SchedulerType", self.scheduler).loggers[self.logger_name].exception(
+                    f"Unable to restore task '{doc_id}'. Removing it..."
+                )
                 failed_task_ids.append(doc_id)
 
         if failed_task_ids:

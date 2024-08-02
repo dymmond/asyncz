@@ -14,7 +14,7 @@ from asyncz.exceptions import MaximumInstancesError
 from asyncz.executors.asyncio import AsyncIOExecutor
 from asyncz.executors.base import run_coroutine_task, run_task
 from asyncz.schedulers.asyncio import AsyncIOScheduler
-from asyncz.schedulers.base import BaseScheduler
+from asyncz.schedulers.base import BaseScheduler, LoguruLogging
 from asyncz.tasks import Task
 
 
@@ -22,6 +22,7 @@ from asyncz.tasks import Task
 def scheduler_mocked(timezone):
     scheduler_ = Mock(BaseScheduler, timezone=timezone)
     scheduler_.create_lock = MagicMock()
+    scheduler_.loggers = LoguruLogging()
     return scheduler_
 
 
@@ -32,7 +33,7 @@ def executor(request, scheduler_mocked):
 
         executor = ThreadPoolExecutor()
     else:
-        from asyncz.executors.pool import ProcessPoolExecutor
+        from asyncz.executors.process_pool import ProcessPoolExecutor
 
         executor = ProcessPoolExecutor()
 
@@ -196,7 +197,6 @@ async def test_run_task_memory_leak_two():
         raise Exception("dummy")
 
     fake_task = Mock(Task, id="dummy", fn=fn, args=(), kwargs={}, mistrigger_grace_time=1)
-
     with patch("loguru.logger"):
         for _ in range(5):
             await run_coroutine_task(fake_task, "foo", [datetime.now(pytz.utc)], logger)

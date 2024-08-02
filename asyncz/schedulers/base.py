@@ -1,3 +1,4 @@
+import logging
 import sys
 import warnings
 from abc import abstractmethod
@@ -5,7 +6,7 @@ from collections.abc import Mapping
 from datetime import datetime, timedelta
 from functools import partial
 from importlib import import_module
-from threading import Lock, RLock
+from threading import TIMEOUT_MAX, Lock, RLock
 from typing import (
     Any,
     Callable,
@@ -18,9 +19,6 @@ from typing import (
     cast,
     overload,
 )
-
-from loguru import logger
-from tzlocal import get_localzone
 
 from asyncz.enums import PluginInstance, SchedulerState
 from asyncz.events.base import SchedulerEvent, TaskEvent, TaskSubmissionEvent
@@ -53,14 +51,53 @@ from asyncz.executors.types import ExecutorType
 from asyncz.schedulers import defaults
 from asyncz.schedulers.asgi import ASGIApp, ASGIHelper
 from asyncz.schedulers.datastructures import TaskDefaultStruct
-from asyncz.schedulers.types import SchedulerType
+from asyncz.schedulers.types import LoggersType, SchedulerType
 from asyncz.stores.memory import MemoryStore
 from asyncz.stores.types import StoreType
 from asyncz.tasks import Task
 from asyncz.tasks.types import TaskType
 from asyncz.triggers.types import TriggerType
-from asyncz.typing import UndefinedType, undefined
-from asyncz.utils import TIMEOUT_MAX, maybe_ref, timedelta_seconds, to_timezone
+from asyncz.typing import Undefined, undefined
+from asyncz.utils import maybe_ref, timedelta_seconds, to_timezone_with_fallback
+
+
+class ClassicLogging(LoggersType):
+    def __missing__(self, item: str) -> logging.Logger:
+        return logging.getLogger(item)
+
+
+class LoguruLoggerFnWrapper:
+    def __init__(self, logger: Any, fn_name: str) -> None:
+        self.logger = logger
+        self.fn_name = fn_name
+
+    def __call__(self, *args: Any, exc_info: bool = False, **kwargs: Any) -> Any:
+        logger = self.logger
+        if exc_info:
+            logger = logger.opt(exception=True)
+        return getattr(logger, self.fn_name)(*args, **kwargs)
+
+
+class LoguruLoggerWrapper:
+    def __init__(self, logger: Any) -> None:
+        self.logger = logger
+
+    def __getattr__(self, item: str) -> LoguruLoggerFnWrapper:
+        return LoguruLoggerFnWrapper(self.logger, item)
+
+
+default_loggers_class: Type[LoggersType] = ClassicLogging
+
+try:
+    from loguru import logger
+
+    class LoguruLogging(LoggersType):
+        def __missing__(self, item: str) -> logging.Logger:
+            return cast(logging.Logger, LoguruLoggerWrapper(logger.bind(name=item)))
+
+    default_loggers_class = LoguruLogging
+except ImportError:
+    pass
 
 
 class BaseScheduler(SchedulerType):
@@ -81,9 +118,12 @@ class BaseScheduler(SchedulerType):
         state: current running state of the scheduler.
     """
 
-    def __init__(self, global_config: Optional[Any] = None, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        global_config: Optional[Any] = None,
+        **kwargs: Any,
+    ) -> None:
         super().__init__()
-        self.global_config: Dict[str, Any] = global_config or {}
         self.trigger_plugins = dict(defaults.triggers.items())
         self.trigger_classes: Dict[str, Type[TriggerType]] = {}
         self.executor_plugins: Dict[str, str] = dict(defaults.executors.items())
@@ -96,13 +136,12 @@ class BaseScheduler(SchedulerType):
         self.store_lock: RLock = self.create_lock()
         self.listeners: List[Any] = []
         self.listeners_lock: RLock = self.create_lock()
-        self.pending_tasks: List[Tuple[TaskType, str, bool]] = []
+        self.pending_tasks: List[Tuple[TaskType, bool, bool]] = []
         self.state: Union[SchedulerState, Any] = SchedulerState.STATE_STOPPED
-        self.logger: Any = logger
 
         self.ref_counter: int = 0
         self.ref_lock: Lock = Lock()
-        self.setup(self.global_config, **kwargs)
+        self.setup(global_config, **kwargs)
 
     def __getstate__(self) -> None:
         raise TypeError(
@@ -197,12 +236,12 @@ class BaseScheduler(SchedulerType):
             for alias, store in self.stores.items():
                 store.start(self, alias)
 
-            for task, store_alias, replace_existing in self.pending_tasks:
-                self.real_add_task(task, store_alias, replace_existing)
+            for task, replace_existing, start_task in self.pending_tasks:
+                self.real_add_task(task, replace_existing, start_task)
             del self.pending_tasks[:]
 
         self.state = SchedulerState.STATE_PAUSED if paused else SchedulerState.STATE_RUNNING
-        self.logger.info("Scheduler started.")
+        self.loggers[self.logger_name].info("Scheduler started.")
         self.dispatch_event(SchedulerEvent(code=SCHEDULER_START))
 
         if not paused:
@@ -232,7 +271,7 @@ class BaseScheduler(SchedulerType):
             for store in self.stores.values():
                 store.shutdown()
 
-        self.logger.info("Scheduler has been shutdown.")
+        self.loggers[self.logger_name].info("Scheduler has been shutdown.")
         self.dispatch_event(SchedulerEvent(code=SCHEDULER_SHUTDOWN))
         return True
 
@@ -247,7 +286,7 @@ class BaseScheduler(SchedulerType):
             raise SchedulerNotRunningError()
         elif self.state == SchedulerState.STATE_RUNNING:
             self.state = SchedulerState.STATE_PAUSED
-            self.logger.info("Paused scheduler task processing.")
+            self.loggers[self.logger_name].info("Paused scheduler task processing.")
             self.dispatch_event(SchedulerEvent(code=SCHEDULER_PAUSED))
 
     def resume(self) -> None:
@@ -258,7 +297,7 @@ class BaseScheduler(SchedulerType):
             raise SchedulerNotRunningError
         elif self.state == SchedulerState.STATE_PAUSED:
             self.state = SchedulerState.STATE_RUNNING
-            self.logger.info("Resumed scheduler task processing.")
+            self.loggers[self.logger_name].info("Resumed scheduler task processing.")
             self.dispatch_event(SchedulerEvent(code=SCHEDULER_RESUMED))
             self.wakeup()
 
@@ -417,12 +456,12 @@ class BaseScheduler(SchedulerType):
         kwargs: Optional[Any] = None,
         id: Optional[str] = None,
         name: Optional[str] = None,
-        mistrigger_grace_time: Union[int, UndefinedType, None] = undefined,
-        coalesce: Union[bool, UndefinedType] = undefined,
-        max_instances: Union[int, UndefinedType, None] = undefined,
-        next_run_time: Union[datetime, str, UndefinedType, None] = undefined,
-        store: str = "default",
-        executor: str = "default",
+        mistrigger_grace_time: Union[int, Undefined, None] = undefined,
+        coalesce: Union[bool, Undefined] = undefined,
+        max_instances: Union[int, Undefined, None] = undefined,
+        next_run_time: Union[datetime, str, Undefined, None] = undefined,
+        store: Union[str, Undefined, None] = None,
+        executor: Union[str, Undefined, None] = None,
         replace_existing: bool = False,
         # old name
         fn: Optional[Any] = None,
@@ -471,25 +510,60 @@ class BaseScheduler(SchedulerType):
             )
             fn_or_task = fn
         if isinstance(fn_or_task, TaskType):
+            assert fn_or_task.submitted is False, "Can submit tasks only once"
+            fn_or_task.submitted = True
+            # tweak task before submitting
+            # WARNING: in contrast to the decorator mode this really updates the task
+            # by providing an id (e.g. autogenerated) you can make a real task from decorator type task while submitting
+            task_update_kwargs: Dict[str, Any] = {
+                "scheduler": self,
+                "args": tuple(args) if args is not None else undefined,
+                "kwargs": dict(kwargs) if kwargs is not None else undefined,
+                "id": id or undefined,
+                "name": name or undefined,
+                "mistrigger_grace_time": mistrigger_grace_time,
+                "coalesce": coalesce,
+                "max_instances": max_instances,
+                "next_run_time": next_run_time,
+                "executor": executor if executor is not None else undefined,
+                "store_alias": store if store is not None else undefined,
+            }
+            if trigger:
+                task_update_kwargs["trigger"] = self.create_trigger(trigger, trigger_args)
+                # WARNING: when submitting a task object allow_mistrigger_by_default has no effect
+            task_update_kwargs = {
+                key: value for key, value in task_update_kwargs.items() if value is not undefined
+            }
+            fn_or_task.update_task(**task_update_kwargs)
+            # fallback if still not set. Set manually executor and store_alias to default.
+            if fn_or_task.executor is None:
+                fn_or_task.executor = "default"
+            if fn_or_task.store_alias is None:
+                fn_or_task.store_alias = "default"
+            assert fn_or_task.trigger is not None, "Cannot submit a task without a trigger."
             assert fn_or_task.id is not None, "Cannot submit a decorator type task."
-            fn_or_task.scheduler = self
             with self.store_lock:
                 if self.state == SchedulerState.STATE_STOPPED:
                     self.pending_tasks.append(
-                        (fn_or_task, fn_or_task.store_alias or store, replace_existing)
+                        (
+                            fn_or_task,
+                            replace_existing,
+                            next_run_time is not None,
+                        )
                     )
-                    self.logger.info(
+                    self.loggers[self.logger_name].info(
                         "Adding task tentatively. It will be properly scheduled when the scheduler starts."
                     )
                 else:
                     self.real_add_task(
-                        fn_or_task, fn_or_task.store_alias or store, replace_existing
+                        fn_or_task,
+                        replace_existing,
+                        next_run_time is not None,
                     )
             return fn_or_task
         task_kwargs: Dict[str, Any] = {
             "scheduler": self,
             "trigger": self.create_trigger(trigger, trigger_args),
-            "executor": executor,
             "fn": fn_or_task,
             "args": tuple(args) if args is not None else (),
             "kwargs": dict(kwargs) if kwargs is not None else {},
@@ -499,7 +573,8 @@ class BaseScheduler(SchedulerType):
             "coalesce": coalesce,
             "max_instances": max_instances,
             "next_run_time": next_run_time,
-            "store_alias": store,
+            "executor": executor if executor is not None else undefined,
+            "store_alias": store if store is not None else undefined,
         }
         task_kwargs = {key: value for key, value in task_kwargs.items() if value is not undefined}
         if task_kwargs["trigger"].allow_mistrigger_by_default:
@@ -510,7 +585,9 @@ class BaseScheduler(SchedulerType):
 
         task = Task(**task_kwargs)
         if task.fn is not None:
-            return self.add_task(task, replace_existing=replace_existing)
+            return self.add_task(
+                task, replace_existing=replace_existing, next_run_time=next_run_time
+            )
         return task
 
     def update_task(
@@ -565,7 +642,7 @@ class BaseScheduler(SchedulerType):
         """
         trigger = self.create_trigger(trigger, trigger_args)
         now = datetime.now(self.timezone)
-        next_run_time = trigger.get_next_trigger_time(None, now)
+        next_run_time = trigger.get_next_trigger_time(self.timezone, None, now)
         return self.update_task(task_id, store, trigger=trigger, next_run_time=next_run_time)
 
     def pause_task(self, task_id: Union[TaskType, str], store: Optional[str] = None) -> "TaskType":
@@ -594,7 +671,7 @@ class BaseScheduler(SchedulerType):
         with self.store_lock:
             task, store = self.lookup_task(task_id, store)
             now = datetime.now(self.timezone)
-            next_run_time = task.trigger.get_next_trigger_time(None, now)  # type: ignore
+            next_run_time = task.trigger.get_next_trigger_time(self.timezone, None, now)  # type: ignore
 
             if next_run_time:
                 return self.update_task(task_id, store, next_run_time=next_run_time)
@@ -616,8 +693,8 @@ class BaseScheduler(SchedulerType):
         with self.store_lock:
             tasks = []
             if self.state == SchedulerState.STATE_STOPPED:
-                for task, alias, _ in self.pending_tasks:
-                    if store is None or alias == store:
+                for task, _, _ in self.pending_tasks:
+                    if store is None or task.store_alias == store:
                         tasks.append(task)
             else:
                 for alias, _store in self.stores.items():
@@ -658,10 +735,10 @@ class BaseScheduler(SchedulerType):
 
         with self.store_lock:
             if self.state == SchedulerState.STATE_STOPPED:
-                for index, (task, alias, _) in enumerate(self.pending_tasks):
-                    if task.id == task_id and store in (None, alias):
+                for index, (task, _, _) in enumerate(self.pending_tasks):
+                    if task.id == task_id and store in (None, task.store_alias):
                         del self.pending_tasks[index]
-                        store_alias = alias
+                        store_alias = task.store_alias
                         break
             else:
                 for alias, _store in self.stores.items():
@@ -679,7 +756,7 @@ class BaseScheduler(SchedulerType):
         event = TaskEvent(code=TASK_REMOVED, task_id=task_id, store=store_alias)
         self.dispatch_event(event)
 
-        self.logger.info(f"Removed task {task_id}.")
+        self.loggers[self.logger_name].info(f"Removed task {task_id}.")
 
     def remove_all_tasks(self, store: Optional[str]) -> None:
         """
@@ -689,7 +766,9 @@ class BaseScheduler(SchedulerType):
             if self.state == SchedulerState.STATE_STOPPED:
                 if store:
                     self.pending_tasks = [
-                        pending for pending in self.pending_tasks if pending[1] != store
+                        pending
+                        for pending in self.pending_tasks
+                        if pending[0].store_alias != store
                     ]
                 else:
                     self.pending_tasks = []
@@ -711,11 +790,21 @@ class BaseScheduler(SchedulerType):
         """
         Applies initial configurations called by the Base constructor.
         """
-        self.logger = maybe_ref(config.pop("logger", None)) or logger
-        self.timezone = to_timezone(config.pop("timezone", None)) or get_localzone()
+        self.timezone = to_timezone_with_fallback(config.pop("timezone", None))
         self.store_retry_interval = float(config.pop("store_retry_interval", 10))
 
         self.task_defaults = TaskDefaultStruct(**(config.get("task_defaults", None) or {}))
+        loggers_class: Type[LoggersType] = (
+            maybe_ref(config.pop("loggers_class", None)) or default_loggers_class
+        )
+        self.loggers = loggers_class()
+        logger_name = config.pop("logger_name", None)
+        if logger_name:
+            self.logger_name = f"asyncz.schedulers.{logger_name}"
+        else:
+            self.logger_name = "asyncz.schedulers"
+        # initialize logger for scheduler
+        self.loggers[self.logger_name]
 
         self.executors.clear()
         for alias, value in config.get("executors", {}).items():
@@ -814,7 +903,7 @@ class BaseScheduler(SchedulerType):
         """
         if self.state == SchedulerState.STATE_STOPPED:
             for task, _, _ in self.pending_tasks:
-                if task.id == task_id:
+                if task.id == task_id and store_alias in (None, task.store_alias):
                     return task, None
         else:
             for alias, store in self.stores.items():
@@ -840,7 +929,7 @@ class BaseScheduler(SchedulerType):
                 try:
                     callback(event)
                 except BaseException:
-                    self.logger.exception("Error notifying listener.")
+                    self.loggers[self.logger_name].exception("Error notifying listener.")
 
     def check_uwsgi(self) -> None:
         """
@@ -854,7 +943,7 @@ class BaseScheduler(SchedulerType):
                 "option for the scheduler to work."
             )
 
-    def real_add_task(self, task: "TaskType", store_alias: str, replace_existing: bool) -> None:
+    def real_add_task(self, task: "TaskType", replace_existing: bool, start_task: bool) -> None:
         """
         Adds the task.
 
@@ -863,18 +952,22 @@ class BaseScheduler(SchedulerType):
             store_alias: The alias of the store to add the task to.
             replace_existing: The flag indicating the replacement of the task.
         """
+        assert task.trigger is not None, "Submitted task has no trigger set."
+        assert task.store_alias is not None, "Submitted task has no store_alias set."
+        assert task.executor is not None, "Submitted task has no executor set."
         replacements: Dict[str, Any] = {}
 
         # Calculate the next run time if there is none defined
-        if not getattr(task, "next_run_time", None):
+        if task.next_run_time is None and start_task:
             now = datetime.now(self.timezone)
-            replacements["next_run_time"] = task.trigger.get_next_trigger_time(None, now)  # type: ignore
+            replacements["next_run_time"] = task.trigger.get_next_trigger_time(
+                self.timezone, None, now
+            )
 
         # Apply replacements
-        task.pending = False
         task.update_task(**replacements)
         # Add the task to the given store
-        store = self.lookup_store(store_alias)
+        store = self.lookup_store(task.store_alias)
         try:
             store.add_task(task)
         except ConflictIdError:
@@ -882,16 +975,17 @@ class BaseScheduler(SchedulerType):
                 store.update_task(task)
             else:
                 raise
+        task.pending = False
 
-        task.store_alias = store_alias
-
-        event = TaskEvent(code=TASK_ADDED, task_id=task.id, alias=store_alias)
+        event = TaskEvent(code=TASK_ADDED, task_id=task.id, alias=task.store_alias)
         self.dispatch_event(event)
 
-        self.logger.info(f"Added task '{task.name}' to store '{store_alias}'.")
+        self.loggers[self.logger_name].info(
+            f"Added task '{task.name}' to store '{task.store_alias}'."
+        )
 
         # Notify the scheduler about the new task.
-        if self.state == SchedulerState.STATE_RUNNING:
+        if start_task and self.state == SchedulerState.STATE_RUNNING:
             self.wakeup()
 
     def resolve_load_plugin(self, module_name: str) -> Any:
@@ -971,10 +1065,10 @@ class BaseScheduler(SchedulerType):
         store_retry_interval seconds.
         """
         if self.state == SchedulerState.STATE_PAUSED:
-            self.logger.debug("Scheduler is paused. Not processing tasks.")
+            self.loggers[self.logger_name].debug("Scheduler is paused. Not processing tasks.")
             return None
 
-        self.logger.debug("Looking for tasks to run.")
+        self.loggers[self.logger_name].debug("Looking for tasks to run.")
         now = datetime.now(self.timezone)
         next_wakeup_time: Optional[datetime] = None
         events = []
@@ -984,7 +1078,7 @@ class BaseScheduler(SchedulerType):
                 try:
                     due_tasks: List[TaskType] = store.get_due_tasks(now)
                 except Exception as e:
-                    self.logger.warning(
+                    self.loggers[self.logger_name].warning(
                         f"Error getting due tasks from the store {store_alias}: {e}."
                     )
                     retry_wakeup_time = now + timedelta(seconds=self.store_retry_interval)
@@ -996,20 +1090,20 @@ class BaseScheduler(SchedulerType):
                     try:
                         executor = self.lookup_executor(task.executor)  # type: ignore
                     except Exception:
-                        self.logger.error(
+                        self.loggers[self.logger_name].error(
                             f"Executor lookup ('{task.executor}') failed for task '{task}'. Removing it from the store."
                         )
                         self.delete_task(task.id, store_alias)
                         continue
 
-                    run_times = task.get_run_times(now)
+                    run_times = task.get_run_times(self.timezone, now)
                     run_times = run_times[-1:] if run_times and task.coalesce else run_times
 
                     if run_times:
                         try:
                             executor.send_task(task, run_times)
                         except MaxInterationsReached:
-                            self.logger.warning(
+                            self.loggers[self.logger_name].warning(
                                 f"Execution of task '{task}' skipped: Maximum number of running "
                                 f"instances reached '({task.max_instances})'."
                             )
@@ -1020,9 +1114,10 @@ class BaseScheduler(SchedulerType):
                                 scheduled_run_times=run_times,
                             )
                             events.append(event)
-                        except BaseException:
-                            self.logger.exception(
-                                f"Error submitting task '{task}' to executor '{task.executor}'."
+                        except Exception:
+                            self.loggers[self.logger_name].exception(
+                                f"Error submitting task '{task}' to executor '{task.executor}'.",
+                                exc_info=True,
                             )
                         else:
                             event = TaskSubmissionEvent(
@@ -1033,7 +1128,9 @@ class BaseScheduler(SchedulerType):
                             )
                             events.append(event)
 
-                        next_run = task.trigger.get_next_trigger_time(run_times[-1], now)  # type: ignore
+                        next_run = task.trigger.get_next_trigger_time(  # type: ignore
+                            self.timezone, run_times[-1], now
+                        )
                         if next_run:
                             task.update_task(next_run_time=next_run)
                             store.update_task(task)
@@ -1051,12 +1148,14 @@ class BaseScheduler(SchedulerType):
 
         wait_seconds: Optional[float] = None
         if self.state == SchedulerState.STATE_PAUSED:
-            self.logger.debug("Scheduler is paused. Waiting until resume() is called.")
+            self.loggers[self.logger_name].debug(
+                "Scheduler is paused. Waiting until resume() is called."
+            )
         elif next_wakeup_time is None:
-            self.logger.debug("No tasks. Waiting until task is added.")
+            self.loggers[self.logger_name].debug("No tasks. Waiting until task is added.")
         else:
             wait_seconds = min(max(timedelta_seconds(next_wakeup_time - now), 0), TIMEOUT_MAX)
-            self.logger.debug(
+            self.loggers[self.logger_name].debug(
                 f"Next wakeup is due at {next_wakeup_time} (in {wait_seconds} seconds)."
             )
         return wait_seconds

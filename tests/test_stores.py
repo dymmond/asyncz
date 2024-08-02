@@ -95,8 +95,11 @@ def create_add_task(timezone, create_task):
     def create(store, fn=dummy_task, run_at=datetime(2999, 1, 1), id=None, paused=False, **kwargs):
         run_at = timezone.localize(run_at)
         task = create_task(fn=fn, trigger="date", trigger_args={"run_at": run_at}, id=id, **kwargs)
-        task.next_run_time = None if paused else task.trigger.get_next_trigger_time(None, run_at)
+        task.next_run_time = (
+            None if paused else task.trigger.get_next_trigger_time(timezone, None, run_at)
+        )
         if store:
+            store.start(task.scheduler, "default")
             store.add_task(task)
         return task
 

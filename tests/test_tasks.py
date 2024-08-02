@@ -80,13 +80,13 @@ def test_get_run_times(create_task, timezone):
         fn=dummyfn,
     )
 
-    run_times = task.get_run_times(run_time)
+    run_times = task.get_run_times(timezone, run_time)
     assert run_times == []
 
-    run_times = task.get_run_times(expected_times[0])
+    run_times = task.get_run_times(timezone, expected_times[0])
     assert run_times == [expected_times[0]]
 
-    run_times = task.get_run_times(expected_times[1])
+    run_times = task.get_run_times(timezone, expected_times[1])
     assert run_times == expected_times
 
 

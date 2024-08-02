@@ -3,7 +3,6 @@ import os
 from typing import TYPE_CHECKING, Any, List, Optional
 
 from cryptography.hazmat.primitives.ciphers.aead import AESCCM
-from loguru import logger
 
 from asyncz.state import BaseStateExtra
 from asyncz.stores.types import StoreType
@@ -18,10 +17,9 @@ class BaseStore(BaseStateExtra, StoreType):
     Base class for all task stores.
     """
 
-    def __init__(self, scheduler: Optional["SchedulerType"] = None, **kwargs: Any) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.scheduler = scheduler
-        self.logger = logger
+        self.scheduler: Optional[SchedulerType] = None
         self.encryption_key: Optional[AESCCM] = None
 
     def start(self, scheduler: "SchedulerType", alias: str) -> None:
@@ -35,6 +33,7 @@ class BaseStore(BaseStateExtra, StoreType):
         """
         self.scheduler = scheduler
         self.alias = alias
+        self.logger_name = f"asyncz.stores.{alias}"
         encryption_key = os.environ.get("ASYNCZ_STORE_ENCRYPTION_KEY")
         if encryption_key:
             # we simply use a hash. This way all kinds of tokens, lengths and co are supported

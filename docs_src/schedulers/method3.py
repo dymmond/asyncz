@@ -18,7 +18,7 @@ executors = {
 # Set the defaults
 task_defaults = {"coalesce": False, "max_instances": 4}
 
-# Start the scheduler
+# Create the scheduler
 scheduler = AsyncIOScheduler()
 
 ## Add some tasks here or anything else (for instance 3 tasks)
@@ -27,3 +27,8 @@ scheduler.add_task(...)
 scheduler.add_task(...)
 
 scheduler.setup(stores=stores, executors=executors, task_defaults=task_defaults, timezone=tz.utc)
+
+# Start the scheduler
+with scheduler:
+    ...
+    # your code
