@@ -1,5 +1,4 @@
-from typing import Any, Optional, Union
-from uuid import UUID
+from typing import Any, Optional
 
 
 class AsynczException(Exception):
@@ -76,14 +75,10 @@ class ConflictIdError(KeyError):
         super().__init__(detail)
 
 
-class MaxInterationsReached(AsynczException):
-    detail = "Maximum number of iterations has been reached."
-
-
 class MaximumInstancesError(AsynczException):
     detail = "The task by the id of {id} reached its maximum number of instances {total}."
 
-    def __init__(self, _id: Union[UUID, str, int], total: int) -> None:
+    def __init__(self, _id: str, total: int) -> None:
         detail = self.detail.format(id=_id, total=total)
         super().__init__(detail=detail)
 

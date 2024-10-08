@@ -1,8 +1,8 @@
+import inspect
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, List, Set, cast
 
 from asyncz.executors.base import BaseExecutor, run_coroutine_task, run_task
-from asyncz.utils import iscoroutinefunction_partial
 
 if TYPE_CHECKING:
     from asyncz.tasks.types import TaskType
@@ -46,7 +46,7 @@ class AsyncIOExecutor(BaseExecutor):
             else:
                 self.run_task_success(task_id, events)
 
-        if iscoroutinefunction_partial(task.fn):
+        if inspect.iscoroutinefunction(task.fn):
             coroutine = run_coroutine_task(
                 task, cast(str, task.store_alias), run_times, self.logger
             )

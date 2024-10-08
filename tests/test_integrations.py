@@ -189,6 +189,7 @@ def test_integrations(get_app, loggers_class_string, loggers_class):
         dummy_job_called += 1
 
     scheduler.add_task(dummy_job)
+    scheduler.add_task(dummy_job, trigger="shutdown")
     with pytest.warns(DeprecationWarning):
         scheduler.add_task(fn=dummy_job)
 
@@ -198,11 +199,12 @@ def test_integrations(get_app, loggers_class_string, loggers_class):
         nonlocal async_dummy_job_called
         async_dummy_job_called += 1
 
-    assert async_dummy_job_called == 0
-
     scheduler.add_task(async_dummy_job)
+    scheduler.add_task(async_dummy_job, trigger="shutdown")
     with pytest.warns(DeprecationWarning):
         scheduler.add_task(fn=async_dummy_job)
+
+    assert async_dummy_job_called == 0
 
     with TestClient(app) as client:
         assert scheduler.running
@@ -212,8 +214,11 @@ def test_integrations(get_app, loggers_class_string, loggers_class):
         assert response.json() == []
         # fix CancelledError, by giving scheduler more time to send the tasks to the  pool
         # if the pool is closed, newly submitted tasks are cancelled
-        time.sleep(0.01)
+        time.sleep(1)
+        assert dummy_job_called == 2
+        assert async_dummy_job_called == 2
+    time.sleep(0.1)
 
     assert not scheduler.running
-    assert dummy_job_called == 2
-    assert async_dummy_job_called == 2
+    assert dummy_job_called == 3
+    assert async_dummy_job_called == 3

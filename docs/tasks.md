@@ -55,3 +55,33 @@ The trigger must be the [alias of the trigger object](./triggers.md#alias).
 ```python hl_lines="26-30"
 {!> ../docs_src/tasks/reschedule_task.py !}
 ```
+
+## Tasks with lifecyle
+
+Sometimes tasks need a setup and a cleanup routine. This is possible to implement via generators,
+no matter if asynchronous or synchronous.
+
+Generators have two methods: send, throw (for asynchronous generators there are asend and athrow).
+The send methods take a parameter which is returned from yield:
+
+``` python
+def generator():
+    print(yield)
+
+g = generator()
+# start generator, it is  required to be None
+g.send(None)
+# raises StopIteration
+g.send("hello world")
+```
+
+Now let's adapt this for tasks with lifecycle:
+
+```python
+{!> ../docs_src/tasks/lifecycle.py !}
+```
+
+Note the `make_function` and `make_async_function` decorators. They are required because the generator
+methods have no signature. It is especially required for asend/athrow.
+
+This is also possible with asynchronous generators.

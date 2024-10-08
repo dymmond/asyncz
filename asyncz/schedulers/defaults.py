@@ -6,6 +6,7 @@ triggers: Dict[str, str] = {
     "cron": "asyncz.triggers.cron.trigger:CronTrigger",
     "and": "asyncz.triggers.date:DateTrigger",
     "or": "asyncz.triggers.combining:OrTrigger",
+    "shutdown": "asyncz.triggers.shutdown:ShutdownTrigger",
 }
 
 

@@ -1,3 +1,6 @@
+import asyncio
+import contextlib
+import inspect
 import logging
 import sys
 import warnings
@@ -13,6 +16,7 @@ from typing import (
     Dict,
     List,
     Optional,
+    Sequence,
     Tuple,
     Type,
     Union,
@@ -41,7 +45,7 @@ from asyncz.events.constants import (
 )
 from asyncz.exceptions import (
     ConflictIdError,
-    MaxInterationsReached,
+    MaximumInstancesError,
     SchedulerAlreadyRunningError,
     SchedulerNotRunningError,
     TaskLookupError,
@@ -73,8 +77,7 @@ class LoguruLoggerFnWrapper:
 
     def __call__(self, *args: Any, exc_info: bool = False, **kwargs: Any) -> Any:
         logger = self.logger
-        if exc_info:
-            logger = logger.opt(exception=True)
+        logger = logger.opt(exception=True, depth=2) if exc_info else logger.opt(depth=2)
         return getattr(logger, self.fn_name)(*args, **kwargs)
 
 
@@ -248,6 +251,32 @@ class BaseScheduler(SchedulerType):
             self.wakeup()
         return True
 
+    def _shutdown_fn_helper(self, task: TaskType) -> None:
+        assert task.fn is not None
+        try:
+            with contextlib.suppress(StopIteration):
+                task.fn(*task.args, **task.kwargs)
+            self.loggers[self.logger_name].info(
+                f"Shutdown task {task} has been successfully executed,"
+            )
+        except BaseException:
+            self.loggers[self.logger_name].exception(f"Error executing shutdown task {task}.")
+
+    async def _ashutdown_fn_helper(self, task: TaskType) -> None:
+        assert task.fn is not None
+        try:
+            with contextlib.suppress(StopAsyncIteration):
+                await task.fn(*task.args, **task.kwargs)
+            self.loggers[self.logger_name].info(
+                f"Shutdown task {task} has been successfully executed,"
+            )
+        except BaseException:
+            self.loggers[self.logger_name].exception(f"Error executing shutdown task {task}.")
+
+    def handle_shutdown_coros(self, coros: Sequence[Any]) -> None:
+        if coros:
+            self.event_loop.call_soon_threadsafe(asyncio.gather, *coros)
+
     def shutdown(self, wait: bool = True) -> bool:
         """
         Shuts down the scheduler, along with its executors and task stores.
@@ -267,7 +296,17 @@ class BaseScheduler(SchedulerType):
         with self.executor_lock, self.store_lock:
             for executor in self.executors.values():
                 executor.shutdown(wait)
-
+            coros = []
+            for _store in self.stores.values():
+                for task in _store.get_all_tasks():
+                    assert task.trigger is not None
+                    if task.trigger.alias == "shutdown":
+                        _store.delete_task(cast(str, task.id))
+                        if inspect.iscoroutinefunction(task.fn):
+                            coros.append(self._ashutdown_fn_helper(task))
+                        else:
+                            self._shutdown_fn_helper(task)
+            self.handle_shutdown_coros(coros)
             for store in self.stores.values():
                 store.shutdown()
 
@@ -1102,7 +1141,7 @@ class BaseScheduler(SchedulerType):
                     if run_times:
                         try:
                             executor.send_task(task, run_times)
-                        except MaxInterationsReached:
+                        except MaximumInstancesError:
                             self.loggers[self.logger_name].warning(
                                 f"Execution of task '{task}' skipped: Maximum number of running "
                                 f"instances reached '({task.max_instances})'."

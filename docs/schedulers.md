@@ -381,24 +381,52 @@ from asyncz.schedulers.base import BaseScheduler
 
 ## AsyncIOScheduler
 
-This scheduler is the only one (at least for now) supported by Asyncz and as mentioned before,
-it inherits from the [BaseScheduler](#basescheduler).
+This scheduler has a mostly synchronous interface. It is handy for an synchronous environment and supports
+asynchronous functions. Because of the synchronous interface it has a slight delay when shutting down.
 
 ```python
 from asyncz.schedulers import AsyncIOScheduler
 ```
 
-This special scheduler besides the normal [parameters](#parameters) of the scheduler, also contains
+This scheduler has besides the normal [parameters](#parameters) of the scheduler
 some additional ones.
 
 * **event_loop** - An optional. async event_loop to be used. If nothing is provided, it will use
-the `asyncio.get_event_loop()` (global).
+the `asyncio.get_event_loop()` (global) if `isolated_event_loop` is `False`.
 
     <sup>Default: `None`</sup>
+
+
+* **isolated_event_loop** - Instead of using an existing event_loop a new one is used.
+
+    <sup>Default: `False`</sup>
 
 * **timeout** - A timeout used for start and stop the scheduler.
 
     <sup>Default: `None`</sup>
+
+
+## NativeAsyncIOScheduler
+
+This scheduler uses an async start/shutdown interface and is very handy for asynchronous environments
+because it hasn't a shutdown delay and has less sync/async changes.
+
+```python
+from asyncz.schedulers import AsyncIOScheduler
+```
+
+This scheduler has besides the normal [parameters](#parameters) of the scheduler
+some additional ones.
+
+* **isolated_event_loop** - Instead of using an existing event_loop a new one is used.
+
+    <sup>Default: `False`</sup>
+
+* **timeout** - A timeout used for start and stop the scheduler.
+
+    <sup>Default: `None`</sup>
+
+Note: in contrast to AsyncIOScheduler it is not possible to provide an event_loop (except via isolated_event_loop).
 
 ## Custom Scheduler
 
