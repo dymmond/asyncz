@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Awaitable
 from inspect import isawaitable
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 from asyncz.events.constants import (
     ALL_EVENTS,
@@ -23,7 +24,7 @@ if TYPE_CHECKING:
 
 class LoggersType(ABC):
     def __init__(self) -> None:
-        self.data: Dict[str, Logger] = {}
+        self.data: dict[str, Logger] = {}
 
     @abstractmethod
     def __missing__(self, item: str) -> Logger: ...
@@ -251,7 +252,7 @@ class SchedulerType(ABC):
         """
 
     @abstractmethod
-    def get_tasks(self, store: Optional[str] = None) -> List[TaskType]:
+    def get_tasks(self, store: Optional[str] = None) -> list[TaskType]:
         """
         Returns a list of pending tasks (if the scheduler hasn't been started yet) and scheduled
         tasks, either from a specific task store or from all of them.
@@ -334,7 +335,7 @@ class SchedulerType(ABC):
     @abstractmethod
     def lookup_task(
         self, task_id: str, store_alias: Optional[str]
-    ) -> Tuple[TaskType, Optional[str]]:
+    ) -> tuple[TaskType, Optional[str]]:
         """
         Finds a task by its ID.
 

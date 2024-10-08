@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Sequence
 from threading import Event, Thread
-from typing import TYPE_CHECKING, Any, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Optional
 
 from asyncz.executors.asyncio import AsyncIOExecutor
 from asyncz.schedulers.base import BaseScheduler

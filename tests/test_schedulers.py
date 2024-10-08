@@ -4,7 +4,7 @@ import pickle
 import time
 from datetime import datetime, timedelta, tzinfo
 from threading import Thread
-from typing import Any, List, Optional, Union
+from typing import Any, Optional, Union
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -84,7 +84,7 @@ class DummyExecutor(BaseExecutor):
         object_setter(self, "shutdown", MagicMock())
         object_setter(self, "send_task", MagicMock())
 
-    def do_send_task(self, task: "TaskType", run_times: List[datetime]) -> Any:
+    def do_send_task(self, task: "TaskType", run_times: list[datetime]) -> Any:
         return super().do_send_task(task, run_times)
 
 
@@ -95,7 +95,7 @@ class DummyStore(BaseStore):
         object_setter(self, "start", MagicMock())
         object_setter(self, "shutdown", MagicMock())
 
-    def get_due_tasks(self, now: datetime) -> List["TaskType"]:
+    def get_due_tasks(self, now: datetime) -> list["TaskType"]:
         return []
 
     def lookup_task(self, task_id: str) -> Union["TaskType", None]:
@@ -108,7 +108,7 @@ class DummyStore(BaseStore):
     def get_next_run_time(self) -> Optional[datetime]:
         return None
 
-    def get_all_tasks(self) -> List["TaskType"]:
+    def get_all_tasks(self) -> list["TaskType"]:
         return []
 
     def add_task(self, task: "TaskType"): ...

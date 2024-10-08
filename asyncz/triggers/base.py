@@ -1,6 +1,6 @@
 import random
 from datetime import datetime, timedelta
-from typing import Any, List, Optional, Union, overload
+from typing import Any, Optional, Union, overload
 
 from asyncz.datastructures import CombinationState
 from asyncz.state import BaseStateExtra
@@ -48,11 +48,11 @@ class BaseCombinationTrigger(BaseTrigger):
         jitter: he maximum number of second to add to the next_trigger_time.
     """
 
-    triggers: List[TriggerType]
+    triggers: list[TriggerType]
 
     def __init__(
         self,
-        triggers: List[TriggerType],
+        triggers: list[TriggerType],
         jitter: Optional[int] = None,
         **kwargs: Any,
     ) -> None:

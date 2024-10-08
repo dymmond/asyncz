@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     import logging
@@ -36,7 +36,7 @@ class ExecutorType(ABC):
         """
 
     @abstractmethod
-    def send_task(self, task: TaskType, run_times: List[datetime]) -> None:
+    def send_task(self, task: TaskType, run_times: list[datetime]) -> None:
         """
         Sends the task for execution.
 
@@ -46,14 +46,14 @@ class ExecutorType(ABC):
         """
 
     @abstractmethod
-    def do_send_task(self, task: TaskType, run_times: List[datetime]) -> Any:
+    def do_send_task(self, task: TaskType, run_times: list[datetime]) -> Any:
         """
         Executes the actual task of scheduling `run_task` to be called.
         """
         ...
 
     @abstractmethod
-    def run_task_success(self, task_id: str, events: List[TaskExecutionEvent]) -> None:
+    def run_task_success(self, task_id: str, events: list[TaskExecutionEvent]) -> None:
         """
         Called by the executor with the list of generated events when the function run_task has
         been successfully executed.

@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, tzinfo
-from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 from pydantic import BaseModel, ConfigDict
 
@@ -40,7 +40,7 @@ class CombinationState(BaseDatastructureState):
     Handles the state of the BaseCombination.
     """
 
-    triggers: List[Any]
+    triggers: list[Any]
     jitter: Optional[int] = None
 
 
@@ -52,7 +52,7 @@ class CronState(BaseDatastructureState):
     timezone: Optional[tzinfo] = None
     start_at: Optional[datetime] = None
     end_at: Optional[datetime] = None
-    fields: Optional[List[Any]] = None
+    fields: Optional[list[Any]] = None
     jitter: Optional[int] = None
 
 

@@ -1,6 +1,6 @@
 import pickle
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, List, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from asyncz.exceptions import ConflictIdError, TaskLookupError
 from asyncz.stores.base import BaseStore
@@ -73,12 +73,12 @@ class MongoDBStore(BaseStore):
         task.store_alias = self.alias
         return task
 
-    def get_due_tasks(self, now: datetime) -> List["TaskType"]:
+    def get_due_tasks(self, now: datetime) -> list["TaskType"]:
         timestamp = datetime_to_utc_timestamp(now)
         return self.get_tasks({"next_run_time": {"$lte": timestamp}})
 
-    def get_tasks(self, conditions: DictAny) -> List["TaskType"]:
-        tasks: List[TaskType] = []
+    def get_tasks(self, conditions: DictAny) -> list["TaskType"]:
+        tasks: list[TaskType] = []
         failed_task_ids = []
 
         for document in self.collection.find(
@@ -106,7 +106,7 @@ class MongoDBStore(BaseStore):
         )
         return utc_timestamp_to_datetime(document["next_run_time"]) if document else None
 
-    def get_all_tasks(self) -> List["TaskType"]:
+    def get_all_tasks(self) -> list["TaskType"]:
         tasks = self.get_tasks({})
         self.fix_paused_tasks(tasks)
         return tasks

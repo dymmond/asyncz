@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 
 
 class Undefined:
@@ -20,5 +20,5 @@ undefined = Undefined()
 # legacy shim
 UndefinedType = Undefined
 
-DictAny = Dict[Any, Any]
-DictStrAny = Dict[str, Any]
+DictAny = dict[Any, Any]
+DictStrAny = dict[str, Any]
