@@ -1,5 +1,22 @@
 # Release Notes
 
+
+## 0.12.0
+
+### Added
+
+- `shutdown` trigger.
+- Tasks can have a lifecycle.
+- NativeAsyncIOScheduler with async start/shutdown methods and some optimizations.
+
+### Fixed
+
+- Raise correct exception when maximal instances are reached.
+
+### Removed
+
+- MaxInterationsReached exception. It had no use and was broken from design.
+
 ## 0.11.0
 
 ### Added
