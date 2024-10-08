@@ -1,7 +1,6 @@
 import logging
 import sys
 import traceback
-from collections import defaultdict
 from datetime import datetime, timedelta
 from datetime import timezone as tz
 from threading import RLock
@@ -14,6 +13,7 @@ from asyncz.exceptions import MaximumInstancesError
 from asyncz.executors.types import ExecutorType
 
 if TYPE_CHECKING:
+    from asyncz.schedulers.types import SchedulerType
     from asyncz.tasks.types import TaskType
 
 
@@ -24,9 +24,10 @@ class BaseExecutor(ExecutorType):
     Asyncz uses loguru for its logging as it is more descriptive and intuitive.
     """
 
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__()
-        self.instances: dict[str, int] = defaultdict(lambda: 0)
+    @property
+    def instances(self) -> dict[str, int]:
+        assert self.scheduler is not None
+        return cast("SchedulerType", self.scheduler).instances
 
     def start(self, scheduler: Any, alias: str) -> None:
         """

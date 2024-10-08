@@ -38,6 +38,7 @@ class LoggersType(ABC):
 class SchedulerType(ABC):
     event_loop: Any = None
     loggers: LoggersType
+    instances: dict[str, int]
 
     @abstractmethod
     def start(self, paused: bool = False) -> Union[bool, Awaitable[bool]]:

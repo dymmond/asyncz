@@ -78,7 +78,7 @@ class DummyTrigger(BaseTrigger):
 
 class DummyExecutor(BaseExecutor):
     def __init__(self, **args):
-        super().__init__(**args)
+        super().__init__()
         self.args = args
         object_setter(self, "start", MagicMock())
         object_setter(self, "shutdown", MagicMock())

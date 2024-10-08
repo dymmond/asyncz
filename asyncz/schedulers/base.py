@@ -5,6 +5,7 @@ import logging
 import sys
 import warnings
 from abc import abstractmethod
+from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from functools import partial
@@ -139,6 +140,7 @@ class BaseScheduler(SchedulerType):
 
         self.ref_counter: int = 0
         self.ref_lock: Lock = Lock()
+        self.instances: dict[str, int] = defaultdict(lambda: 0)
         self.setup(global_config, **kwargs)
 
     def __getstate__(self) -> None:

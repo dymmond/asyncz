@@ -12,6 +12,11 @@
 ### Fixed
 
 - Raise correct exception when maximal instances are reached.
+- Task instances are now per scheduler not per executor.
+
+### Changed
+
+- Invalid executor init kwargs are not ignored anymore.
 
 ### Removed
 
