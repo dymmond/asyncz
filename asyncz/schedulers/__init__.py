@@ -1,3 +1,3 @@
-from .asyncio import AsyncIOScheduler
+from .asyncio import AsyncIOScheduler, NativeAsyncIOScheduler
 
-__all__ = ["AsyncIOScheduler"]
+__all__ = ["AsyncIOScheduler", "NativeAsyncIOScheduler"]
