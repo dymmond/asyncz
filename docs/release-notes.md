@@ -1,5 +1,10 @@
 # Release Notes
 
+## 0.12.1
+
+### Fixed
+
+- Missing export of NativeAsyncIOScheduler from schedulers.
 
 ## 0.12.0
 
