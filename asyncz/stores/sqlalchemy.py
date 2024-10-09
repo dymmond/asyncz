@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pickle
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, List, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 from asyncz.exceptions import ConflictIdError, TaskLookupError
 from asyncz.stores.base import BaseStore
@@ -75,12 +75,12 @@ class SQLAlchemyStore(BaseStore):
         task.store_alias = self.alias
         return task
 
-    def get_due_tasks(self, now: datetime) -> List[TaskType]:
+    def get_due_tasks(self, now: datetime) -> list[TaskType]:
         timestamp = datetime_to_utc_timestamp(now)
         return self.get_tasks(self.table.c.next_run_time <= timestamp)
 
-    def get_tasks(self, conditions: Any = None, limit: int = 0) -> List[TaskType]:
-        tasks: List[TaskType] = []
+    def get_tasks(self, conditions: Any = None, limit: int = 0) -> list[TaskType]:
+        tasks: list[TaskType] = []
         failed_task_ids = []
         stmt = self.table.select().order_by(self.table.c.next_run_time.asc())
         if conditions is not None:
@@ -118,7 +118,7 @@ class SQLAlchemyStore(BaseStore):
 
             return utc_timestamp_to_datetime(row.next_run_time) if row else None
 
-    def get_all_tasks(self) -> List[TaskType]:
+    def get_all_tasks(self) -> list[TaskType]:
         tasks = self.get_tasks()
         self.fix_paused_tasks(tasks)
         return tasks

@@ -1,12 +1,11 @@
 import logging
 import sys
 import traceback
-from collections import defaultdict
 from datetime import datetime, timedelta
 from datetime import timezone as tz
 from threading import RLock
 from traceback import format_tb
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, cast
+from typing import TYPE_CHECKING, Any, Callable, cast
 
 from asyncz.events import TaskExecutionEvent
 from asyncz.events.constants import TASK_ERROR, TASK_EXECUTED, TASK_MISSED
@@ -14,6 +13,7 @@ from asyncz.exceptions import MaximumInstancesError
 from asyncz.executors.types import ExecutorType
 
 if TYPE_CHECKING:
+    from asyncz.schedulers.types import SchedulerType
     from asyncz.tasks.types import TaskType
 
 
@@ -24,9 +24,10 @@ class BaseExecutor(ExecutorType):
     Asyncz uses loguru for its logging as it is more descriptive and intuitive.
     """
 
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__()
-        self.instances: Dict[str, int] = defaultdict(lambda: 0)
+    @property
+    def instances(self) -> dict[str, int]:
+        assert self.scheduler is not None
+        return cast("SchedulerType", self.scheduler).instances
 
     def start(self, scheduler: Any, alias: str) -> None:
         """
@@ -51,7 +52,7 @@ class BaseExecutor(ExecutorType):
             wait - Boolean indicating to wait until all submitted tasks have been executed.
         """
 
-    def send_task(self, task: "TaskType", run_times: List[datetime]) -> None:
+    def send_task(self, task: "TaskType", run_times: list[datetime]) -> None:
         """
         Sends the task for execution.
 
@@ -68,7 +69,7 @@ class BaseExecutor(ExecutorType):
             self.do_send_task(task, run_times)
             self.instances[task.id] += 1
 
-    def run_task_success(self, task_id: str, events: List[TaskExecutionEvent]) -> None:
+    def run_task_success(self, task_id: str, events: list[TaskExecutionEvent]) -> None:
         """
         Called by the executor with the list of generated events when the function run_task has
         been successfully executed.
@@ -98,9 +99,9 @@ class BaseExecutor(ExecutorType):
 def run_task(
     task: "TaskType",
     store_alias: str,
-    run_times: List[datetime],
+    run_times: list[datetime],
     logger: logging.Logger,
-) -> List[TaskExecutionEvent]:
+) -> list[TaskExecutionEvent]:
     """
     Called by executors to run the task. Returns a list of scheduler events to be dispatched by the
     scheduler.
@@ -161,9 +162,9 @@ def run_task(
 async def run_coroutine_task(
     task: "TaskType",
     store_alias: str,
-    run_times: List[datetime],
+    run_times: list[datetime],
     logger: logging.Logger,
-) -> List[TaskExecutionEvent]:
+) -> list[TaskExecutionEvent]:
     """
     Called by executors to run the task. Returns a list of scheduler events to be dispatched by the
     scheduler.

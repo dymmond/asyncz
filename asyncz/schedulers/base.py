@@ -1,8 +1,12 @@
+import asyncio
+import contextlib
+import inspect
 import logging
 import sys
 import warnings
 from abc import abstractmethod
-from collections.abc import Mapping
+from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from functools import partial
 from importlib import import_module
@@ -10,11 +14,7 @@ from threading import TIMEOUT_MAX, Lock, RLock
 from typing import (
     Any,
     Callable,
-    Dict,
-    List,
     Optional,
-    Tuple,
-    Type,
     Union,
     cast,
     overload,
@@ -41,7 +41,7 @@ from asyncz.events.constants import (
 )
 from asyncz.exceptions import (
     ConflictIdError,
-    MaxInterationsReached,
+    MaximumInstancesError,
     SchedulerAlreadyRunningError,
     SchedulerNotRunningError,
     TaskLookupError,
@@ -73,8 +73,7 @@ class LoguruLoggerFnWrapper:
 
     def __call__(self, *args: Any, exc_info: bool = False, **kwargs: Any) -> Any:
         logger = self.logger
-        if exc_info:
-            logger = logger.opt(exception=True)
+        logger = logger.opt(exception=True, depth=2) if exc_info else logger.opt(depth=2)
         return getattr(logger, self.fn_name)(*args, **kwargs)
 
 
@@ -86,7 +85,7 @@ class LoguruLoggerWrapper:
         return LoguruLoggerFnWrapper(self.logger, item)
 
 
-default_loggers_class: Type[LoggersType] = ClassicLogging
+default_loggers_class: type[LoggersType] = ClassicLogging
 
 try:
     from loguru import logger
@@ -125,22 +124,23 @@ class BaseScheduler(SchedulerType):
     ) -> None:
         super().__init__()
         self.trigger_plugins = dict(defaults.triggers.items())
-        self.trigger_classes: Dict[str, Type[TriggerType]] = {}
-        self.executor_plugins: Dict[str, str] = dict(defaults.executors.items())
-        self.executor_classes: Dict[str, Type[ExecutorType]] = {}
-        self.store_plugins: Dict[str, str] = dict(defaults.stores.items())
-        self.store_classes: Dict[str, Type[StoreType]] = {}
-        self.executors: Dict[str, ExecutorType] = {}
+        self.trigger_classes: dict[str, type[TriggerType]] = {}
+        self.executor_plugins: dict[str, str] = dict(defaults.executors.items())
+        self.executor_classes: dict[str, type[ExecutorType]] = {}
+        self.store_plugins: dict[str, str] = dict(defaults.stores.items())
+        self.store_classes: dict[str, type[StoreType]] = {}
+        self.executors: dict[str, ExecutorType] = {}
         self.executor_lock: RLock = self.create_lock()
-        self.stores: Dict[str, StoreType] = {}
+        self.stores: dict[str, StoreType] = {}
         self.store_lock: RLock = self.create_lock()
-        self.listeners: List[Any] = []
+        self.listeners: list[Any] = []
         self.listeners_lock: RLock = self.create_lock()
-        self.pending_tasks: List[Tuple[TaskType, bool, bool]] = []
+        self.pending_tasks: list[tuple[TaskType, bool, bool]] = []
         self.state: Union[SchedulerState, Any] = SchedulerState.STATE_STOPPED
 
         self.ref_counter: int = 0
         self.ref_lock: Lock = Lock()
+        self.instances: dict[str, int] = defaultdict(lambda: 0)
         self.setup(global_config, **kwargs)
 
     def __getstate__(self) -> None:
@@ -152,7 +152,7 @@ class BaseScheduler(SchedulerType):
 
     def setup(
         self,
-        global_config: Optional[Dict[str, Any]] = None,
+        global_config: Optional[dict[str, Any]] = None,
         prefix: Optional[str] = "asyncz.",
         **options: Any,
     ) -> None:
@@ -180,7 +180,7 @@ class BaseScheduler(SchedulerType):
                 if key.startswith(prefix)
             }
 
-        config: Dict[str, Any] = {}
+        config: dict[str, Any] = {}
         for key, value in global_config.items():
             parts = key.split(".")
             parent = config
@@ -248,6 +248,32 @@ class BaseScheduler(SchedulerType):
             self.wakeup()
         return True
 
+    def _shutdown_fn_helper(self, task: TaskType) -> None:
+        assert task.fn is not None
+        try:
+            with contextlib.suppress(StopIteration):
+                task.fn(*task.args, **task.kwargs)
+            self.loggers[self.logger_name].info(
+                f"Shutdown task {task} has been successfully executed,"
+            )
+        except BaseException:
+            self.loggers[self.logger_name].exception(f"Error executing shutdown task {task}.")
+
+    async def _ashutdown_fn_helper(self, task: TaskType) -> None:
+        assert task.fn is not None
+        try:
+            with contextlib.suppress(StopAsyncIteration):
+                await task.fn(*task.args, **task.kwargs)
+            self.loggers[self.logger_name].info(
+                f"Shutdown task {task} has been successfully executed,"
+            )
+        except BaseException:
+            self.loggers[self.logger_name].exception(f"Error executing shutdown task {task}.")
+
+    def handle_shutdown_coros(self, coros: Sequence[Any]) -> None:
+        if coros:
+            self.event_loop.call_soon_threadsafe(asyncio.gather, *coros)
+
     def shutdown(self, wait: bool = True) -> bool:
         """
         Shuts down the scheduler, along with its executors and task stores.
@@ -267,7 +293,17 @@ class BaseScheduler(SchedulerType):
         with self.executor_lock, self.store_lock:
             for executor in self.executors.values():
                 executor.shutdown(wait)
-
+            coros = []
+            for _store in self.stores.values():
+                for task in _store.get_all_tasks():
+                    assert task.trigger is not None
+                    if task.trigger.alias == "shutdown":
+                        _store.delete_task(cast(str, task.id))
+                        if inspect.iscoroutinefunction(task.fn):
+                            coros.append(self._ashutdown_fn_helper(task))
+                        else:
+                            self._shutdown_fn_helper(task)
+            self.handle_shutdown_coros(coros)
             for store in self.stores.values():
                 store.shutdown()
 
@@ -515,7 +551,7 @@ class BaseScheduler(SchedulerType):
             # tweak task before submitting
             # WARNING: in contrast to the decorator mode this really updates the task
             # by providing an id (e.g. autogenerated) you can make a real task from decorator type task while submitting
-            task_update_kwargs: Dict[str, Any] = {
+            task_update_kwargs: dict[str, Any] = {
                 "scheduler": self,
                 "args": tuple(args) if args is not None else undefined,
                 "kwargs": dict(kwargs) if kwargs is not None else undefined,
@@ -561,7 +597,7 @@ class BaseScheduler(SchedulerType):
                         next_run_time is not None,
                     )
             return fn_or_task
-        task_kwargs: Dict[str, Any] = {
+        task_kwargs: dict[str, Any] = {
             "scheduler": self,
             "trigger": self.create_trigger(trigger, trigger_args),
             "fn": fn_or_task,
@@ -679,7 +715,7 @@ class BaseScheduler(SchedulerType):
                 self.delete_task(task.id, store)
                 return None
 
-    def get_tasks(self, store: Optional[str] = None) -> List["TaskType"]:
+    def get_tasks(self, store: Optional[str] = None) -> list["TaskType"]:
         """
         Returns a list of pending tasks (if the scheduler hasn't been started yet) and scheduled
         tasks, either from a specific task store or from all of them.
@@ -794,7 +830,7 @@ class BaseScheduler(SchedulerType):
         self.store_retry_interval = float(config.pop("store_retry_interval", 10))
 
         self.task_defaults = TaskDefaultStruct(**(config.get("task_defaults", None) or {}))
-        loggers_class: Type[LoggersType] = (
+        loggers_class: type[LoggersType] = (
             maybe_ref(config.pop("loggers_class", None)) or default_loggers_class
         )
         self.loggers = loggers_class()
@@ -893,7 +929,7 @@ class BaseScheduler(SchedulerType):
 
     def lookup_task(
         self, task_id: str, store_alias: Optional[str]
-    ) -> Tuple["TaskType", Optional[str]]:
+    ) -> tuple["TaskType", Optional[str]]:
         """
         Finds a task by its ID.
 
@@ -955,7 +991,7 @@ class BaseScheduler(SchedulerType):
         assert task.trigger is not None, "Submitted task has no trigger set."
         assert task.store_alias is not None, "Submitted task has no store_alias set."
         assert task.executor is not None, "Submitted task has no executor set."
-        replacements: Dict[str, Any] = {}
+        replacements: dict[str, Any] = {}
 
         # Calculate the next run time if there is none defined
         if task.next_run_time is None and start_task:
@@ -1076,7 +1112,7 @@ class BaseScheduler(SchedulerType):
         with self.store_lock:
             for store_alias, store in self.stores.items():
                 try:
-                    due_tasks: List[TaskType] = store.get_due_tasks(now)
+                    due_tasks: list[TaskType] = store.get_due_tasks(now)
                 except Exception as e:
                     self.loggers[self.logger_name].warning(
                         f"Error getting due tasks from the store {store_alias}: {e}."
@@ -1102,7 +1138,7 @@ class BaseScheduler(SchedulerType):
                     if run_times:
                         try:
                             executor.send_task(task, run_times)
-                        except MaxInterationsReached:
+                        except MaximumInstancesError:
                             self.loggers[self.logger_name].warning(
                                 f"Execution of task '{task}' skipped: Maximum number of running "
                                 f"instances reached '({task.max_instances})'."

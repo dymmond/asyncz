@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import TYPE_CHECKING, List, cast
+from typing import TYPE_CHECKING, cast
 
 from asyncz.executors.base import BaseExecutor, run_task
 
@@ -16,7 +16,7 @@ class DebugExecutor(BaseExecutor):
     def do_send_task(
         self,
         task: "TaskType",
-        run_times: List[datetime],
+        run_times: list[datetime],
     ) -> None:
         assert task.id is not None, "Cannot send decorator type task"
         assert self.logger is not None, "logger is None"

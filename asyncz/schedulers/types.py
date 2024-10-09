@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union
+from collections.abc import Awaitable
+from inspect import isawaitable
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 from asyncz.events.constants import (
     ALL_EVENTS,
@@ -22,7 +24,7 @@ if TYPE_CHECKING:
 
 class LoggersType(ABC):
     def __init__(self) -> None:
-        self.data: Dict[str, Logger] = {}
+        self.data: dict[str, Logger] = {}
 
     @abstractmethod
     def __missing__(self, item: str) -> Logger: ...
@@ -34,10 +36,12 @@ class LoggersType(ABC):
 
 
 class SchedulerType(ABC):
+    event_loop: Any = None
     loggers: LoggersType
+    instances: dict[str, int]
 
     @abstractmethod
-    def start(self, paused: bool = False) -> bool:
+    def start(self, paused: bool = False) -> Union[bool, Awaitable[bool]]:
         """
         Start the configured executors and task stores and begin processing scheduled tasks.
 
@@ -49,7 +53,7 @@ class SchedulerType(ABC):
         """
 
     @abstractmethod
-    def shutdown(self, wait: bool = True) -> bool:
+    def shutdown(self, wait: bool = True) -> Union[bool, Awaitable[bool]]:
         """
         Shuts down the scheduler, along with its executors and task stores.
         Does not interrupt any currently running tasks.
@@ -249,7 +253,7 @@ class SchedulerType(ABC):
         """
 
     @abstractmethod
-    def get_tasks(self, store: Optional[str] = None) -> List[TaskType]:
+    def get_tasks(self, store: Optional[str] = None) -> list[TaskType]:
         """
         Returns a list of pending tasks (if the scheduler hasn't been started yet) and scheduled
         tasks, either from a specific task store or from all of them.
@@ -332,7 +336,7 @@ class SchedulerType(ABC):
     @abstractmethod
     def lookup_task(
         self, task_id: str, store_alias: Optional[str]
-    ) -> Tuple[TaskType, Optional[str]]:
+    ) -> tuple[TaskType, Optional[str]]:
         """
         Finds a task by its ID.
 
@@ -369,17 +373,25 @@ class SchedulerType(ABC):
     # provide context manager defaults
 
     def __enter__(self) -> SchedulerType:
-        self.start()
+        result = self.start()
+        if isawaitable(result):
+            raise RuntimeError("Use __aenter__ instead")
         return self
 
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> Any:
-        self.shutdown()
+        result = self.shutdown()
+        if isawaitable(result):
+            raise RuntimeError("Use __aexit__ instead")
         return None
 
     async def __aenter__(self) -> SchedulerType:
-        self.start()
+        result = self.start()
+        if isawaitable(result):
+            await result
         return self
 
     async def __aexit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> Any:
-        self.shutdown()
+        result = self.shutdown()
+        if isawaitable(result):
+            await result
         return None

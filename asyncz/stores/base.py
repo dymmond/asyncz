@@ -1,6 +1,6 @@
 import hashlib
 import os
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from cryptography.hazmat.primitives.ciphers.aead import AESCCM
 
@@ -58,7 +58,7 @@ class BaseStore(BaseStateExtra, StoreType):
         else:
             return inp
 
-    def fix_paused_tasks(self, tasks: List["TaskType"]) -> None:
+    def fix_paused_tasks(self, tasks: list["TaskType"]) -> None:
         for index, task in enumerate(tasks):
             if task.next_run_time is not None:
                 if index > 0:

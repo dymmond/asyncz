@@ -1,6 +1,5 @@
 import inspect
 import re
-from asyncio import iscoroutinefunction
 from datetime import date, datetime, time, timedelta, tzinfo
 from datetime import timezone as dttz
 from functools import partial
@@ -317,6 +316,24 @@ def maybe_ref(ref: Any) -> Any:
     return ref_to_obj(ref)
 
 
+def make_function(func: Any) -> Callable[..., Any]:
+    """For wrapping generator fns."""
+
+    def _(*args: Any, **kwargs: Any) -> Any:
+        return func(*args, **kwargs)
+
+    return _
+
+
+def make_async_function(func: Any) -> Callable[..., Any]:
+    """For wrapping generator fns."""
+
+    async def _(*args: Any, **kwargs: Any) -> Any:
+        return await func(*args, **kwargs)
+
+    return _
+
+
 def check_callable_args(func: Callable[..., Any], args: Any, kwargs: Any) -> None:
     """
     Ensures that the given callable can be called with the given arguments.
@@ -402,12 +419,6 @@ def check_callable_args(func: Callable[..., Any], args: Any, kwargs: Any) -> Non
                 ", ".join(unmatched_kwargs)
             )
         )
-
-
-def iscoroutinefunction_partial(f: Any) -> bool:
-    while isinstance(f, partial):
-        f = f.func
-    return iscoroutinefunction(f)
 
 
 def normalize(value: datetime) -> datetime:

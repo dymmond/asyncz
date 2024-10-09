@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, tzinfo
-from typing import Any, ClassVar, Optional, Tuple, Union
+from typing import Any, ClassVar, Optional, Union
 
 from asyncz.datastructures import CronState
 from asyncz.triggers.base import BaseTrigger
@@ -168,7 +168,7 @@ class CronTrigger(BaseTrigger):
             timezone=timezone,
         )
 
-    def increment_field_value(self, dateval: datetime, field_number: int) -> Tuple[datetime, int]:
+    def increment_field_value(self, dateval: datetime, field_number: int) -> tuple[datetime, int]:
         """
         Increments the designated field and resets all significant fields to their minimum values
         """

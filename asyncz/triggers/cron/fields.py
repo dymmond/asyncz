@@ -1,7 +1,7 @@
 import re
 from calendar import monthrange
 from datetime import date, datetime
-from typing import Any, ClassVar, List, Optional, Tuple, Type, Union, cast
+from typing import Any, ClassVar, Optional, Union, cast
 
 from pydantic import BaseModel, ConfigDict
 
@@ -25,8 +25,8 @@ class BaseField(BaseModel):
     exprs: Any
     is_default: bool
     real: ClassVar[bool] = True
-    compilers: ClassVar[Tuple[Type[BaseExpression], ...]] = (AllExpression, RangeExpression)
-    expressions: List[BaseExpression]
+    compilers: ClassVar[tuple[type[BaseExpression], ...]] = (AllExpression, RangeExpression)
+    expressions: list[BaseExpression]
 
     def __init__(
         self,
@@ -64,7 +64,7 @@ class BaseField(BaseModel):
         return smallest
 
     def compile_expressions(self, exprs: Any) -> None:
-        self.expressions: List[Any] = []
+        self.expressions: list[Any] = []
 
         for expr in SEPARATOR.split(str(exprs).strip()):
             self.compile_expression(expr)

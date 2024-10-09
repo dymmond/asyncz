@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from asyncz.schedulers.types import SchedulerType
@@ -47,7 +47,7 @@ class StoreType(ABC):
         ...
 
     @abstractmethod
-    def get_due_tasks(self, now: datetime) -> List[TaskType]:
+    def get_due_tasks(self, now: datetime) -> list[TaskType]:
         """
         Returns the list of tasks that have next_run_time earlier or equal to now.
         The returned tasks must be sorted by next run time (ascending).
@@ -63,7 +63,7 @@ class StoreType(ABC):
         ...
 
     @abstractmethod
-    def get_all_tasks(self) -> List[TaskType]:
+    def get_all_tasks(self) -> list[TaskType]:
         """
         Returns a list of all tasks in this task store.
         The returned tasks should be sorted by next run time (ascending).

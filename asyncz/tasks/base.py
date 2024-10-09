@@ -1,6 +1,7 @@
 import inspect
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime, tzinfo
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Union, cast
+from typing import Any, Callable, Optional, Union, cast
 from uuid import uuid4
 
 from pydantic import Field
@@ -46,7 +47,7 @@ class Task(BaseState, TaskType):  # type: ignore
 
     fn_reference: Optional[str] = None
     args: Sequence[Any] = ()
-    kwargs: Dict[str, Any] = Field(default_factory=dict)
+    kwargs: dict[str, Any] = Field(default_factory=dict)
 
     def __init__(
         self,
@@ -60,7 +61,7 @@ class Task(BaseState, TaskType):  # type: ignore
         super().__init__(id=id, **kwargs)
         self.update_task(fn=fn, **kwargs)
 
-    def get_run_times(self, timezone: tzinfo, now: datetime) -> List[datetime]:
+    def get_run_times(self, timezone: tzinfo, now: datetime) -> list[datetime]:
         """
         Computes the scheduled run times `next_run_time` and `now`, inclusive.
         """
@@ -83,7 +84,7 @@ class Task(BaseState, TaskType):  # type: ignore
         Validates the updates to the Task and makes the modifications if and only if all of them
         validate.
         """
-        approved: Dict[str, Any] = {}
+        approved: dict[str, Any] = {}
         if scheduler is not None:
             if self.scheduler is not None and self.scheduler is not scheduler:
                 raise ValueError("The task scheduler may not be changed.")
@@ -270,7 +271,7 @@ class Task(BaseState, TaskType):  # type: ignore
         return f"{self.name} (trigger: {self.trigger}, {status})"
 
     def __call__(self, fn: DecoratedFn) -> DecoratedFn:
-        new_dict: Dict[str, Any] = dict(self.__dict__)
+        new_dict: dict[str, Any] = dict(self.__dict__)
         new_dict.pop("pending", None)
         new_dict.pop("submitted", None)
         new_dict.pop("fn_reference", None)

@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+from collections.abc import Awaitable
 from contextlib import suppress
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Awaitable, Callable
+from inspect import isawaitable
+from typing import TYPE_CHECKING, Callable
 
 from asyncz.typing import DictStrAny
 
 if TYPE_CHECKING:
-    from asyncz.schedulers.base import BaseScheduler
+    from asyncz.schedulers.types import SchedulerType
 
 ASGIApp = Callable[
     [
@@ -26,7 +28,7 @@ class MuteInteruptException(BaseException):
 @dataclass
 class ASGIHelper:
     app: ASGIApp
-    scheduler: BaseScheduler
+    scheduler: SchedulerType
     handle_lifespan: bool = False
     wait: bool = True
 
@@ -43,13 +45,17 @@ class ASGIHelper:
                 message = await original_receive()
                 if message["type"] == "lifespan.startup":
                     try:
-                        self.scheduler.start()
+                        result = self.scheduler.start()
+                        if isawaitable(result):
+                            await result
                     except Exception as exc:
                         await send({"type": "lifespan.startup.failed", "msg": str(exc)})
                         raise MuteInteruptException from None
                 elif message["type"] == "lifespan.shutdown":
                     try:
-                        self.scheduler.shutdown(self.wait)
+                        result = self.scheduler.shutdown(self.wait)
+                        if isawaitable(result):
+                            await result
                     except Exception as exc:
                         await send({"type": "lifespan.shutdown.failed", "msg": str(exc)})
                         raise MuteInteruptException from None

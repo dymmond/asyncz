@@ -1,6 +1,7 @@
 import gc
 import time
 from asyncio import CancelledError
+from collections import defaultdict
 from datetime import datetime
 from threading import Event
 from unittest.mock import MagicMock, Mock, patch
@@ -21,6 +22,7 @@ from asyncz.tasks import Task
 @pytest.fixture
 def scheduler_mocked(timezone):
     scheduler_ = Mock(BaseScheduler, timezone=timezone)
+    scheduler_.instances = defaultdict(lambda: 0)
     scheduler_.create_lock = MagicMock()
     scheduler_.loggers = LoguruLogging()
     return scheduler_

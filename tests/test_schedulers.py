@@ -1,8 +1,10 @@
+import asyncio
 import logging
 import pickle
+import time
 from datetime import datetime, timedelta, tzinfo
 from threading import Thread
-from typing import Any, List, Optional, Union
+from typing import Any, Optional, Union
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -29,19 +31,21 @@ from asyncz.events.constants import (
 )
 from asyncz.exceptions import (
     ConflictIdError,
-    MaxInterationsReached,
+    MaximumInstancesError,
     SchedulerAlreadyRunningError,
     SchedulerNotRunningError,
     TaskLookupError,
 )
 from asyncz.executors.base import BaseExecutor
 from asyncz.executors.debug import DebugExecutor
+from asyncz.schedulers.asyncio import AsyncIOScheduler, NativeAsyncIOScheduler
 from asyncz.schedulers.base import BaseScheduler, ClassicLogging
 from asyncz.stores.base import BaseStore
 from asyncz.stores.memory import MemoryStore
 from asyncz.tasks import Task
 from asyncz.tasks.types import TaskType
 from asyncz.triggers.base import BaseTrigger
+from asyncz.utils import make_async_function, make_function
 
 try:
     from zoneinfo import ZoneInfo
@@ -74,13 +78,13 @@ class DummyTrigger(BaseTrigger):
 
 class DummyExecutor(BaseExecutor):
     def __init__(self, **args):
-        super().__init__(**args)
+        super().__init__()
         self.args = args
         object_setter(self, "start", MagicMock())
         object_setter(self, "shutdown", MagicMock())
         object_setter(self, "send_task", MagicMock())
 
-    def do_send_task(self, task: "TaskType", run_times: List[datetime]) -> Any:
+    def do_send_task(self, task: "TaskType", run_times: list[datetime]) -> Any:
         return super().do_send_task(task, run_times)
 
 
@@ -91,17 +95,21 @@ class DummyStore(BaseStore):
         object_setter(self, "start", MagicMock())
         object_setter(self, "shutdown", MagicMock())
 
-    def get_due_tasks(self, now: datetime) -> List["TaskType"]: ...
+    def get_due_tasks(self, now: datetime) -> list["TaskType"]:
+        return []
 
-    def lookup_task(self, task_id: str) -> "TaskType": ...
+    def lookup_task(self, task_id: str) -> Union["TaskType", None]:
+        return None
 
     def delete_task(self, task_id: str): ...
 
     def remove_all_tasks(self): ...
 
-    def get_next_run_time(self) -> Optional[datetime]: ...
+    def get_next_run_time(self) -> Optional[datetime]:
+        return None
 
-    def get_all_tasks(self) -> List["TaskType"]: ...
+    def get_all_tasks(self) -> list["TaskType"]:
+        return []
 
     def add_task(self, task: "TaskType"): ...
 
@@ -955,7 +963,7 @@ class TestBaseScheduler:
     def test_task_max_instances_event(self, scheduler, scheduler_events, freeze_time):
         class MaxedOutExecutor(DebugExecutor):
             def send_task(self, task, run_times):
-                raise MaxInterationsReached(task)
+                raise MaximumInstancesError(task, 1)
 
         executor = MaxedOutExecutor()
         scheduler.add_executor(executor, "maxed")
@@ -1137,3 +1145,173 @@ class TestAsyncIOScheduler(SchedulerImpBaseTest):
             event_loop.call_soon_threadsafe(scheduler.shutdown)
         event_loop.call_soon_threadsafe(event_loop.stop)
         thread.join()
+
+
+def test_generator():
+    call_count = 0
+    is_setup = False
+    is_exited = False
+
+    scheduler = AsyncIOScheduler()
+
+    def lifespan_gen():
+        nonlocal call_count, is_setup, is_exited
+        # setup
+        scheduler.add_task(make_function(generator.send), args=[True], name="advance")
+        scheduler.add_task(
+            make_function(generator.send), args=[False], trigger="shutdown", name="shutdown"
+        )
+        is_setup = True
+        running = yield
+        while running:
+            call_count += 1
+            running = yield
+        is_exited = True
+
+    generator = lifespan_gen()
+    assert is_setup is False
+    assert call_count == 0
+    assert is_exited is False
+    generator.send(None)
+    assert is_setup is True
+    assert call_count == 0
+    assert is_exited is False
+    with scheduler:
+        time.sleep(0.5)
+        assert is_setup is True
+        assert call_count == 1
+        assert is_exited is False
+
+    # cleanup time
+    time.sleep(0.2)
+
+    assert is_setup is True
+    assert call_count == 1
+    assert is_exited is True
+
+
+def test_async_generator_in_sync():
+    call_count = 0
+    is_setup = False
+    is_exited = False
+    loop = asyncio.new_event_loop()
+    scheduler = AsyncIOScheduler()
+
+    async def lifespan_gen():
+        nonlocal call_count, is_setup, is_exited
+        # setup
+        scheduler.add_task(make_async_function(generator.asend), args=[True], name="advance")
+        scheduler.add_task(
+            make_async_function(generator.asend), args=[False], trigger="shutdown", name="shutdown"
+        )
+        is_setup = True
+        running = yield
+        while running:
+            call_count += 1
+            running = yield
+        is_exited = True
+
+    generator = lifespan_gen()
+    assert is_setup is False
+    assert call_count == 0
+    assert is_exited is False
+    loop.run_until_complete(generator.asend(None))
+    assert is_setup is True
+    assert call_count == 0
+    assert is_exited is False
+    with scheduler:
+        assert scheduler.event_loop_thread is not None
+        time.sleep(0.5)
+        assert is_setup is True
+        assert call_count == 1
+        assert is_exited is False
+
+    # cleanup time
+    time.sleep(0.2)
+
+    assert scheduler.event_loop_thread is None
+    assert is_setup is True
+    assert call_count == 1
+    assert is_exited is True
+
+
+@pytest.mark.asyncio(loop_scope="function")
+async def test_async_generator_in_async():
+    call_count = 0
+    is_setup = False
+    is_exited = False
+    scheduler = AsyncIOScheduler()
+
+    async def lifespan_gen():
+        nonlocal call_count, is_setup, is_exited
+        # setup
+        scheduler.add_task(make_async_function(generator.asend), args=[True], name="advance")
+        scheduler.add_task(
+            make_async_function(generator.asend), args=[False], trigger="shutdown", name="shutdown"
+        )
+        is_setup = True
+        running = yield
+        while running:
+            call_count += 1
+            running = yield
+        is_exited = True
+
+    generator = lifespan_gen()
+    assert is_setup is False
+    assert call_count == 0
+    assert is_exited is False
+    await generator.asend(None)
+    assert is_setup is True
+    assert call_count == 0
+    assert is_exited is False
+
+    async with scheduler:
+        await asyncio.sleep(0.5)
+        assert is_setup is True
+        assert call_count == 1
+        assert is_exited is False
+
+    await asyncio.sleep(0.2)
+    assert is_setup is True
+    assert call_count == 1
+    assert is_exited is True
+
+
+@pytest.mark.asyncio(loop_scope="function")
+async def test_native_async_generator_in_async():
+    call_count = 0
+    is_setup = False
+    is_exited = False
+
+    async def lifespan_gen():
+        nonlocal call_count, is_setup, is_exited
+        # setup
+        scheduler.add_task(make_async_function(generator.asend), args=[True], name="advance")
+        scheduler.add_task(
+            make_async_function(generator.asend), args=[False], trigger="shutdown", name="shutdown"
+        )
+        is_setup = True
+        running = yield
+        while running:
+            call_count += 1
+            running = yield
+        is_exited = True
+
+    scheduler = NativeAsyncIOScheduler()
+    generator = lifespan_gen()
+    assert is_setup is False
+    assert call_count == 0
+    assert is_exited is False
+    await generator.asend(None)
+    assert is_setup is True
+    assert call_count == 0
+    assert is_exited is False
+
+    async with scheduler:
+        await asyncio.sleep(0.5)
+        assert is_setup is True
+        assert call_count == 1
+        assert is_exited is False
+    assert is_setup is True
+    assert call_count == 1
+    assert is_exited is True

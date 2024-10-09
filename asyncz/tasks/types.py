@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from datetime import datetime, tzinfo
-from typing import Any, Callable, Dict, List, Optional, Sequence, TypeVar
+from typing import Any, Callable, Optional, TypeVar
 
 from asyncz.schedulers.types import SchedulerType
 from asyncz.triggers.types import TriggerType
@@ -24,7 +25,7 @@ class TaskType(TaskDefaultsType, ABC):
     next_run_time: Optional[datetime] = None
     fn: Optional[Callable[..., Any]] = None
     args: Sequence[Any]
-    kwargs: Dict[str, Any]
+    kwargs: dict[str, Any]
     # are set by add_task if not set
     store_alias: Optional[str] = None
     executor: Optional[str] = None
@@ -95,7 +96,7 @@ class TaskType(TaskDefaultsType, ABC):
         return self
 
     @abstractmethod
-    def get_run_times(self, timezone: tzinfo, now: datetime) -> List[datetime]:
+    def get_run_times(self, timezone: tzinfo, now: datetime) -> list[datetime]:
         """
         Computes the scheduled run times `next_run_time` and `now`, inclusive.
         """

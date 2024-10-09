@@ -22,7 +22,7 @@ at a given time.
     <sup>Default: `None`</sup>
 
 * **timezone** - The time zone for the run_at if it does not have one already.
-  
+
   <sup>Default: `None`</sup>
 
 #### Examples
@@ -216,7 +216,7 @@ Multiple expressions can be given in a single field (comma separated).
 | `x,y,z`    | any   | Fire on any matching expression; can combine any number of any of the above expressions |
 
 !!! Info
-    The `month` and `day_of_week` accept abbreviated English month and weekday names. 
+    The `month` and `day_of_week` accept abbreviated English month and weekday names.
     Example: `jan` - `dec` and `mon` - `sun` respectively.
 
 ### Daylight saving time behaviour
@@ -304,6 +304,17 @@ is considered to be finished when all of the given triggers have finished their 
 ```python hl_lines="13-15 18"
 {!> ../docs_src/triggers/combination/or.py !}
 ```
+
+### ShutdownTrigger
+
+The ShutdownTrigger is a special trigger: it is executed once when shutting down the scheduler and uses only the function
+as well as it's arguments and the store of a task.
+
+It is useful to implement a lifecycle pattern.
+
+{!> ../docs_src/triggers/shutdown.py !}
+
+For easing the integration in lifecycle generators, the exceptions StopIteration and StopAsyncIteration are ignored.
 
 ## BaseTrigger
 

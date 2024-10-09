@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, List, Optional, Union
+from typing import Any, Optional, Union
 
 from pydantic import BaseModel, ConfigDict
 
@@ -42,7 +42,7 @@ class TaskSubmissionEvent(TaskEvent):
         scheduled_run_times: List of datetimes when the task is supposed to run.
     """
 
-    scheduled_run_times: List[datetime]
+    scheduled_run_times: list[datetime]
 
 
 class TaskExecutionEvent(TaskEvent):

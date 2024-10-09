@@ -1,9 +1,8 @@
 import concurrent.futures
-import sys
 from abc import abstractmethod
 from concurrent.futures.process import BrokenProcessPool
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import ConfigDict
 
@@ -23,7 +22,7 @@ class BasePoolExecutor(BaseExecutor):
         super().__init__(**kwargs)
         self.pool = pool
 
-    def do_send_task(self, task: "TaskType", run_times: List[datetime]) -> Any:
+    def do_send_task(self, task: "TaskType", run_times: list[datetime]) -> Any:
         task_id = task.id
         assert task_id is not None, "Cannot send decorator type task"
 
@@ -52,8 +51,7 @@ class BasePoolExecutor(BaseExecutor):
     def shutdown(self, wait: bool = True) -> None:
         if self.overwrite_wait is not None:
             wait = self.overwrite_wait
-        if sys.version_info >= (3, 9):
-            self.pool.shutdown(wait, cancel_futures=self.cancel_futures)
+        self.pool.shutdown(wait, cancel_futures=self.cancel_futures)
         self.pool.shutdown(wait)
 
 

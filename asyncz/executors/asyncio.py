@@ -1,8 +1,8 @@
+import inspect
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, List, Set, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from asyncz.executors.base import BaseExecutor, run_coroutine_task, run_task
-from asyncz.utils import iscoroutinefunction_partial
 
 if TYPE_CHECKING:
     from asyncz.tasks.types import TaskType
@@ -23,7 +23,7 @@ class AsyncIOExecutor(BaseExecutor):
     def start(self, scheduler: Any, alias: str) -> None:
         super().start(scheduler, alias)
         self.event_loop = scheduler.event_loop
-        self.pending_futures: Set[Any] = set()
+        self.pending_futures: set[Any] = set()
 
     def shutdown(self, wait: bool = True) -> None:
         for f in self.pending_futures:
@@ -32,7 +32,7 @@ class AsyncIOExecutor(BaseExecutor):
 
         self.pending_futures.clear()
 
-    def do_send_task(self, task: "TaskType", run_times: List[datetime]) -> None:
+    def do_send_task(self, task: "TaskType", run_times: list[datetime]) -> None:
         task_id = task.id
         assert task_id is not None, "Cannot send decorator type task"
         assert self.logger is not None, "logger is None"
@@ -46,7 +46,7 @@ class AsyncIOExecutor(BaseExecutor):
             else:
                 self.run_task_success(task_id, events)
 
-        if iscoroutinefunction_partial(task.fn):
+        if inspect.iscoroutinefunction(task.fn):
             coroutine = run_coroutine_task(
                 task, cast(str, task.store_alias), run_times, self.logger
             )

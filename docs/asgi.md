@@ -56,7 +56,6 @@ And following keyword arguments
         on_startup=[scheduler.start],
         on_shutdown=[scheduler.shutdown],
     )
-
     ```
 
 
@@ -86,7 +85,6 @@ And following keyword arguments
 
 
 For using with lifespan of starlette
-
 
 === "Starlette"
 

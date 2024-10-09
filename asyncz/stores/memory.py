@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from asyncz.exceptions import ConflictIdError, TaskLookupError
 from asyncz.stores.base import BaseStore
@@ -16,13 +16,13 @@ class MemoryStore(BaseStore):
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.tasks: List[Tuple[TaskType, Optional[float]]] = []
-        self.tasks_index: Dict[str, Tuple[TaskType, Optional[float]]] = {}
+        self.tasks: list[tuple[TaskType, Optional[float]]] = []
+        self.tasks_index: dict[str, tuple[TaskType, Optional[float]]] = {}
 
     def lookup_task(self, task_id: str) -> Optional["TaskType"]:
         return self.tasks_index.get(task_id, (None, None))[0]
 
-    def get_due_tasks(self, now: datetime) -> List["TaskType"]:
+    def get_due_tasks(self, now: datetime) -> list["TaskType"]:
         now_timestamp = datetime_to_utc_timestamp(now)
         pending = []
 
@@ -36,7 +36,7 @@ class MemoryStore(BaseStore):
     def get_next_run_time(self) -> Optional[datetime]:
         return (self.tasks[0][0].next_run_time or None) if self.tasks else None
 
-    def get_all_tasks(self) -> List["TaskType"]:
+    def get_all_tasks(self) -> list["TaskType"]:
         return [task[0] for task in self.tasks]
 
     def add_task(self, task: "TaskType") -> None:

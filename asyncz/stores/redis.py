@@ -1,7 +1,8 @@
 import pickle
+from collections.abc import Iterable
 from datetime import datetime
 from datetime import timezone as tz
-from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Tuple, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from asyncz.exceptions import AsynczException, ConflictIdError, TaskLookupError
 from asyncz.stores.base import BaseStore
@@ -64,15 +65,15 @@ class RedisStore(BaseStore):
         task.store_alias = self.alias
         return task
 
-    def get_due_tasks(self, now: datetime) -> List["TaskType"]:
+    def get_due_tasks(self, now: datetime) -> list["TaskType"]:
         timestamp = datetime_to_utc_timestamp(now)
-        ids: List[str] = self.redis.zrangebyscore(self.run_times_key, 0, timestamp)  # type: ignore
+        ids: list[str] = self.redis.zrangebyscore(self.run_times_key, 0, timestamp)  # type: ignore
         if not ids:
             return []
-        states: List[Any] = self.redis.hmget(self.tasks_key, ids)  # type: ignore
+        states: list[Any] = self.redis.hmget(self.tasks_key, ids)  # type: ignore
         return self.rebuild_tasks(zip(ids, states))
 
-    def rebuild_tasks(self, states: Iterable[Tuple[str, Any]]) -> List["TaskType"]:
+    def rebuild_tasks(self, states: Iterable[tuple[str, Any]]) -> list["TaskType"]:
         tasks = []
         failed_task_ids = []
 
@@ -99,8 +100,8 @@ class RedisStore(BaseStore):
             return utc_timestamp_to_datetime(cast(float, next_run_time[0][1]))
         return None
 
-    def get_all_tasks(self) -> List["TaskType"]:
-        states: List[Tuple[str, Any]] = self.redis.hgetall(self.tasks_key)  # type: ignore
+    def get_all_tasks(self) -> list["TaskType"]:
+        states: list[tuple[str, Any]] = self.redis.hgetall(self.tasks_key)  # type: ignore
         tasks = self.rebuild_tasks(states.items())
         paused_sort_key = datetime(9999, 12, 31, tzinfo=tz.utc)
         return sorted(tasks, key=lambda task: task.next_run_time or paused_sort_key)
