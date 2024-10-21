@@ -114,11 +114,7 @@ class Task(BaseState, TaskType):  # type: ignore
             else:
                 raise TypeError("fn must be a callable or a textual reference to a callable.")
 
-            if (
-                fn is not None
-                and not getattr(self, "name", None)
-                and updates.get("name", None) is None
-            ):
+            if fn is not None and not getattr(self, "name", None) and updates.get("name") is None:
                 updates["name"] = get_callable_name(cast(Callable[..., Any], fn))
 
             if isinstance(args, str) or not isinstance(args, Iterable):
