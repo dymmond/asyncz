@@ -101,7 +101,7 @@ Use the `start_at` and `end_at` to provide a limit in which the scheduler should
 {!> ../docs_src/triggers/interval/example2.py !}
 ```
 
-What about using the `scheduled_task` decorator?
+What about using `add_task` as decorator?
 
 ```python hl_lines="8"
 {!> ../docs_src/triggers/interval/example3.py !}
@@ -246,7 +246,7 @@ Use the `start_at` and `end_at` to provide a limit in which the scheduler should
 {!> ../docs_src/triggers/cron/example2.py !}
 ```
 
-What about using the `scheduled_task` decorator?
+What about using `add_task` as decorator?
 
 ```python hl_lines="7"
 {!> ../docs_src/triggers/cron/example3.py !}
