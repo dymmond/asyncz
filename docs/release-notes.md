@@ -9,11 +9,6 @@
 ### Fixed
 
 - `and` was mapped to the wrong trigger.
-
-## 0.12.1
-
-### Fixed
-
 - Missing export of NativeAsyncIOScheduler from schedulers.
 
 ## 0.12.0
