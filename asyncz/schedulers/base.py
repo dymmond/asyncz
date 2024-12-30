@@ -1009,7 +1009,11 @@ class BaseScheduler(SchedulerType):
             store.add_task(task)
         except ConflictIdError:
             if replace_existing:
-                store.update_task(task)
+                try:
+                    store.update_task(task)
+                except TaskLookupError:
+                    # was executed and is now gone
+                    return
             else:
                 raise
         task.pending = False

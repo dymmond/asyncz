@@ -56,7 +56,8 @@ class BaseStore(BaseStateExtra, StoreType):
         """
         Frees any resources still bound to this task store.
         """
-        ...
+        if self.lock:
+            self.lock.shutdown()
 
     def conditional_decrypt(self, inp: bytes) -> bytes:
         if self.encryption_key:

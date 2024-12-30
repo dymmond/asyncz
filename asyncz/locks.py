@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Generator
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from threading import Lock, RLock
 from typing import Any, Optional
 
@@ -17,6 +17,9 @@ class NullLockProtected(LockProtectedProtocol):
     ) -> Generator[bool, None, None]:
         yield True
 
+    def shutdown(self) -> None:
+        pass
+
 
 class LockProtected(LockProtectedProtocol):
     def __init__(self) -> None:
@@ -24,6 +27,9 @@ class LockProtected(LockProtectedProtocol):
 
     def create_lock(self) -> Lock | RLock:
         return Lock()
+
+    def shutdown(self) -> None:
+        pass
 
     @contextmanager
     def protected(
@@ -45,9 +51,9 @@ class FileLockProtected(LockProtectedProtocol):
 
     def __init__(self, file_path: str) -> None:
         kwargs: Any = {}
-        if r"{pgrp" in self.file_path:
+        if r"{pgrp" in file_path:
             kwargs["pgrp"] = os.getpgrp()
-        if r"{ppid" in self.file_path:
+        if r"{ppid" in file_path:
             kwargs["ppid"] = os.getppid()
         self.file_path = file_path.format(**kwargs)
 
@@ -55,7 +61,7 @@ class FileLockProtected(LockProtectedProtocol):
     def protected(
         self, blocking: bool = False, timeout: Optional[int] = None
     ) -> Generator[bool, None, None]:
-        with open(self.file_path, "r+") as file:
+        with open(self.file_path, "w+") as file:
             flags = LOCK_EX
             if not blocking:
                 flags |= LOCK_NB
@@ -65,3 +71,7 @@ class FileLockProtected(LockProtectedProtocol):
             finally:
                 if locked:
                     unlock(file)
+
+    def shutdown(self) -> None:
+        with suppress(FileNotFoundError):
+            os.remove(self.file_path)

@@ -2,7 +2,7 @@ triggers: dict[str, str] = {
     "date": "asyncz.triggers.date:DateTrigger",
     "interval": "asyncz.triggers.interval:IntervalTrigger",
     "cron": "asyncz.triggers.cron.trigger:CronTrigger",
-    "and": "asyncz.triggers.date:DateTrigger",
+    "and": "asyncz.triggers.combining:AndTrigger",
     "or": "asyncz.triggers.combining:OrTrigger",
     "shutdown": "asyncz.triggers.shutdown:ShutdownTrigger",
 }

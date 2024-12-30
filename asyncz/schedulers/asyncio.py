@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from collections.abc import Sequence
 from threading import Event, Thread
 from typing import TYPE_CHECKING, Any, Optional
@@ -63,7 +64,8 @@ class AsyncIOScheduler(BaseScheduler):
             if thread:
                 self.event_loop.stop()
                 self.event_loop = self.event_loop_thread = None
-                thread.join()
+                with contextlib.suppress(RuntimeError):
+                    thread.join()
 
     def shutdown(self, wait: bool = True) -> bool:
         # not decremented yet so +1

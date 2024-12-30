@@ -6,6 +6,10 @@
 
 - Multi-Processing safe mode.
 
+### Fixed
+
+- `and` was mapped to the wrong trigger.
+
 ## 0.12.1
 
 ### Fixed
