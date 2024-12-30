@@ -43,7 +43,7 @@ from asyncz.exceptions import (
 )
 from asyncz.executors.pool import ThreadPoolExecutor
 from asyncz.executors.types import ExecutorType
-from asyncz.locks import ReadProtected
+from asyncz.locks import RLockProtected
 from asyncz.schedulers import defaults
 from asyncz.schedulers.asgi import ASGIApp, ASGIHelper
 from asyncz.schedulers.datastructures import TaskDefaultStruct
@@ -131,7 +131,7 @@ class BaseScheduler(SchedulerType):
         self.executors: dict[str, ExecutorType] = {}
         self.executor_lock: RLock = self.create_lock()
         self.stores: dict[str, StoreType] = {}
-        self.store_processing_lock: LockProtectedProtocol = self.create_store_lock()
+        self.store_processing_lock: LockProtectedProtocol = self.create_processing_lock()
         self.store_lock: RLock = self.create_lock()
         self.listeners: list[Any] = []
         self.listeners_lock: RLock = self.create_lock()
@@ -1093,11 +1093,11 @@ class BaseScheduler(SchedulerType):
         """
         return RLock()
 
-    def create_store_lock(self) -> LockProtectedProtocol:
+    def create_processing_lock(self) -> LockProtectedProtocol:
         """
-        Creates a reentrant lock object.
+        Creates a non-reentrant lock object used to distribute between threads for processing.
         """
-        return ReadProtected()
+        return RLockProtected()
 
     def _process_tasks_of_store(
         self,
