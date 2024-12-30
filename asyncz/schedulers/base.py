@@ -237,7 +237,8 @@ class BaseScheduler(SchedulerType):
                 store.start(self, alias)
 
             for task, replace_existing, start_task in self.pending_tasks:
-                self.real_add_task(task, replace_existing, start_task)
+                with contextlib.suppress(ConflictIdError):
+                    self.real_add_task(task, replace_existing, start_task)
             del self.pending_tasks[:]
 
         self.state = SchedulerState.STATE_PAUSED if paused else SchedulerState.STATE_RUNNING
@@ -1007,7 +1008,7 @@ class BaseScheduler(SchedulerType):
         store = self.lookup_store(task.store_alias)
         try:
             store.add_task(task)
-        except ConflictIdError:
+        except ConflictIdError as exc:
             if replace_existing:
                 try:
                     store.update_task(task)
@@ -1015,7 +1016,7 @@ class BaseScheduler(SchedulerType):
                     # was executed and is now gone
                     return
             else:
-                raise
+                raise exc
         task.pending = False
 
         event = TaskEvent(code=TASK_ADDED, task_id=task.id, alias=task.store_alias)
