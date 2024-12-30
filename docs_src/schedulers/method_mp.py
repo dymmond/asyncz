@@ -3,7 +3,8 @@ from asyncz.schedulers.asyncio import AsyncIOScheduler
 # Create the scheduler
 scheduler = AsyncIOScheduler(
     global_config={
-        "asyncz.pid_path": "/tmp/asynzc_super_project_{store}_store.pid",
+        "asyncz.lock_path": "/tmp/asynzc_super_project_{store}_store.pid",
+        "asyncz.startup_delay": 2,
         "asyncz.stores.mongo": {"type": "mongodb"},
         "asyncz.stores.default": {"type": "redis", "database": "0"},
         "asyncz.executors.pool": {

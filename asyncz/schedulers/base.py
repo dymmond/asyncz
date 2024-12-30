@@ -228,6 +228,10 @@ class BaseScheduler(SchedulerType):
 
             for alias, executor in self.executors.items():
                 executor.start(self, alias)
+        #
+        min_dtime = None
+        if self.lock_path:
+            min_dtime = datetime.now(self.timezone) + timedelta(seconds=self.startup_delay)
 
         with self.store_lock:
             if "default" not in self.stores:
@@ -238,7 +242,7 @@ class BaseScheduler(SchedulerType):
 
             for task, replace_existing, start_task in self.pending_tasks:
                 with contextlib.suppress(ConflictIdError):
-                    self.real_add_task(task, replace_existing, start_task)
+                    self.real_add_task(task, replace_existing, start_task, min_dtime)
             del self.pending_tasks[:]
 
         self.state = SchedulerState.STATE_PAUSED if paused else SchedulerState.STATE_RUNNING
@@ -593,9 +597,7 @@ class BaseScheduler(SchedulerType):
                     )
                 else:
                     self.real_add_task(
-                        fn_or_task,
-                        replace_existing,
-                        next_run_time is not None,
+                        fn_or_task, replace_existing, next_run_time is not None, None
                     )
             return fn_or_task
         task_kwargs: dict[str, Any] = {
@@ -828,8 +830,9 @@ class BaseScheduler(SchedulerType):
         Applies initial configurations called by the Base constructor.
         """
         self.timezone = to_timezone_with_fallback(config.pop("timezone", None))
-        self.pid_path = str(config.pop("pid_path", "") or "")
+        self.lock_path = str(config.pop("lock_path", "") or "")
         self.store_retry_interval = float(config.pop("store_retry_interval", 10))
+        self.startup_delay = float(config.pop("startup_delay", 0 if not self.lock_path else 1))
 
         self.task_defaults = TaskDefaultStruct(**(config.get("task_defaults", None) or {}))
         loggers_class: type[LoggersType] = (
@@ -981,7 +984,13 @@ class BaseScheduler(SchedulerType):
                 "option for the scheduler to work."
             )
 
-    def real_add_task(self, task: TaskType, replace_existing: bool, start_task: bool) -> None:
+    def real_add_task(
+        self,
+        task: TaskType,
+        replace_existing: bool,
+        start_task: bool,
+        min_dtime: datetime | None = None,
+    ) -> None:
         """
         Adds the task.
 
@@ -1001,6 +1010,10 @@ class BaseScheduler(SchedulerType):
             replacements["next_run_time"] = task.trigger.get_next_trigger_time(
                 self.timezone, None, now
             )
+            if min_dtime is not None and isinstance(replacements["next_run_time"], datetime):
+                replacements["next_run_time"] = max(min_dtime, replacements["next_run_time"])
+        elif isinstance(task.next_run_time, datetime) and min_dtime is not None:
+            replacements["next_run_time"] = max(min_dtime, task.next_run_time)
 
         # Apply replacements
         task.update_task(**replacements)
@@ -1229,7 +1242,7 @@ class BaseScheduler(SchedulerType):
                 "Scheduler is paused. Waiting until resume() is called."
             )
         elif next_wakeup_time is None:
-            if self.pid_path:
+            if self.lock_path:
                 wait_seconds = self.store_retry_interval
                 self.loggers[self.logger_name].debug(f"No tasks found. Recheck in {wait_seconds}.")
             else:

@@ -94,7 +94,7 @@ The third option is by starting the scheduler and use the `setup` method.
 ### Multi-Proccessing mode
 
 Asyncz schedulers have an optional multiprocessing mode. It can be activated by setting the
-`pid_path` option to e.g. `"/tmp/asyncz_{store}_{ppid}.pid"`
+`lock_path` option to e.g. `"/tmp/asyncz_{store}_{ppid}.pid"`
 
 This defines a per-store process lock via a file.
 
@@ -107,6 +107,11 @@ Parameters:
 ```python
 {!> ../docs_src/schedulers/method_mp.py !}
 ```
+
+!!! Note
+    You may want to set an explicit `startup_delay` in case of the initial started tasks are behaving spurious.
+    By default a `startup_delay` of 1 second is used in case of lock_path not empty. Otherwise the default is 0.
+
 
 ## Changing logger name and class
 

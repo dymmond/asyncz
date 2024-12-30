@@ -30,9 +30,9 @@ class BaseStore(BaseStateExtra, StoreType):
         """
         Creates a reentrant lock object.
         """
-        if not self.scheduler or not self.scheduler.pid_path:
+        if not self.scheduler or not self.scheduler.lock_path:
             return NullLockProtected()
-        return FileLockProtected(self.scheduler.pid_path.replace(r"{store}", self.alias))
+        return FileLockProtected(self.scheduler.lock_path.replace(r"{store}", self.alias))
 
     def start(self, scheduler: SchedulerType, alias: str) -> None:
         """
