@@ -5,10 +5,11 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
+    from asyncz.protocols import LockProtectedProtocol
     from asyncz.schedulers.types import SchedulerType
     from asyncz.tasks.types import TaskType
 else:
-    SchedulerType = Any
+    LockProtectedProtocol = Any
 
 
 class StoreType(ABC):
@@ -17,6 +18,7 @@ class StoreType(ABC):
     """
 
     alias: Optional[str] = None
+    lock: Optional[LockProtectedProtocol] = None
 
     @abstractmethod
     def start(self, scheduler: SchedulerType, alias: str) -> None:

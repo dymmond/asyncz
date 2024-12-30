@@ -91,6 +91,23 @@ The third option is by starting the scheduler and use the `setup` method.
 {!> ../docs_src/schedulers/method3.py !}
 ```
 
+### Multi-Proccessing mode
+
+Asyncz schedulers have an optional multiprocessing mode. It can be activated by setting the
+`pid_path` option to e.g. `"/tmp/asyncz_{store}_{ppid}.pid"`
+
+This defines a per-store process lock via a file.
+
+Parameters:
+
+- `{store}` (no format string) - Set the store name. Should be provided.
+- `ppid` - Replaced by the ppid of the process. Formatting possible.
+- `pgrp` - Replaced by the pgrp of the process. Formatting possible.
+
+```python
+{!> ../docs_src/schedulers/method_mp.py !}
+```
+
 ## Changing logger name and class
 
 `asyncz` uses a custom way of logging: it builds up a dictionary store with loggers of the standard logger interface.

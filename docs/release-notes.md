@@ -1,5 +1,11 @@
 # Release Notes
 
+## 0.13.0
+
+### Added
+
+- Multi-Processing safe mode.
+
 ## 0.12.1
 
 ### Fixed

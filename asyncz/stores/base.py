@@ -1,13 +1,17 @@
+from __future__ import annotations
+
 import hashlib
 import os
 from typing import TYPE_CHECKING, Any, Optional
 
 from cryptography.hazmat.primitives.ciphers.aead import AESCCM
 
+from asyncz.locks import FileLockProtected, NullLockProtected
 from asyncz.state import BaseStateExtra
 from asyncz.stores.types import StoreType
 
 if TYPE_CHECKING:
+    from asyncz.protocols import LockProtectedProtocol
     from asyncz.schedulers.types import SchedulerType
     from asyncz.tasks.types import TaskType
 
@@ -22,7 +26,15 @@ class BaseStore(BaseStateExtra, StoreType):
         self.scheduler: Optional[SchedulerType] = None
         self.encryption_key: Optional[AESCCM] = None
 
-    def start(self, scheduler: "SchedulerType", alias: str) -> None:
+    def create_lock(self) -> LockProtectedProtocol:
+        """
+        Creates a reentrant lock object.
+        """
+        if not self.scheduler or not self.scheduler.pid_path:
+            return NullLockProtected()
+        return FileLockProtected(self.scheduler.pid_path.replace(r"{store}", self.alias))
+
+    def start(self, scheduler: SchedulerType, alias: str) -> None:
         """
         Called by the scheduler when the scheduler is being started or when the task store is being
         added to an already running scheduler.
@@ -34,6 +46,7 @@ class BaseStore(BaseStateExtra, StoreType):
         self.scheduler = scheduler
         self.alias = alias
         self.logger_name = f"asyncz.stores.{alias}"
+        self.lock = self.create_lock()
         encryption_key = os.environ.get("ASYNCZ_STORE_ENCRYPTION_KEY")
         if encryption_key:
             # we simply use a hash. This way all kinds of tokens, lengths and co are supported
@@ -58,7 +71,7 @@ class BaseStore(BaseStateExtra, StoreType):
         else:
             return inp
 
-    def fix_paused_tasks(self, tasks: list["TaskType"]) -> None:
+    def fix_paused_tasks(self, tasks: list[TaskType]) -> None:
         for index, task in enumerate(tasks):
             if task.next_run_time is not None:
                 if index > 0:
