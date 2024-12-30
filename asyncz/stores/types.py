@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Optional
 
+from asyncz.locks import NullLockProtected
+
 if TYPE_CHECKING:
     from asyncz.protocols import LockProtectedProtocol
     from asyncz.schedulers.types import SchedulerType
@@ -18,7 +20,7 @@ class StoreType(ABC):
     """
 
     alias: Optional[str] = None
-    lock: Optional[LockProtectedProtocol] = None
+    lock: LockProtectedProtocol = NullLockProtected()
 
     @abstractmethod
     def start(self, scheduler: SchedulerType, alias: str) -> None:

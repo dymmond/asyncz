@@ -41,6 +41,8 @@ class RLockProtected(LockProtected):
 
 
 class FileLockProtected(LockProtectedProtocol):
+    file_path: str
+
     def __init__(self, file_path: str) -> None:
         kwargs: Any = {}
         if r"{pgrp" in self.file_path:

@@ -1199,7 +1199,7 @@ class BaseScheduler(SchedulerType):
         self.loggers[self.logger_name].debug("Looking for tasks to run.")
         now = datetime.now(self.timezone)
         next_wakeup_time: Optional[datetime] = None
-        events = []
+        events: list[SchedulerEvent] = []
 
         # check for other processing thread
         with self.store_processing_lock.protected(blocking=False) as blocking_success:
