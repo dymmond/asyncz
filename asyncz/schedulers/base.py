@@ -43,7 +43,7 @@ from asyncz.exceptions import (
 )
 from asyncz.executors.pool import ThreadPoolExecutor
 from asyncz.executors.types import ExecutorType
-from asyncz.locks import RLockProtected
+from asyncz.locks import ReadProtected
 from asyncz.schedulers import defaults
 from asyncz.schedulers.asgi import ASGIApp, ASGIHelper
 from asyncz.schedulers.datastructures import TaskDefaultStruct
@@ -131,7 +131,8 @@ class BaseScheduler(SchedulerType):
         self.executors: dict[str, ExecutorType] = {}
         self.executor_lock: RLock = self.create_lock()
         self.stores: dict[str, StoreType] = {}
-        self.store_lock: LockProtectedProtocol = self.create_store_lock()
+        self.store_processing_lock: LockProtectedProtocol = self.create_store_lock()
+        self.store_lock: RLock = self.create_lock()
         self.listeners: list[Any] = []
         self.listeners_lock: RLock = self.create_lock()
         self.pending_tasks: list[tuple[TaskType, bool, bool]] = []
@@ -228,7 +229,7 @@ class BaseScheduler(SchedulerType):
             for alias, executor in self.executors.items():
                 executor.start(self, alias)
 
-        with self.store_lock.protected(blocking=True):
+        with self.store_lock:
             if "default" not in self.stores:
                 self.add_store(self.create_default_store(), "default")
 
@@ -289,7 +290,7 @@ class BaseScheduler(SchedulerType):
 
         self.state = SchedulerState.STATE_STOPPED
 
-        with self.executor_lock, self.store_lock.protected(blocking=True):
+        with self.executor_lock, self.store_lock:
             for executor in self.executors.values():
                 executor.shutdown(wait)
             coros = []
@@ -417,7 +418,7 @@ class BaseScheduler(SchedulerType):
         Any extra keyword arguments will be passed to the task store plugin's constructor, assuming
         that the first argument is the name of a task store plugin.
         """
-        with self.store_lock.protected(blocking=True):
+        with self.store_lock:
             if alias in self.stores:
                 raise ValueError(
                     f"This scheduler already has a task store by the alias of '{alias}'."
@@ -446,7 +447,7 @@ class BaseScheduler(SchedulerType):
         """
         Removes the task store by the given alias from this scheduler.
         """
-        with self.store_lock.protected(blocking=True):
+        with self.store_lock:
             store = self.lookup_store(alias)
             del self.stores[alias]
 
@@ -577,7 +578,7 @@ class BaseScheduler(SchedulerType):
                 fn_or_task.store_alias = "default"
             assert fn_or_task.trigger is not None, "Cannot submit a task without a trigger."
             assert fn_or_task.id is not None, "Cannot submit a decorator type task."
-            with self.store_lock.protected(blocking=True):
+            with self.store_lock:
                 if self.state == SchedulerState.STATE_STOPPED:
                     self.pending_tasks.append(
                         (
@@ -645,7 +646,7 @@ class BaseScheduler(SchedulerType):
         else:
             new_updates = updates
 
-        with self.store_lock.protected(blocking=True):
+        with self.store_lock:
             task, store = self.lookup_task(task_id, store)
             task.update(**new_updates)
 
@@ -703,7 +704,7 @@ class BaseScheduler(SchedulerType):
         if isinstance(task_id, TaskType):
             assert task_id.id, "Cannot resume decorator style Task"
             task_id = task_id.id
-        with self.store_lock.protected(blocking=True):
+        with self.store_lock:
             task, store = self.lookup_task(task_id, store)
             now = datetime.now(self.timezone)
             next_run_time = task.trigger.get_next_trigger_time(self.timezone, None, now)  # type: ignore
@@ -725,7 +726,7 @@ class BaseScheduler(SchedulerType):
         Args:
             store: alias of the task store.
         """
-        with self.store_lock.protected(blocking=True):
+        with self.store_lock:
             tasks = []
             if self.state == SchedulerState.STATE_STOPPED:
                 for task, _, _ in self.pending_tasks:
@@ -746,7 +747,7 @@ class BaseScheduler(SchedulerType):
             task_id: The identifier of the task.
             store: Alias of the task store that most likely contains the task.
         """
-        with self.store_lock.protected(blocking=True):
+        with self.store_lock:
             try:
                 return self.lookup_task(task_id, store)[0]
             except TaskLookupError:
@@ -768,7 +769,7 @@ class BaseScheduler(SchedulerType):
             return
         store_alias = None
 
-        with self.store_lock.protected(blocking=True):
+        with self.store_lock:
             if self.state == SchedulerState.STATE_STOPPED:
                 for index, (task, _, _) in enumerate(self.pending_tasks):
                     if task.id == task_id and store in (None, task.store_alias):
@@ -797,7 +798,7 @@ class BaseScheduler(SchedulerType):
         """
         Removes all tasks from the specified task store, or all task stores if none is given.
         """
-        with self.store_lock.protected(blocking=True):
+        with self.store_lock:
             if self.state == SchedulerState.STATE_STOPPED:
                 if store:
                     self.pending_tasks = [
@@ -1096,7 +1097,7 @@ class BaseScheduler(SchedulerType):
         """
         Creates a reentrant lock object.
         """
-        return RLockProtected()
+        return ReadProtected()
 
     def _process_tasks_of_store(
         self,
@@ -1200,13 +1201,15 @@ class BaseScheduler(SchedulerType):
         next_wakeup_time: Optional[datetime] = None
         events = []
 
-        # threading lock
-        with self.store_lock.protected(blocking=False) as blocking_success:
+        # check for other processing thread
+        with self.store_processing_lock.protected(blocking=False) as blocking_success:
             if blocking_success:
-                for store_alias, store in self.stores.items():
-                    next_wakeup_time = self._process_tasks_of_store(
-                        now, next_wakeup_time, store_alias, store, events
-                    )
+                # threading lock
+                with self.store_lock:
+                    for store_alias, store in self.stores.items():
+                        next_wakeup_time = self._process_tasks_of_store(
+                            now, next_wakeup_time, store_alias, store, events
+                        )
             else:
                 retry_wakeup_time = now + timedelta(seconds=self.store_retry_interval)
                 if not next_wakeup_time or next_wakeup_time > retry_wakeup_time:
