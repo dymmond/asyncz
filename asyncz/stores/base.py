@@ -28,7 +28,7 @@ class BaseStore(BaseStateExtra, StoreType):
 
     def create_lock(self) -> LockProtectedProtocol:
         """
-        Creates a reentrant lock object.
+        Creates a lock protector.
         """
         if not self.scheduler or not self.scheduler.lock_path:
             return NullLockProtected()

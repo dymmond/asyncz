@@ -3,6 +3,7 @@ import logging
 import pickle
 import time
 from datetime import datetime, timedelta, tzinfo
+from inspect import isclass
 from threading import Thread
 from typing import Any, Optional, Union
 from unittest.mock import MagicMock, patch
@@ -38,6 +39,7 @@ from asyncz.exceptions import (
 )
 from asyncz.executors.base import BaseExecutor
 from asyncz.executors.debug import DebugExecutor
+from asyncz.schedulers import defaults
 from asyncz.schedulers.asyncio import AsyncIOScheduler, NativeAsyncIOScheduler
 from asyncz.schedulers.base import BaseScheduler, ClassicLogging
 from asyncz.stores.base import BaseStore
@@ -321,7 +323,7 @@ class TestBaseScheduler:
         assert "default" in scheduler.executors
         assert "default" in scheduler.stores
 
-        scheduler.real_add_task.assert_called_once_with(task, False, True)
+        scheduler.real_add_task.assert_called_once_with(task, False, True, None)
         assert scheduler.pending_tasks == []
 
         assert scheduler.dispatch_event.call_count == 3
@@ -1315,3 +1317,11 @@ async def test_native_async_generator_in_async():
     assert is_setup is True
     assert call_count == 1
     assert is_exited is True
+
+
+@pytest.mark.parametrize(
+    "module_path",
+    [*defaults.executors.values(), *defaults.stores.values(), *defaults.triggers.values()],
+)
+def test_defaults_actually_load(module_path):
+    assert isclass(BaseScheduler.resolve_load_plugin(module_path))

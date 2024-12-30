@@ -1043,7 +1043,8 @@ class BaseScheduler(SchedulerType):
         if start_task and self.state == SchedulerState.STATE_RUNNING:
             self.wakeup()
 
-    def resolve_load_plugin(self, module_name: str) -> Any:
+    @classmethod
+    def resolve_load_plugin(cls, module_name: str) -> Any:
         """
         Resolve the plugin from its module and attrs.
         """

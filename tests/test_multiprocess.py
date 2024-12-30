@@ -1,3 +1,5 @@
+import contextlib
+import os
 import time
 
 import pytest
@@ -31,11 +33,11 @@ def reset_job_called():
 @pytest.mark.flaky(reruns=2)
 def test_simulated_multiprocess():
     scheduler1 = AsyncIOScheduler(
-        stores={"default": SQLAlchemyStore(database="sqlite:///./test_suite.sqlite3")},
+        stores={"default": SQLAlchemyStore(database="sqlite:///./test_mp.sqlite3")},
         lock_path="/tmp/{store}_asyncz_test.pid",
     )
     scheduler2 = AsyncIOScheduler(
-        stores={"default": SQLAlchemyStore(database="sqlite:///./test_suite.sqlite3")},
+        stores={"default": SQLAlchemyStore(database="sqlite:///./test_mp.sqlite3")},
         lock_path="/tmp/{store}_asyncz_test.pid",
     )
 
@@ -67,5 +69,8 @@ def test_simulated_multiprocess():
         # fix CancelledError, by giving scheduler more time to send the tasks to the  pool
         # if the pool is closed, newly submitted tasks are cancelled
         time.sleep(1)
+        scheduler1.stores["default"].metadata.drop_all(scheduler1.stores["default"].engine)
+    with contextlib.suppress(FileNotFoundError):
+        os.remove("./test_mp.sqlite3")
 
     assert dummy_job_called == 3

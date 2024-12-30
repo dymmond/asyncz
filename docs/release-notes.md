@@ -9,6 +9,7 @@
 ### Fixed
 
 - `and` was mapped to the wrong trigger.
+- Some defaults had wrong module pathes.
 - Missing export of NativeAsyncIOScheduler from schedulers.
 
 ## 0.12.0

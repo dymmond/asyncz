@@ -42,7 +42,12 @@ from asyncz.stores.memory import MemoryStore
 **Store Alias** - `redis`
 
 ```python
+from asyncz.schedulers import AsyncIOScheduler
 from asyncz.stores.redis import RedisStore
+# assuming redis runs on localhost
+scheduler = AsyncIOScheduler(stores={"default": RedisStore()})
+# or
+scheduler = AsyncIOScheduler(stores={"default": {"type": "redis"}})
 ```
 
 ### Parameters
@@ -64,13 +69,28 @@ highest available.
 
     <sup>Default: `pickle.HIGHEST_PROTOCOL`</sup>
 
+* **host** - Host to connect.
+
+    <sup>Default: `localhost`</sup>
+
+* **port** - Port to connect.
+
+    <sup>Default: `6379`</sup>
+
 ## MongoDBStore
 
 **Store Alias** - `mongo`
 
 ```python
+from asyncz.schedulers import AsyncIOScheduler
 from asyncz.stores.mongo import MongoDBStore
+# assuming mongo db runs on localhost
+scheduler = AsyncIOScheduler(stores={"default": MongoDBStore()})
+# or
+scheduler = AsyncIOScheduler(stores={"default": {"type": "mongo"}})
 ```
+
+
 
 ### Parameters
 
@@ -91,20 +111,31 @@ available.
 
     <sup>Default: `pickle.HIGHEST_PROTOCOL`</sup>
 
+* **host** - Host to connect.
+
+    <sup>Default: `localhost`</sup>
+
+* **port** - Port to connect.
+
+    <sup>Default: `27017`</sup>
+
 
 ## SQLAlchemyStore
 
 **Store Alias** - `sqlalchemy`
 
 ```python
+from asyncz.schedulers import AsyncIOScheduler
 from asyncz.stores.sqlalchemy import SQLAlchemyStore
+
+scheduler = AsyncIOScheduler(stores={"default": SQLAlchemyStore(database="sqlite:///./test_suite.sqlite3")})
+# or
+scheduler = AsyncIOScheduler(stores={"default": {"type": "sqlalchemy", "database": "sqlite:///./test_suite.sqlite3"}})
 ```
 
 ### Parameters
 
-* **database** - The database to store the tasks. Can be string url or engine
-
-    <sup>Default: `asyncz`</sup>
+* **database** - The database to store the tasks. Can be string url or engine.
 
 * **tablename** - The tablename.
 

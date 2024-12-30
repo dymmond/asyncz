@@ -3,6 +3,7 @@ from datetime import datetime
 import pytest
 
 from asyncz.exceptions import ConflictIdError, TaskLookupError
+from asyncz.schedulers import AsyncIOScheduler
 from asyncz.stores.memory import MemoryStore
 
 
@@ -225,7 +226,7 @@ def test_update_task_clear_next_runtime_when_run_times_are_initially_the_same(
     store, create_add_task, next_run_time, timezone, index
 ):
     tasks = [
-        create_add_task(store, dummy_task, datetime(2020, 2, 26), "task%d" % i) for i in range(3)
+        create_add_task(store, dummy_task, datetime(2020, 2, 26), f"task{i}") for i in range(3)
     ]
     tasks[index].next_run_time = timezone.localize(next_run_time) if next_run_time else None
     store.update_task(tasks[index])
@@ -327,3 +328,17 @@ def test_mongodb_null_database():
     mongodb = pytest.importorskip("asyncz.stores.mongo")
     exc = pytest.raises(ValueError, mongodb.MongoDBStore, database="")
     assert "database" in str(exc.value)
+
+
+@pytest.mark.parametrize(
+    "param",
+    [
+        {"type": "sqlalchemy", "database": "sqlite:///:memory:"},
+        {"type": "memory"},
+    ],
+    ids=["sqlalchemy", "memory"],
+)
+def test_store_as_type(param):
+    scheduler = AsyncIOScheduler(stores={"default": param})
+    scheduler.start()
+    scheduler.shutdown()
