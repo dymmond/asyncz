@@ -69,7 +69,13 @@ def task_defaults(timezone):
 @pytest.fixture(scope="function")
 def create_task(task_defaults, timezone):
     def create(**kwargs):
-        mock_scheduler = Mock(BaseScheduler, timezone=timezone, loggers=LoguruLogging())
+        mock_scheduler = Mock(
+            BaseScheduler,
+            timezone=timezone,
+            loggers=LoguruLogging(),
+            lock_path="",
+            startup_delay=0,
+        )
         kwargs.setdefault("scheduler", mock_scheduler)
         task_kwargs = task_defaults.copy()
         task_kwargs.update(kwargs)

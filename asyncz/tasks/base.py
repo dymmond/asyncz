@@ -213,7 +213,7 @@ class Task(BaseState, TaskType):  # type: ignore
     def __getstate__(self) -> "TaskState":  # type: ignore
         if not self.fn_reference:
             raise ValueError(
-                f"This Task cannot be serialized since the reference to its callable ({self.func!r}) could not "
+                f"This Task cannot be serialized since the reference to its callable ({self.fn!r}) could not "
                 "be determined. Consider giving a textual reference (module:function name) "
                 "instead."
             )

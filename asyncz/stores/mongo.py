@@ -148,6 +148,7 @@ class MongoDBStore(BaseStore):
 
     def shutdown(self) -> None:
         self.client.close()
+        super().shutdown()
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} (client={self.client})>"

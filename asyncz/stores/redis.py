@@ -164,6 +164,7 @@ class RedisStore(BaseStore):
 
     def shutdown(self) -> None:
         self.redis.connection_pool.disconnect()
+        super().shutdown()
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}>"

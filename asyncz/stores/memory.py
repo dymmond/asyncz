@@ -80,6 +80,7 @@ class MemoryStore(BaseStore):
 
     def shutdown(self) -> None:
         self.remove_all_tasks()
+        super().shutdown()
 
     def get_task_index(self, timestamp: Union[int, float, None], task_id: str) -> int:
         """

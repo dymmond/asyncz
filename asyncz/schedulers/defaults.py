@@ -2,8 +2,8 @@ triggers: dict[str, str] = {
     "date": "asyncz.triggers.date:DateTrigger",
     "interval": "asyncz.triggers.interval:IntervalTrigger",
     "cron": "asyncz.triggers.cron.trigger:CronTrigger",
-    "and": "asyncz.triggers.date:DateTrigger",
-    "or": "asyncz.triggers.combining:OrTrigger",
+    "and": "asyncz.triggers.combination:AndTrigger",
+    "or": "asyncz.triggers.combination:OrTrigger",
     "shutdown": "asyncz.triggers.shutdown:ShutdownTrigger",
 }
 
@@ -16,8 +16,9 @@ executors: dict[str, str] = {
     "asyncio": "asyncz.executors.asyncio:AsyncIOExecutor",
 }
 
+
 stores: dict[str, str] = {
-    "memory": "asyncz.stores.memory:MemoryTaskStore",
+    "memory": "asyncz.stores.memory:MemoryStore",
     "mongodb": "asyncz.stores.mongo:MongoDBStore",
     "redis": "asyncz.stores.redis:RedisStore",
     "sqlalchemy": "asyncz.stores.sqlalchemy:SQLAlchemyStore",

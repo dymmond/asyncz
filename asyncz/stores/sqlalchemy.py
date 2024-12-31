@@ -170,6 +170,7 @@ class SQLAlchemyStore(BaseStore):
 
     def shutdown(self) -> None:
         self.engine.dispose()
+        super().shutdown()
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} (database={self.engine.url})>"

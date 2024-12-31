@@ -410,7 +410,7 @@ def check_callable_args(func: Callable[..., Any], args: Any, kwargs: Any) -> Non
     if not has_varargs and unmatched_args:
         raise ValueError(
             "The list of positional arguments is longer than the target callable can handle "
-            "(allowed: %d, given in args: %d)" % (len(args) - len(unmatched_args), len(args))
+            f"(allowed: {len(args) - len(unmatched_args)}, given in args: {len(args)})"
         )
 
     if not has_var_kwargs and unmatched_kwargs:
