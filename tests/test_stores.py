@@ -1,10 +1,16 @@
+import os
+import tempfile
+import time
 from datetime import datetime
 
 import pytest
+from sqlalchemy.pool import StaticPool
 
 from asyncz.exceptions import ConflictIdError, TaskLookupError
 from asyncz.schedulers import AsyncIOScheduler
+from asyncz.stores.file import FileStore
 from asyncz.stores.memory import MemoryStore
+from asyncz.tasks import Task
 
 
 def dummy_task():
@@ -62,18 +68,28 @@ def sqlalchemystore():
     store = sqlalchemy.SQLAlchemyStore(database="sqlite:///./test_suite.sqlite3")
     store.start(None, "sqlalchemy")
     yield store
+    # execute shutdown
     store.metadata.drop_all(store.engine)
+    store.shutdown()
+
+
+@pytest.fixture
+def filestore(tmpdir):
+    store = FileStore(directory=tmpdir)
+    store.start(None, "file")
+    yield store
     store.shutdown()
 
 
 @pytest.fixture(
     params=[
         "memstore",
+        "filestore",
         "mongodbstore",
         "sqlalchemystore",
         "redistore",
     ],
-    ids=["memory", "mongodb", "sqlalchemy", "redis"],
+    ids=["memory", "file", "mongodb", "sqlalchemy", "redis"],
 )
 def store(request):
     return request.getfixturevalue(request.param)
@@ -81,11 +97,12 @@ def store(request):
 
 @pytest.fixture(
     params=[
+        "filestore",
         "mongodbstore",
         "sqlalchemystore",
         "redistore",
     ],
-    ids=["mongodb", "sqlalchemy", "redis"],
+    ids=["file", "mongodb", "sqlalchemy", "redis"],
 )
 def persistent_store(request):
     return request.getfixturevalue(request.param)
@@ -299,12 +316,35 @@ def test_repr_memstore(memstore):
     assert repr(memstore) == "<MemoryStore>"
 
 
-def xtest_repr_mongodbstore(mongodbstore):
+def test_repr_filestore(filestore):
+    assert repr(filestore).startswith("<FileStore ")
+
+
+def test_repr_sqlalchemystore(sqlalchemystore):
+    assert repr(sqlalchemystore) == "<SQLAlchemyStore (database=sqlite:///./test_suite.sqlite3)>"
+
+
+def test_repr_mongodbstore(mongodbstore):
     assert repr(mongodbstore).startswith("<MongoDBStore (client=MongoClient(")
 
 
 def test_repr_redistaskstore(redistore):
     assert repr(redistore) == "<RedisStore>"
+
+
+@pytest.mark.parametrize(
+    "task_id",
+    ["../foo", ".foo", "\\foo", "/foo"],
+)
+def test_file_store_dangerous_ids(task_id, filestore):
+    with pytest.raises(RuntimeError):
+        filestore.lookup_task(task_id)
+    with pytest.raises(RuntimeError):
+        filestore.delete_task(task_id)
+    with pytest.raises(RuntimeError):
+        filestore.add_task(Task(lambda: None, id=task_id))
+    with pytest.raises(RuntimeError):
+        filestore.update_task(Task(lambda: None, id=task_id))
 
 
 def test_memstore_close(memstore, create_add_task):
@@ -333,12 +373,26 @@ def test_mongodb_null_database():
 @pytest.mark.parametrize(
     "param",
     [
-        {"type": "sqlalchemy", "database": "sqlite:///:memory:"},
+        {
+            "type": "sqlalchemy",
+            "database": "sqlite:///:memory:",
+            "poolclass": StaticPool,
+        },
         {"type": "memory"},
+        {"type": "file", "directory": tempfile.mkdtemp(), "cleanup_directory": True},
     ],
-    ids=["sqlalchemy", "memory"],
+    ids=["sqlalchemy", "memory", "file"],
 )
 def test_store_as_type(param):
     scheduler = AsyncIOScheduler(stores={"default": param})
+    if param["type"] != "sqlalchemy":
+        scheduler.add_task(dummy_task)
+        assert len(scheduler.get_tasks()) == 1
     scheduler.start()
+    time.sleep(0.1)
+    if param["type"] != "sqlalchemy":
+        assert len(scheduler.get_tasks()) == 0
     scheduler.shutdown()
+    if param["type"] == "file":
+        time.sleep(0.1)
+        assert not os.path.exists(param["directory"])

@@ -37,6 +37,38 @@ stateless tasks or tasks that do not require some sort of cache.
 from asyncz.stores.memory import MemoryStore
 ```
 
+## FileStore
+
+This is also a basic store which is always available. It supports the task synchronization
+between multiple processes via task files in a directory.
+It is not fast and its security relies solely on file permissions and encryption.
+
+!!! Warning
+    People who can inject a file in the directory,
+    will be able to inject code. Except if you use encryption.
+
+**Store Alias** - `file`
+
+### Parameters
+
+- **directory** - The directory to use. Should be well protected.
+- **suffix** - The suffix of task files. Files with other suffixes are ignored.
+
+    <sup>Default: `".task"`</sup>
+
+- **mode** - The mode of the directory.
+
+    <sup>Default: `0o700`</sup>
+
+- **cleanup_directory** - Shall the directory be deleted after shutdown? This will cleanup old tasks.
+
+    <sup>Default: `False`</sup>
+
+- **pickle_protocol**- Pickle protocol level to use (for serialization), defaults to the
+highest available.
+
+    <sup>Default: `pickle.HIGHEST_PROTOCOL`</sup>
+
 ## RedisStore
 
 **Store Alias** - `redis`
@@ -145,6 +177,9 @@ scheduler = AsyncIOScheduler(stores={"default": {"type": "sqlalchemy", "database
 available.
 
     <sup>Default: `pickle.HIGHEST_PROTOCOL`</sup>
+
+Other kwargs are passed to sqlalchemy.create_engine.
+
 
 ## Custom store
 

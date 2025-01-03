@@ -1,5 +1,13 @@
 # Release Notes
 
+
+## 0.13.1
+
+### Added
+
+- `FileStore` was added (simple synchronization via directory).
+- `with_lock` was added to `asyncz.file_locking`.
+
 ## 0.13.0
 
 ### Added

@@ -94,7 +94,7 @@ The third option is by starting the scheduler and use the `setup` method.
 ### Multi-Proccessing mode
 
 Asyncz schedulers have an optional multiprocessing mode. It can be activated by setting the
-`lock_path` option to e.g. `"/tmp/asyncz_{store}_{ppid}.pid"`
+`lock_path` option to e.g. `"/tmp/asyncz_{store}_{pgrp}.lock"`
 
 This defines a per-store process lock via a file.
 
