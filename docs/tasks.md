@@ -85,3 +85,7 @@ Note the `make_function` and `make_async_function` decorators. They are required
 methods have no signature. It is especially required for asend/athrow.
 
 This is also possible with asynchronous generators.
+
+
+!!! Warning
+    Lifecycle tasks are only valid for the memory store. Generators cannot be pickled.
