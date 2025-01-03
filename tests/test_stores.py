@@ -242,6 +242,8 @@ def test_update_task_next_runtime(store, create_add_task, next_run_time, timezon
 def test_update_task_clear_next_runtime_when_run_times_are_initially_the_same(
     store, create_add_task, next_run_time, timezone, index
 ):
+    if isinstance(store, FileStore) and os.environ.get("CI") == "true":
+        pytest.skip("CI server filesystem not suitable for this test with FileStore.")
     tasks = [
         create_add_task(store, dummy_task, datetime(2020, 2, 26), f"task{i}") for i in range(3)
     ]
