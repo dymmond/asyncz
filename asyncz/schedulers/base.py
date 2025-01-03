@@ -1138,7 +1138,7 @@ class BaseScheduler(SchedulerType):
                 due_tasks: list[TaskType] = store.get_due_tasks(now)
             except Exception as e:
                 self.loggers[self.logger_name].warning(
-                    f"Error getting due tasks from the store {store_alias}: {e}."
+                    f'Error getting due tasks from the store "{store_alias}": {e}.'
                 )
                 retry_wakeup_time = now + timedelta(seconds=self.store_retry_interval)
                 if not next_wakeup_time or next_wakeup_time > retry_wakeup_time:

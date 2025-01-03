@@ -1,12 +1,11 @@
-import contextlib
 import os
+import tempfile
 import time
 
 import pytest
 
 from asyncz.exceptions import ConflictIdError
 from asyncz.schedulers.asyncio import AsyncIOScheduler
-from asyncz.stores.sqlalchemy import SQLAlchemyStore
 
 dummy_job_called = 0
 
@@ -31,14 +30,25 @@ def reset_job_called():
 
 
 @pytest.mark.flaky(reruns=2)
-def test_simulated_multiprocess():
+@pytest.mark.parametrize(
+    "param",
+    [
+        {
+            "type": "sqlalchemy",
+            "database": "sqlite:///./test_mp.sqlite3",
+        },
+        {"type": "file", "directory": tempfile.mkdtemp(), "cleanup_directory": True},
+    ],
+    ids=["sqlalchemy", "file"],
+)
+def test_simulated_multiprocess(tmpdir, param):
     scheduler1 = AsyncIOScheduler(
-        stores={"default": SQLAlchemyStore(database="sqlite:///./test_mp.sqlite3")},
-        lock_path="/tmp/{store}_asyncz_test.pid",
+        stores={"default": param},
+        lock_path=f"/{tmpdir}/{{store}}_asyncz_test.lock",
     )
     scheduler2 = AsyncIOScheduler(
-        stores={"default": SQLAlchemyStore(database="sqlite:///./test_mp.sqlite3")},
-        lock_path="/tmp/{store}_asyncz_test.pid",
+        stores={"default": param},
+        lock_path=f"/{tmpdir}/{{store}}_asyncz_test.lock",
     )
 
     scheduler1.add_task(dummy_job, id="dummy1")
@@ -69,8 +79,12 @@ def test_simulated_multiprocess():
         # fix CancelledError, by giving scheduler more time to send the tasks to the  pool
         # if the pool is closed, newly submitted tasks are cancelled
         time.sleep(1)
-        scheduler1.stores["default"].metadata.drop_all(scheduler1.stores["default"].engine)
-    with contextlib.suppress(FileNotFoundError):
+        if param["type"] == "sqlalchemy":
+            scheduler1.stores["default"].metadata.drop_all(scheduler1.stores["default"].engine)
+    if param["type"] == "sqlalchemy":
         os.remove("./test_mp.sqlite3")
+    else:
+        time.sleep(0.1)
+        assert not os.path.exists(param["directory"])
 
     assert dummy_job_called == 3

@@ -17,7 +17,11 @@ Example Usage::
     ...     f.write('Edgy')
 """
 
+from __future__ import annotations
+
 import os
+from collections.abc import Generator
+from contextlib import contextmanager
 from typing import IO, Any
 
 __all__ = ("LOCK_EX", "LOCK_SH", "LOCK_NB", "lock", "unlock")
@@ -114,3 +118,10 @@ else:
         def unlock(f: IO) -> bool:
             fcntl.flock(_fd(f), fcntl.LOCK_UN)
             return True
+
+
+@contextmanager
+def with_lock(f: IO, flags: int) -> Generator[IO, None, None]:
+    lock(f, flags)
+    yield f
+    unlock(f)

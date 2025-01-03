@@ -41,7 +41,7 @@ class SQLAlchemyStore(BaseStore):
         super().__init__(**kwargs)
         self.pickle_protocol = pickle_protocol
         if isinstance(database, str):
-            database = sqlalchemy.create_engine(database)
+            database = sqlalchemy.create_engine(database, **kwargs)
         if not database:
             raise ValueError("database must not be empty or None")
         self.engine: sqlalchemy.Engine = database
@@ -63,6 +63,10 @@ class SQLAlchemyStore(BaseStore):
         super().start(scheduler, alias)
         self.metadata.create_all(self.engine)
 
+    def shutdown(self) -> None:
+        self.engine.dispose()
+        super().shutdown()
+
     def lookup_task(self, task_id: str) -> Optional[TaskType]:
         tasks = self.get_tasks(self.table.c.id == task_id, limit=1)
         return tasks[0] if tasks else None
@@ -82,7 +86,7 @@ class SQLAlchemyStore(BaseStore):
     def get_tasks(self, conditions: Any = None, limit: int = 0) -> list[TaskType]:
         tasks: list[TaskType] = []
         failed_task_ids = []
-        stmt = self.table.select().order_by(self.table.c.next_run_time.asc())
+        stmt = self.table.select().order_by(self.table.c.next_run_time.asc().nullslast())
         if conditions is not None:
             stmt = stmt.where(conditions)
 
@@ -119,9 +123,7 @@ class SQLAlchemyStore(BaseStore):
             return utc_timestamp_to_datetime(row.next_run_time) if row else None
 
     def get_all_tasks(self) -> list[TaskType]:
-        tasks = self.get_tasks()
-        self.fix_paused_tasks(tasks)
-        return tasks
+        return self.get_tasks()
 
     def add_task(self, task: TaskType) -> None:
         data = {
@@ -167,10 +169,6 @@ class SQLAlchemyStore(BaseStore):
     def remove_all_tasks(self) -> None:
         with self.engine.begin() as conn:
             conn.execute(self.table.delete())
-
-    def shutdown(self) -> None:
-        self.engine.dispose()
-        super().shutdown()
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} (database={self.engine.url})>"
