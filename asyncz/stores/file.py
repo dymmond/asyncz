@@ -5,7 +5,7 @@ import os
 import pickle
 import shutil
 from contextlib import suppress
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
@@ -47,6 +47,7 @@ class FileStore(BaseStore):
         self.mode = mode
         self.cleanup_directory = cleanup_directory
         self.suffix = suffix
+        self.max_dt = datetime.max.replace(tzinfo=timezone.utc)
 
     def check_task_id(self, task_id: str | None) -> None:
         if task_id is None:
@@ -65,6 +66,8 @@ class FileStore(BaseStore):
         self.directory.mkdir(self.mode, parents=True, exist_ok=True)
         if not self.directory.is_dir():
             raise RuntimeError("Not a directory.")
+        if self.scheduler is not None:
+            self.max_dt = datetime.max.replace(tzinfo=self.scheduler.timezone)
 
     def shutdown(self) -> None:
         if self.cleanup_directory:
@@ -99,7 +102,6 @@ class FileStore(BaseStore):
 
     def get_tasks(self) -> list[TaskType]:
         tasks: list[tuple[TaskType, os.stat_result]] = []
-        max_dt = datetime.max.replace(tzinfo=UTC)
         with os.scandir(self.directory) as scanner:
             for entry in scanner:
                 if not entry.name.endswith(self.suffix) or not entry.is_file():
@@ -116,7 +118,7 @@ class FileStore(BaseStore):
                 for task, _ in sorted(
                     tasks,
                     key=lambda task_stat: (
-                        task_stat[0].next_run_time or max_dt,
+                        task_stat[0].next_run_time or self.max_dt,
                         task_stat[1].st_mtime,
                     ),
                 )
