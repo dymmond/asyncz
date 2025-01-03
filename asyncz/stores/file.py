@@ -117,7 +117,8 @@ class FileStore(BaseStore):
                     key=lambda task_stat: (
                         int(task_stat[0].next_run_time is None),
                         task_stat[0].next_run_time,
-                        task_stat[1].st_mtime,
+                        # sort for task creation not update
+                        task_stat[1].st_ctime,
                     ),
                 )
             ]
