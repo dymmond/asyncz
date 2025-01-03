@@ -48,12 +48,14 @@ class FileStore(BaseStore):
         self.cleanup_directory = cleanup_directory
         self.suffix = suffix
 
-    def check_task_id(self, task_id) -> None:
+    def check_task_id(self, task_id: str | None) -> None:
+        if task_id is None:
+            raise RuntimeError("Task id is None")
         if task_id.startswith("."):
-            raise RuntimeError(f'Invalid character in task id: "{task_id}"')
+            raise RuntimeError(f'Invalid character in task id: "{task_id}".')
         for char in task_id:
             if char in self.forbidden_characters:
-                raise RuntimeError(f'Invalid character in task id: "{task_id}"')
+                raise RuntimeError(f'Invalid character in task id: "{task_id}".')
 
     def start(self, scheduler: Any, alias: str) -> None:
         """
