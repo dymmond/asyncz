@@ -8,6 +8,10 @@
 - `FileStore` was added (simple synchronization via files in a directory).
 - `with_lock` was added to `asyncz.file_locking`.
 
+### Fixed
+
+- SQLAlchemyStore didn't pass extra arguments to create_engine.
+
 ## 0.13.0
 
 ### Added
