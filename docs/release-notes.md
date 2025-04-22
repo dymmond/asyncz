@@ -1,5 +1,10 @@
 # Release Notes
 
+## 0.13.2
+
+### Added
+
+- Support for Python 3.13.
 
 ## 0.13.1
 
