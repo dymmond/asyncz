@@ -90,7 +90,7 @@ class RedisStore(BaseStore):
             with self.redis.pipeline() as pipe:
                 pipe.hdel(self.tasks_key, *failed_task_ids)
                 pipe.zrem(self.run_times_key, *failed_task_ids)
-                pipe.execute()  # type: ignore
+                pipe.execute()
 
         return tasks
 
@@ -124,7 +124,7 @@ class RedisStore(BaseStore):
                     self.run_times_key,
                     {task.id: datetime_to_utc_timestamp(task.next_run_time)},
                 )
-            pipe.execute()  # type: ignore
+            pipe.execute()
 
     def update_task(self, task: "TaskType") -> None:
         assert task.id
@@ -145,7 +145,7 @@ class RedisStore(BaseStore):
             else:
                 pipe.zrem(self.run_times_key, task.id)
 
-            pipe.execute()  # type: ignore
+            pipe.execute()
 
     def delete_task(self, task_id: str) -> None:
         if not self.redis.hexists(self.tasks_key, task_id):
@@ -154,13 +154,13 @@ class RedisStore(BaseStore):
         with self.redis.pipeline() as pipe:
             pipe.hdel(self.tasks_key, task_id)
             pipe.zrem(self.run_times_key, task_id)
-            pipe.execute()  # type: ignore
+            pipe.execute()
 
     def remove_all_tasks(self) -> None:
         with self.redis.pipeline() as pipe:
             pipe.delete(self.tasks_key)
             pipe.delete(self.run_times_key)
-            pipe.execute()  # type: ignore
+            pipe.execute()
 
     def shutdown(self) -> None:
         self.redis.connection_pool.disconnect()
