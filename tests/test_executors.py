@@ -174,8 +174,7 @@ async def waiter(sleep, exception):
         return True
 
 
-@pytest.mark.asyncio(loop_scope="function")
-async def test_asyncio_executor_shutdown(asyncio_scheduler, asyncio_executor):
+def test_asyncio_executor_shutdown(event_loop, asyncio_scheduler, asyncio_executor):
     """Test that the AsyncIO executor cancels its pending tasks on shutdown."""
     from asyncio import sleep
 
@@ -186,7 +185,7 @@ async def test_asyncio_executor_shutdown(asyncio_scheduler, asyncio_executor):
 
     asyncio_executor.shutdown()
     with pytest.raises(CancelledError):
-        await futures.pop()
+        event_loop.run_until_complete(futures.pop())
 
 
 @pytest.mark.asyncio
