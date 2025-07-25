@@ -54,7 +54,7 @@ class AllExpression(BaseExpression):
 
     def __str__(self) -> str:
         if self.step:
-            return "*/%d" % self.step
+            return f"*/{self.step}"
         return "*"
 
     def __repr__(self) -> str:
@@ -131,12 +131,12 @@ class RangeExpression(AllExpression):
 
     def __str__(self) -> str:
         if self.last != self.first and self.last is not None:
-            range = "%d-%d" % (self.first, self.last)
+            range = f"{self.first}-{self.last}"
         else:
             range = str(self.first)
 
         if self.step:
-            return "%s/%d" % (range, self.step)
+            return f"{range}/{self.step}"
         return range
 
     def __repr__(self) -> str:

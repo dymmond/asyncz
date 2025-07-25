@@ -345,7 +345,7 @@ class TestCheckCallableArgs:
         """
         exc = pytest.raises(ValueError, check_callable_args, lambda x: None, [], {"x": 0, "y": 1})
         assert str(exc.value) == (
-            "The target callable does not accept the following keyword " "arguments: y"
+            "The target callable does not accept the following keyword arguments: y"
         )
 
     def test_missing_callable_args(self):
@@ -385,7 +385,7 @@ class TestCheckCallableArgs:
             ValueError, check_callable_args, object.__setattr__, ["blah"], {"value": 1}
         )
         assert str(exc.value) == (
-            "The following arguments cannot be given as keyword arguments: " "value"
+            "The following arguments cannot be given as keyword arguments: value"
         )
 
     def test_unfulfilled_kwargs(self):
@@ -397,7 +397,7 @@ class TestCheckCallableArgs:
         func = eval("lambda x, *, y, z=1: None")
         exc = pytest.raises(ValueError, check_callable_args, func, [1], {})
         assert str(exc.value) == (
-            "The following keyword-only arguments have not been supplied in " "kwargs: y"
+            "The following keyword-only arguments have not been supplied in kwargs: y"
         )
 
     def test_wrapped_func(self):
