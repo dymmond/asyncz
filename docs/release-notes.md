@@ -1,5 +1,11 @@
 # Release Notes
 
+## 0.13.3
+
+### Fixed
+
+- Different timezones in triggers
+
 ## 0.13.2
 
 ### Added
