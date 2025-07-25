@@ -68,6 +68,7 @@ class IntervalTrigger(BaseTrigger):
         previous_time: Optional[datetime],
         now: Union[datetime, None] = None,
     ) -> Union[datetime, None]:
+        timezone = self.timezone or timezone
         if now is None:
             now = datetime.now(timezone)
         next_trigger_time: Optional[datetime]

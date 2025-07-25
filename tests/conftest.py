@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 from unittest.mock import Mock
 
@@ -7,6 +8,18 @@ import pytz
 from asyncz.schedulers.asyncio import AsyncIOScheduler
 from asyncz.schedulers.base import BaseScheduler, LoguruLogging
 from asyncz.tasks import Task
+
+
+@pytest.fixture(scope="session")
+def event_loop():
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+    try:
+        yield loop
+    finally:
+        loop.close()
 
 
 @pytest.fixture(scope="function")

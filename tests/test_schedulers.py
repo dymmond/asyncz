@@ -847,13 +847,13 @@ class TestBaseScheduler:
     def test_configure_private_invalid_executor(self, scheduler):
         exc = pytest.raises(TypeError, scheduler._setup, {"executors": {"default": 6}})
         assert str(exc.value) == (
-            "Expected executor instance or dict for executors['default'], " "got int instead."
+            "Expected executor instance or dict for executors['default'], got int instead."
         )
 
     def test_configure_private_invalid_store(self, scheduler):
         exc = pytest.raises(TypeError, scheduler._setup, {"stores": {"default": 6}})
         assert str(exc.value) == (
-            "Expected store instance or dict for stores['default'], " "got int instead."
+            "Expected store instance or dict for stores['default'], got int instead."
         )
 
     def test_create_default_executor(self, scheduler):

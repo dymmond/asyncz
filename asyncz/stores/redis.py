@@ -67,10 +67,10 @@ class RedisStore(BaseStore):
 
     def get_due_tasks(self, now: datetime) -> list["TaskType"]:
         timestamp = datetime_to_utc_timestamp(now)
-        ids: list[str] = self.redis.zrangebyscore(self.run_times_key, 0, timestamp)  # type: ignore
+        ids: list[str] = self.redis.zrangebyscore(self.run_times_key, 0, timestamp)
         if not ids:
             return []
-        states: list[Any] = self.redis.hmget(self.tasks_key, ids)  # type: ignore
+        states: list[Any] = self.redis.hmget(self.tasks_key, ids)
         return self.rebuild_tasks(zip(ids, states))
 
     def rebuild_tasks(self, states: Iterable[tuple[str, Any]]) -> list["TaskType"]:
@@ -101,7 +101,7 @@ class RedisStore(BaseStore):
         return None
 
     def get_all_tasks(self) -> list["TaskType"]:
-        states: list[tuple[str, Any]] = self.redis.hgetall(self.tasks_key)  # type: ignore
+        states: list[tuple[str, Any]] = self.redis.hgetall(self.tasks_key)
         tasks = self.rebuild_tasks(states.items())
         paused_sort_key = datetime(9999, 12, 31, tzinfo=tz.utc)
         return sorted(tasks, key=lambda task: task.next_run_time or paused_sort_key)
@@ -116,7 +116,7 @@ class RedisStore(BaseStore):
             pipe.hset(
                 self.tasks_key,
                 task.id,
-                self.conditional_encrypt(pickle.dumps(task.__getstate__(), self.pickle_protocol)),  # type: ignore
+                self.conditional_encrypt(pickle.dumps(task.__getstate__(), self.pickle_protocol)),
             )
 
             if task.next_run_time:
@@ -135,7 +135,7 @@ class RedisStore(BaseStore):
             pipe.hset(
                 self.tasks_key,
                 task.id,
-                self.conditional_encrypt(pickle.dumps(task.__getstate__(), self.pickle_protocol)),  # type: ignore
+                self.conditional_encrypt(pickle.dumps(task.__getstate__(), self.pickle_protocol)),
             )
             if task.next_run_time:
                 pipe.zadd(

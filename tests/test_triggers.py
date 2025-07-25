@@ -433,7 +433,7 @@ class TestCronTrigger:
     def test_cron_trigger_1(self, timezone):
         trigger = CronTrigger(year="2022/2", month="1/3", day="5-13", timezone=timezone)
         assert repr(trigger) == (
-            "<CronTrigger (year='2022/2', month='1/3', day='5-13', " "timezone='Europe/London')>"
+            "<CronTrigger (year='2022/2', month='1/3', day='5-13', timezone='Europe/London')>"
         )
         assert str(trigger) == "cron[year='2022/2', month='1/3', day='5-13']"
         start_at = timezone.localize(datetime(2021, 12, 1))
@@ -449,8 +449,7 @@ class TestCronTrigger:
     def test_cron_trigger_3(self, timezone):
         trigger = CronTrigger(year="2022", month="feb-dec", hour="8-10", timezone=timezone)
         assert repr(trigger) == (
-            "<CronTrigger (year='2022', month='feb-dec', hour='8-10', "
-            "timezone='Europe/London')>"
+            "<CronTrigger (year='2022', month='feb-dec', hour='8-10', timezone='Europe/London')>"
         )
         start_at = timezone.localize(datetime(2022, 1, 1))
         correct_next_date = timezone.localize(datetime(2022, 2, 1, 8))
@@ -473,7 +472,7 @@ class TestCronTrigger:
     def test_cron_zero_value(self, timezone):
         trigger = CronTrigger(year=2022, month=2, hour=0, timezone=timezone)
         assert repr(trigger) == (
-            "<CronTrigger (year='2022', month='2', hour='0', " "timezone='Europe/London')>"
+            "<CronTrigger (year='2022', month='2', hour='0', timezone='Europe/London')>"
         )
 
     def test_cron_year_list(self, timezone):
@@ -561,7 +560,7 @@ class TestCronTrigger:
     def test_week_1(self, timezone):
         trigger = CronTrigger(year=2009, month=2, week=8, timezone=timezone)
         assert repr(trigger) == (
-            "<CronTrigger (year='2009', month='2', week='8', " "timezone='Europe/London')>"
+            "<CronTrigger (year='2009', month='2', week='8', timezone='Europe/London')>"
         )
         assert str(trigger) == "cron[year='2009', month='2', week='8']"
         start_at = timezone.localize(datetime(2009, 1, 1))
@@ -571,7 +570,7 @@ class TestCronTrigger:
     def test_week_2(self, timezone):
         trigger = CronTrigger(year=2009, week=15, day_of_week=2, timezone=timezone)
         assert repr(trigger) == (
-            "<CronTrigger (year='2009', week='15', day_of_week='2', " "timezone='Europe/London')>"
+            "<CronTrigger (year='2009', week='15', day_of_week='2', timezone='Europe/London')>"
         )
         assert str(trigger) == "cron[year='2009', week='15', day_of_week='2']"
         start_at = timezone.localize(datetime(2009, 1, 1))
@@ -635,7 +634,7 @@ class TestCronTrigger:
         alter_tz = pytz.FixedOffset(-600)
         trigger = CronTrigger(year=2009, week=15, day_of_week=2, timezone=timezone)
         assert repr(trigger) == (
-            "<CronTrigger (year='2009', week='15', day_of_week='2', " "timezone='Europe/London')>"
+            "<CronTrigger (year='2009', week='15', day_of_week='2', timezone='Europe/London')>"
         )
         assert str(trigger) == "cron[year='2009', week='15', day_of_week='2']"
         start_at = alter_tz.localize(datetime(2008, 12, 31, 22))

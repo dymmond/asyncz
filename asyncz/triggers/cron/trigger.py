@@ -223,6 +223,7 @@ class CronTrigger(BaseTrigger):
     def get_next_trigger_time(
         self, timezone: tzinfo, previous_time: Optional[datetime], now: Optional[datetime] = None
     ) -> Union[datetime, None]:
+        timezone = self.timezone or timezone
         if now is None:
             now = datetime.now(timezone)
         start_at_field = (
@@ -246,6 +247,7 @@ class CronTrigger(BaseTrigger):
 
         fieldnum = 0
         next_date = datetime_ceil(start_at)
+
         while 0 <= fieldnum < len(self.fields):
             field = self.fields[fieldnum]
             curr_value = field.get_value(next_date)
