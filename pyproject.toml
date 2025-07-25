@@ -83,6 +83,7 @@ testing = [
     "sqlalchemy",
     "httpx",
     "pytz>=2022.6",
+    "freezegun"
 ]
 
 [tool.hatch.envs.default.scripts]
@@ -123,6 +124,12 @@ dependencies = [
 [tool.hatch.envs.docs.scripts]
 build = "mkdocs build"
 serve = "mkdocs serve --dev-addr localhost:8000"
+
+[tool.hatch.envs.hatch-static-analysis]
+# disables custom ruff rules, required to align with pre-commit
+config-path = "none"
+dependencies = ["ruff==0.12.5"]
+
 
 [tool.hatch.version]
 path = "asyncz/__init__.py"
@@ -186,6 +193,11 @@ module = [
 ]
 ignore_missing_imports = true
 ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_errors = true
+
 
 [tool.pytest.ini_options]
 addopts = ["--strict-config", "--strict-markers"]
