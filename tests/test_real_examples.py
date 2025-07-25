@@ -1,5 +1,5 @@
 import asyncio
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -35,7 +35,9 @@ async def test_tz_cron(tz):
             await asyncio.sleep(2)
             assert called == 1
             t.move_to(
-                datetime(2025, 5, 2, 7, 59, 59, tzinfo=ZoneInfo(time_zone_string)).astimezone(UTC)
+                datetime(2025, 5, 2, 7, 59, 59, tzinfo=ZoneInfo(time_zone_string)).astimezone(
+                    timezone.utc
+                )
             )
             assert called == 1
             await asyncio.sleep(2)
