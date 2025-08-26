@@ -1,9 +1,10 @@
 import inspect
 import re
+from collections.abc import Callable
 from datetime import date, datetime, time, timedelta, tzinfo
 from datetime import timezone as dttz
 from functools import partial
-from typing import Any, Callable, Optional, Union, cast, overload
+from typing import Any, Optional, Union, cast, overload
 
 from asyncz.exceptions import AsynczException, AsynczLookupError
 

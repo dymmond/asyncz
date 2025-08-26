@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Callable
 from contextlib import suppress
 from dataclasses import dataclass
 from inspect import isawaitable
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 from asyncz.typing import DictStrAny
 

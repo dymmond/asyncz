@@ -1,5 +1,6 @@
+from collections.abc import Callable
 from datetime import datetime, timedelta, tzinfo
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from pydantic import BaseModel, ConfigDict
 

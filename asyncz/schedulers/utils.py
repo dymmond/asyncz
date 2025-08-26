@@ -1,5 +1,6 @@
+from collections.abc import Callable
 from functools import partial, wraps
-from typing import Any, Callable
+from typing import Any
 
 
 def run_in_event_loop(fn: Callable[..., Any]) -> Any:
