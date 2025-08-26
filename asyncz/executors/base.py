@@ -1,11 +1,12 @@
 import logging
 import sys
 import traceback
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from datetime import timezone as tz
 from threading import RLock
 from traceback import format_tb
-from typing import TYPE_CHECKING, Any, Callable, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from asyncz.events import TaskExecutionEvent
 from asyncz.events.constants import TASK_ERROR, TASK_EXECUTED, TASK_MISSED

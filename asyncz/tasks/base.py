@@ -1,7 +1,7 @@
 import inspect
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import datetime, tzinfo
-from typing import Any, Callable, Optional, Union, cast
+from typing import Any, Optional, Union, cast
 from uuid import uuid4
 
 from pydantic import Field
