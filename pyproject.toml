@@ -7,7 +7,7 @@ name = "asyncz"
 description = "The scheduler that nobody wants but every application needs."
 long_description = "The scheduler that nobody wants but every application needs."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dynamic = ['version']
 authors = [{ name = "Tiago Silva", email = "tiago.arasilva@gmail.com" }]
 classifiers = [
@@ -29,8 +29,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: BSD License",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -147,7 +145,7 @@ disallow_any_generics = false
 implicit_reexport = false
 show_error_codes = true
 disallow_incomplete_defs = true
-disable_error_code = "attr-defined"
+disable_error_code = "attr-defined,no-untyped-call"
 warn_unused_ignores = true
 warn_redundant_casts = true
 

@@ -1,5 +1,11 @@
 # Release Notes
 
+## 0.13.4
+
+### Changed
+
+- Dropped support for Python 3.9 to match the whole ecosystem.
+
 ## 0.13.3
 
 ### Fixed
