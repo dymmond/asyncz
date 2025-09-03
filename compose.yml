@@ -1,11 +1,11 @@
 version: "3"
 services:
   redis:
-    image: redis
+    image: docker.io/redis
     ports:
       - 127.0.0.1:6379:6379
 
   mongodb:
-    image: mongo
+    image: docker.io/mongo
     ports:
       - 127.0.0.1:27017:27017
