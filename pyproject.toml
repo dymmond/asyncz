@@ -38,6 +38,7 @@ classifiers = [
 ]
 dependencies = [
     "cryptography",
+    "monkay>=0.5.0",
     "pydantic>=2.5.3,<3.0.0",
 ]
 keywords = [

@@ -10,10 +10,12 @@ from abc import abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
-from functools import partial
 from importlib import import_module
+from inspect import isawaitable
 from threading import TIMEOUT_MAX, Lock, RLock
 from typing import TYPE_CHECKING, Any, Optional, Union, cast, overload
+
+from monkay.asgi import ASGIApp, LifespanHook
 
 from asyncz.enums import PluginInstance, SchedulerState
 from asyncz.events.base import SchedulerEvent, TaskEvent, TaskSubmissionEvent
@@ -45,7 +47,6 @@ from asyncz.executors.pool import ThreadPoolExecutor
 from asyncz.executors.types import ExecutorType
 from asyncz.locks import RLockProtected
 from asyncz.schedulers import defaults
-from asyncz.schedulers.asgi import ASGIApp, ASGIHelper
 from asyncz.schedulers.datastructures import TaskDefaultStruct
 from asyncz.schedulers.types import LoggersType, SchedulerType
 from asyncz.stores.memory import MemoryStore
@@ -356,7 +357,7 @@ class BaseScheduler(SchedulerType):
         app: None,
         handle_lifespan: bool = False,
         wait: bool = False,
-    ) -> Callable[[ASGIApp], ASGIHelper]: ...
+    ) -> Callable[[ASGIApp], ASGIApp]: ...
 
     @overload
     def asgi(
@@ -364,18 +365,30 @@ class BaseScheduler(SchedulerType):
         app: ASGIApp,
         handle_lifespan: bool = False,
         wait: bool = False,
-    ) -> ASGIHelper: ...
+    ) -> ASGIApp: ...
 
     def asgi(
         self,
         app: Optional[ASGIApp] = None,
         handle_lifespan: bool = False,
         wait: bool = False,
-    ) -> Union[ASGIHelper, Callable[[ASGIApp], ASGIHelper]]:
+    ) -> Union[ASGIApp, Callable[[ASGIApp], ASGIApp]]:
         """Return wrapper for asgi integration."""
-        if app is not None:
-            return ASGIHelper(app=app, scheduler=self, handle_lifespan=handle_lifespan, wait=wait)
-        return partial(ASGIHelper, scheduler=self, handle_lifespan=handle_lifespan, wait=wait)
+
+        async def shutdown():
+            result = self.shutdown(wait)
+            if isawaitable(result):
+                await result
+
+        async def setup() -> contextlib.AsyncExitStack:
+            cm = contextlib.AsyncExitStack()
+            result = self.start()
+            if isawaitable(result):
+                await result
+            cm.push_async_callback(shutdown)
+            return cm
+
+        return LifespanHook(app, setup=setup, do_forward=not handle_lifespan)
 
     def add_executor(
         self, executor: Union[ExecutorType, str], alias: str = "default", **executor_options: Any

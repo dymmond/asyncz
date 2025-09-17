@@ -1,5 +1,11 @@
 # Release Notes
 
+## 0.13.5
+
+### Changed
+
+- Use monkay asgi lifespanHook instead of own implementation.
+
 ## 0.13.4
 
 ### Changed
