@@ -375,14 +375,14 @@ class BaseScheduler(SchedulerType):
     ) -> Union[ASGIApp, Callable[[ASGIApp], ASGIApp]]:
         """Return wrapper for asgi integration."""
 
-        async def shutdown():
-            result = self.shutdown(wait)
+        async def shutdown() -> None:
+            result: Any = self.shutdown(wait)
             if isawaitable(result):
                 await result
 
         async def setup() -> contextlib.AsyncExitStack:
             cm = contextlib.AsyncExitStack()
-            result = self.start()
+            result: Any = self.start()
             if isawaitable(result):
                 await result
             cm.push_async_callback(shutdown)
