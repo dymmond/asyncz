@@ -71,7 +71,7 @@ testing = [
     "asyncz[localtime,loguru]",
     "pymongo>=4.3.3,<5.0.0",
     "pytest>=7.1.3,<9.0.0",
-    "pytest-cov >=2.12.0,<7.0.0",
+    "pytest-cov >=2.12.0,<8.0.0",
     "pytest-asyncio >=1.0,<2.0.0",
     "pytest-loguru>=0.2.0,<1",
     "redis>=4.4.0,<7.0.0",
