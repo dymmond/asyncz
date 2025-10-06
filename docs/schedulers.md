@@ -12,8 +12,8 @@ out of the box and only supports this one natively but like everything in Asyncz
 create your own [custom scheduler](#custom-scheduler) that does not necessarily need to be for
 async. You can build your own scheduler for blocking/background applications.
 
-In fact, Asyncz is used by [Esmerald](https://esmerald.dymmond.com) as internal scheduling system
-and uses the [supported scheduler](./contrib/esmerald/scheduler.md) from Asyncz to perform its
+In fact, Asyncz is used by [Ravyn](https://ravyn.dymmond.com) as internal scheduling system
+and uses the [supported scheduler](./contrib/ravyn/scheduler.md) from Asyncz to perform its
 tasks.
 
 ## Parameters
@@ -158,7 +158,7 @@ scheduler.
 * [add tasks as decorator](#add-tasks-as-decorator)
 
 There is also a third option but that is related with the integration with ASGI frameworks, for
-instance [esmerald](./contrib/esmerald/decorator.md) which it should not be used in this agnostic
+instance [Ravyn](./contrib/ravyn/decorator.md) which it should not be used in this agnostic
 context.
 
 ### Add tasks

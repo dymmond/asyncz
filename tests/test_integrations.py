@@ -2,14 +2,14 @@ import contextlib
 import time
 
 import pytest
-from esmerald import Gateway, Request
-from esmerald import JSONResponse as EsmeraldJSONResponse
-from esmerald import route as esmerald_route
-from esmerald.applications import Esmerald
-from esmerald.contrib.schedulers.asyncz.config import AsynczConfig
 from lilya.apps import Lilya
 from lilya.responses import JSONResponse as LilyaJSONResponse
 from lilya.routing import Path
+from ravyn import Gateway, Request
+from ravyn import JSONResponse as RavynJSONResponse
+from ravyn import route as ravyn_route
+from ravyn.applications import Ravyn
+from ravyn.contrib.schedulers.asyncz.config import AsynczConfig
 from starlette.applications import Starlette
 from starlette.requests import Request as StarletteRequest
 from starlette.responses import JSONResponse as StarletteJSONResponse
@@ -121,14 +121,14 @@ def get_lilya_start_shutdown_app():
     return app, scheduler
 
 
-def get_esmerald_app():
+def get_ravyn_app():
     scheduler = AsyncIOScheduler()
 
-    @esmerald_route("/notes", methods=["GET"])
-    async def list_notes(request: Request) -> EsmeraldJSONResponse:
-        return EsmeraldJSONResponse([])
+    @ravyn_route("/notes", methods=["GET"])
+    async def list_notes(request: Request) -> RavynJSONResponse:
+        return RavynJSONResponse([])
 
-    app = Esmerald(routes=[Gateway(handler=list_notes)], enable_scheduler=False)
+    app = Ravyn(routes=[Gateway(handler=list_notes)], enable_scheduler=False)
 
     @app.on_event("startup")
     async def startup():
@@ -141,12 +141,12 @@ def get_esmerald_app():
     return app, scheduler
 
 
-def get_esmerald_app2():
-    @esmerald_route("/notes", methods=["GET"])
-    async def list_notes(request: Request) -> EsmeraldJSONResponse:
-        return EsmeraldJSONResponse([])
+def get_ravyn_app2():
+    @ravyn_route("/notes", methods=["GET"])
+    async def list_notes(request: Request) -> RavynJSONResponse:
+        return RavynJSONResponse([])
 
-    app = Esmerald(
+    app = Ravyn(
         routes=[Gateway(handler=list_notes)],
         enable_scheduler=True,
         scheduler_config=AsynczConfig(tasks={}, scheduler_class=AsyncIOScheduler),
@@ -172,8 +172,8 @@ def get_esmerald_app2():
         get_asgi_app2,
         get_lilya_app,
         get_lilya_start_shutdown_app,
-        get_esmerald_app,
-        get_esmerald_app2,
+        get_ravyn_app,
+        get_ravyn_app2,
     ],
 )
 def test_integrations(get_app, loggers_class_string, loggers_class):

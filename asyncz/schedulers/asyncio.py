@@ -20,7 +20,7 @@ class AsyncIOScheduler(BaseScheduler):
     A scheduler that runs on an asyncio event loop.
 
     This scheduler is typically to run with asyncio which means that any ASGI framework can also
-    use it internally if needed. For example, Esmerald and Starlette.
+    use it internally if needed. For example, Ravyn and Starlette.
 
     Args:
         event_loop: AsyncIO event loop to use. Default to the global event loop.
@@ -103,7 +103,7 @@ class NativeAsyncIOScheduler(AsyncIOScheduler):
     A scheduler that runs on an existing asyncio event loop.
 
     This scheduler is typically to run with asyncio which means that any ASGI framework can also
-    use it internally if needed. For example, Esmerald and Starlette.
+    use it internally if needed. For example, Ravyn and Starlette.
 
     Args:
         isolated_event_loop: Use a fresh, isolated event_loop instead the existing.

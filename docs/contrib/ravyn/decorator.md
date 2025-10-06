@@ -1,11 +1,11 @@
 # Decorator
 
-The decorator is a wrapper provided by Asyncz to Esmerald that allows you to declare tasks
-anywhere and import them into the [EsmeraldScheduler](./scheduler.md) upont instantiation.
+The decorator is a wrapper provided by Asyncz to Ravyn that allows you to declare tasks
+anywhere and import them into the [RavynScheduler](./scheduler.md) upont instantiation.
 
 In the end, the scheduler is a wrapper on te top of the [Task](../../tasks.md) object but not the
 same as the [task decorator](../../schedulers.md#add-tasks-as-decorator). The latter is to be used
-outside of the Esmerald context.
+outside of the Ravyn context.
 
 ## Parameters
 
@@ -69,14 +69,14 @@ outside of the Esmerald context.
 ### Examples
 
 Using the decorator is quite straightforward and clear. You can place a task anywhere in your
-application, declare the decorator on the top of the task and then import it inside your Esmerald
+application, declare the decorator on the top of the task and then import it inside your Ravyn
 instance.
 
 Let us assume:
 
 * You have some tasks living inside a file `src/accounts/tasks.py`.
-* You want to import them inside your Esmerald application.
+* You want to import them inside your Ravyn application.
 
 ```python hl_lines="8 14 20 29-33"
-{!> ../docs_src/contrib/esmerald/decorator.py !}
+{!> ../docs_src/contrib/ravyn/decorator.py !}
 ```

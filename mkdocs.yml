@@ -44,10 +44,10 @@ nav:
   - Stores: "stores.md"
   - Triggers: "triggers.md"
   - ASGI and Frameworks:
-      - Esmerald:
-          - Overview: "contrib/esmerald/index.md"
-          - Scheduler: "contrib/esmerald/scheduler.md"
-          - Decorator: "contrib/esmerald/decorator.md"
+      - Ravyn:
+          - Overview: "contrib/ravyn/index.md"
+          - Scheduler: "contrib/ravyn/scheduler.md"
+          - Decorator: "contrib/ravyn/decorator.md"
       - asgi.md
   - Contributing: "contributing.md"
   - Vendors: "vendors.md"
