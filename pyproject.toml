@@ -37,6 +37,7 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP",
 ]
 dependencies = [
+    "sayer>=0.7.4",
     "cryptography",
     "monkay>=0.5.0",
     "pydantic>=2.5.3,<3.0.0",
@@ -64,6 +65,9 @@ Source = "https://github.com/dymmond/asyncz"
 [tool.hatch.envs.default]
 dependencies = ["pre-commit>=3.0.0,<5.0.0", "ipdb", "types-tzlocal"]
 
+[project.scripts]
+asyncz = "asyncz.cli.app:main"
+
 [project.optional-dependencies]
 localtime=["tzlocal"]
 loguru=["loguru>=0.7.0,<0.8.0"]
@@ -87,21 +91,25 @@ testing = [
 
 [tool.hatch.envs.default.scripts]
 clean_pyc = "find . -type f -name \"*.pyc\" -delete"
+clean_pyi = "find . -type f -name \"*.pyi\" -delete"
 clean_pycache = "find . -type d -name \"*__pycache__*\" -delete"
+build_with_check = "hatch build; twine check dist/*"
+lint = "hatch fmt --check && hatch run test:check_types"
+format = "hatch fmt && hatch fmt --check && hatch run test:check_types"
 
 [tool.hatch.envs.test]
 features = ["testing"]
 
 [tool.hatch.envs.test.scripts]
-# needs docker services running
+test = "hatch test -- {args}"
+test_man = "hatch test -- {args} -s -vv"
+coverage = "hatch test -- --cov=asyncz --cov=tests --cov-report=term-missing:skip-covered --cov-report=html tests {args}"
 check_types = "mypy -p asyncz"
-
 
 [tool.hatch.envs.hatch-test]
 features = ["testing"]
 [tool.hatch.envs.hatch-test.env-vars]
 ASYNCZ_STORE_ENCRYPTION_KEY = "{matrix:key:''}"
-
 
 [[tool.hatch.envs.hatch-test.matrix]]
 key = ["89389432893482832agasfsasdafjkdfasjkfdajkadsffdsiasiofsdifdlkalkdkfaskjfdfsakj"]
