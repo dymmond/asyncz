@@ -64,9 +64,9 @@ This will make the logging a lot easier to understand and clear to read.
 
 What does this mean? Well, Asyncz does not need to run inside any specific framework, actually you can use it
 completely indepent from any framework as well as inside ASGI frameworks such as
-[Esmerald](https://esmerald.dymmond.com), FastAPI, Starlette, Starlite, Quart... You can pick one and go for it.
+[Ravyn](https://ravyn.dymmond.com), FastAPI, Starlette, Starlite, Quart... You can pick one and go for it.
 
-Asyncz comes with special support to [Esmerald](https://esmerald.dymmond.com) for the simple reason that the author is
+Asyncz comes with special support to [Ravyn](https://ravyn.dymmond.com) for the simple reason that the author is
 the same but it can be added more support. If you are interested in adding support to your favourite frameworks then
 see the [contributing](https://asyncz.dymmond.com/contributing.md) section.
 
@@ -152,8 +152,8 @@ fun 😁🎉.
 
 ## ASGI support
 
-Asyncz currently supports ASGI, the [Esmerald framework](https://asyncz.dymmond.com/contrib/esmerald/)
-and brings some batteries that are currently used by Esmerald and leveraging Asyncz.
+Asyncz currently supports ASGI, the [Ravyn framework](https://asyncz.dymmond.com/contrib/ravyn/)
+and brings some batteries that are currently used by Ravyn and leveraging Asyncz.
 
 
 ```python

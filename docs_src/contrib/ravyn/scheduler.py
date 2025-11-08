@@ -1,21 +1,22 @@
 from loguru import logger
 
-from esmerald.contrib.schedulers.asyncz.config import AsynczConfig
-from esmerald.contrib.schedulers.asyncz.decorator import scheduler
 from asyncz.schedulers import AsyncIOScheduler
 from asyncz.triggers import IntervalTrigger
-from esmerald import Esmerald
+
+from ravyn.contrib.schedulers.asyncz.config import AsynczConfig
+from ravyn.contrib.schedulers.asyncz.decorator import scheduler
+from ravyn import Ravyn
 
 
 # Run every 2 minutes
 @scheduler(trigger=IntervalTrigger(minutes=2))
-def send_message():
+def send_message() -> None:
     logger.info("Message sent after 2 minutes")
 
 
 # Run every 20 minutes
 @scheduler(trigger=IntervalTrigger(minutes=20))
-def send_longer_message():
+def send_longer_message() -> None:
     logger.info("Message sent after 20 minutes")
 
 
@@ -35,12 +36,12 @@ configurations = (
     },
 )
 
-# Start Esmerald with the scheduler
+# Start Ravyn with the scheduler
 # Pass the configurations
 # Enable the scheduler
-# AsyncIOScheduler Is the default scheduler of Esmerald but
+# AsyncIOScheduler Is the default scheduler of Ravyn but
 # we pass here for example purposes
-app = Esmerald(
+app = Ravyn(
     scheduler_config=AsynczConfig(
         scheduler_class=AsyncIOScheduler,
         configurations=configurations,

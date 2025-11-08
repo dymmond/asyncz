@@ -1,7 +1,7 @@
-from esmerald import Esmerald
+from ravyn import Ravyn
 from loguru import logger
 
-from esmerald.contrib.schedulers.asyncz.decorator import scheduler
+from ravyn.contrib.schedulers.asyncz.decorator import scheduler
 from asyncz.triggers import CronTrigger, IntervalTrigger
 
 
@@ -23,10 +23,10 @@ def send_cron_message():
     logger.info("Message sent every Monday, Wednesday and Friday")
 
 
-# Start Esmerald with the scheduler
+# Start Ravyn with the scheduler
 # Enable the scheduler
 # we pass here for example purposes
-app = Esmerald(
+app = Ravyn(
     scheduler_tasks={
         "send_message": "src.accounts.tasks",
         "send_longer_message": "src.accounts.tasks",
