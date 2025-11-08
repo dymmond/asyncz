@@ -76,7 +76,7 @@ testing = [
     "pytest-loguru>=0.2.0,<1",
     "redis>=4.4.0,<8.0.0",
     "mypy>=0.982,<2.0.0",
-    "esmerald>=3.7.5",
+    "ravyn>=0.1.0",
     "starlette",
     "lilya",
     "sqlalchemy",
@@ -160,7 +160,7 @@ ignore = ["E501", "B008", "C901", "B026", "UP006", "UP038", "UP045", "UP007"]
 exclude = ["docs_src/*", ".pdbrc"]
 
 [tool.ruff.lint.isort]
-known-third-party = ["esmerald", "pydantic", "starlette"]
+known-third-party = ["ravyn", "pydantic", "starlette"]
 
 
 [tool.ruff.lint.pyupgrade]
