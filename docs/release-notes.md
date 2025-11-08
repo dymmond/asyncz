@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.14.0
+
+- Add new Asyncz client and support for Python 3.14
+
 ## 0.13.5
 
 ### Changed
