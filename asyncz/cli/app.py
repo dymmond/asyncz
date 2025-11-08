@@ -22,5 +22,5 @@ asyncz_cli.add_command(start)
 asyncz_cli.add_command(list_jobs)
 
 
-def main():
+def main() -> None:
     asyncz_cli()

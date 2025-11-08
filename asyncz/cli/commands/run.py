@@ -25,7 +25,7 @@ def run(
     executor, and then updates its internal schedule state (next run time) in the store.
 
     Examples:
-        
+
         asyncz run <job_id>
         asyncz run <job_id> --store durable=sqlite:///scheduler.db
     """
@@ -42,13 +42,15 @@ def run(
         # 2. Look up the task and its associated store
         task: AsynczTask
         store_alias: str
-        task, store_alias = sched.lookup_task(job_id, None)  # raises TaskLookupError if missing
+
+        # raises TaskLookupError if missing
+        task, store_alias = sched.lookup_task(job_id, None)  # type: ignore
 
         # This assert is necessary to satisfy static analysis after the successful lookup
         assert task is not None
 
         # 3. Look up the executor
-        executor: BaseExecutor = sched.lookup_executor(task.executor)  # type: ignore[arg-type]
+        executor: BaseExecutor = sched.lookup_executor(task.executor)  # type: ignore
 
         # 4. Determine forced run times
         now: datetime = datetime.now(sched.timezone)
@@ -65,14 +67,14 @@ def run(
         last_run: datetime = run_times[-1]
 
         # Calculate the *new* next run time based on the last run time
-        next_run: datetime | None = task.trigger.get_next_trigger_time(
+        next_run: datetime | None = task.trigger.get_next_trigger_time(  # type: ignore
             sched.timezone, last_run, now
-        )  # type: ignore[union-attr]
+        )
 
         if next_run:
             # Update the in-memory task object and persist directly to the store
             task.update_task(next_run_time=next_run)
-            store_obj: BaseStore = sched.lookup_store(store_alias)  # type: ignore[arg-type]
+            store_obj: BaseStore = sched.lookup_store(store_alias)  # type: ignore
             store_obj.update_task(task)
         else:
             # No further runs – remove task from its store.

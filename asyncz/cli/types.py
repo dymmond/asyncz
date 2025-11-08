@@ -69,7 +69,7 @@ def parse_trigger(*, cron: str | None, interval: str | None, at: str | None) -> 
         seconds: float = parse_interval(interval)
         from asyncz.triggers.interval import IntervalTrigger
 
-        return IntervalTrigger(seconds=seconds)
+        return IntervalTrigger(seconds=int(seconds))
 
     # DateTrigger
     when: dt.datetime = dt.datetime.fromisoformat(at)  # type: ignore[arg-type]

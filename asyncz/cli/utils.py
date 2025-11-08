@@ -4,7 +4,7 @@ import inspect
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from asyncz.cli._parsers import parse_store_option
 
@@ -77,7 +77,7 @@ def import_callable(path: str) -> Callable[..., Any]:
         raise ValueError(f"Expected dotted path 'pkg.mod:callable', got '{path}'")
 
     mod: Any = importlib.import_module(mod_name)
-    return getattr(mod, attr)
+    return cast(Callable[..., Any], getattr(mod, attr))
 
 
 def parse_executor(spec: str) -> tuple[str, dict[str, Any]]:

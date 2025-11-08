@@ -20,9 +20,9 @@ async def load_jobs_from_module(scheduler: AsyncIOScheduler, module_path: str) -
     entries = obj(scheduler) if callable(obj) else obj
 
     added = 0
-    for item in entries:
+    for item in entries:  # type: ignore
         task = Task(func=item["func"], name=item.get("name"))
-        await scheduler.add_task(
+        scheduler.add_task(
             task,
             trigger=item["trigger"],
             args=item.get("args", []),
@@ -58,7 +58,7 @@ async def load_jobs_from_config(scheduler: AsyncIOScheduler, path: str) -> int:
     for job in data.get("jobs", []):
         trig = parse_trigger(cron=job.get("cron"), interval=job.get("interval"), at=job.get("at"))
         task = Task(func=job["func"], name=job.get("name"))
-        await scheduler.add_task(
+        scheduler.add_task(
             task, trigger=trig, args=job.get("args", []), kwargs=job.get("kwargs", {})
         )
         added += 1

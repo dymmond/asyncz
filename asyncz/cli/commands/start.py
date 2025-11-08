@@ -4,13 +4,13 @@ import asyncio
 import contextlib
 import importlib
 import sys
-from typing import Annotated, Any, Dict, List, Coroutine, Sequence, Type
+from typing import Annotated, Any
 
 from sayer import Option, command, info, success
-from anyio.abc import TaskGroup, CancelScope
 
 from asyncz.cli.loader import load_jobs_from_config, load_jobs_from_module
 from asyncz.cli.utils import (
+    WatchTarget,
     _call_hook,
     build_executors_map,
     build_stores_map,
@@ -18,11 +18,9 @@ from asyncz.cli.utils import (
     collect_watch_targets,
     ensure_loop,
     maybe_await,
-    WatchTarget,
 )
 from asyncz.exceptions import SchedulerAlreadyRunningError
 from asyncz.schedulers import AsyncIOScheduler
-from uvicorn.config import Config as UvicornConfig
 
 
 @command
@@ -99,7 +97,7 @@ def start(
         if not watch and not standalone:
             await maybe_await(_call_hook(on_stop))
             await maybe_await(sched.shutdown(wait=True))
-            return  # quick lifecycle: start -> stop -> exit
+            return
 
         try:
             while True:

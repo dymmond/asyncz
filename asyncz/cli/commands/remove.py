@@ -39,7 +39,7 @@ def remove(
 
         # 3. Delete the job (delete_task is synchronous on the scheduler object, but may involve I/O in stores)
         # Note: The original logic implicitly uses the default store (first one defined)
-        await maybe_await(sched.delete_task(job_id))
+        await maybe_await(sched.delete_task(job_id))  # type: ignore
 
         success(f"Removed job {job_id}")
 

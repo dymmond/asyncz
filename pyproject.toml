@@ -213,3 +213,8 @@ junit_family = "xunit2"
 
 [tool.hatch.build.targets.sdist]
 include = ["/asyncz"]
+
+[[tool.mypy.overrides]]
+module = ["yaml.*", "uvicorn.*"]
+ignore_missing_imports = true
+ignore_errors = true
