@@ -78,5 +78,5 @@ Let us assume:
 * You want to import them inside your Ravyn application.
 
 ```python hl_lines="8 14 20 29-33"
-{!> ../docs_src/contrib/ravyn/decorator.py !}
+{!> ../../../docs_src/contrib/ravyn/decorator.py !}
 ```

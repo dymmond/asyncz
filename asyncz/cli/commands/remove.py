@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from typing import Annotated, Any
 
-from sayer import Argument, Option, command, success
+from sayer import Argument, Option, command, info, success
 
+from asyncz.cli.bootstrap_loader import load_bootstrap_scheduler
 from asyncz.cli.utils import build_stores_map, ensure_loop, maybe_await
 from asyncz.schedulers import AsyncIOScheduler
 
@@ -12,6 +14,13 @@ from asyncz.schedulers import AsyncIOScheduler
 @command
 def remove(
     job_id: Annotated[str, Argument(help="Job ID")],
+    bootstrap: Annotated[
+        str | None,
+        Option(
+            None,
+            help="Dotted path to a class with get_scheduler(), e.g. 'ravyn.contrib.asyncz:AsynczSpec'",
+        ),
+    ],
     store: Annotated[list[str], Option([], "--store", help="Store spec alias=value. Repeatable.")],
 ) -> None:
     """
@@ -30,20 +39,31 @@ def remove(
     async def main() -> None:
         """The core asynchronous logic for removing the job."""
 
-        # 1. Build configuration for stores
-        cfg: dict[str, dict[str, Any]] = {"stores": build_stores_map(store)} if store else {}
+        # 1) Resolve scheduler
+        bootstrap_mode = bool(bootstrap)
+        if bootstrap_mode:
+            if store:
+                info("Using --bootstrap; ignoring --store.")
+            scheduler: AsyncIOScheduler = load_bootstrap_scheduler(bootstrap)  # type: ignore[arg-type]
 
-        # 2. Initialize and start a temporary scheduler instance
-        sched: AsyncIOScheduler = AsyncIOScheduler(**cfg)
-        await maybe_await(sched.start())
+            with contextlib.suppress(Exception):
+                await maybe_await(scheduler.start())
+        else:
+            cfg: dict[str, dict[str, Any]] = {"stores": build_stores_map(store)} if store else {}
+            scheduler = AsyncIOScheduler(**cfg)
+            await maybe_await(scheduler.start())
 
-        # 3. Delete the job (delete_task is synchronous on the scheduler object, but may involve I/O in stores)
-        # Note: The original logic implicitly uses the default store (first one defined)
-        await maybe_await(sched.delete_task(job_id))  # type: ignore
+        # 2) Determine the store alias that holds the job (so delete works across multi-store setups)
+        #    If your scheduler supports delete by ID only, this lookup is still safe and provides validation.
+        _, store_alias = scheduler.lookup_task(job_id, None)
+
+        # 3) Delete the job
+        await maybe_await(scheduler.delete_task(job_id, store_alias))  # type: ignore
 
         success(f"Removed job {job_id}")
 
-        # 4. Shutdown the temporary scheduler
-        await maybe_await(sched.shutdown())
+        # 4) Shutdown only if we created a temporary scheduler
+        if not bootstrap_mode:
+            await maybe_await(scheduler.shutdown())
 
     loop.run_until_complete(main())

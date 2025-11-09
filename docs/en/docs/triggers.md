@@ -28,19 +28,19 @@ at a given time.
 #### Examples
 
 ```python hl_lines="14"
-{!> ../docs_src/triggers/date/example1.py !}
+{!> ../../../docs_src/triggers/date/example1.py !}
 ```
 
 You can run the trigger by passing a date as text as well.
 
 ```python hl_lines="12"
-{!> ../docs_src/triggers/date/example2.py !}
+{!> ../../../docs_src/triggers/date/example2.py !}
 ```
 
 Do you want to run immediatly after adding the task? Don't specify any date then.
 
 ```python hl_lines="12"
-{!> ../docs_src/triggers/date/example3.py !}
+{!> ../../../docs_src/triggers/date/example3.py !}
 ```
 
 ## IntervalTrigger
@@ -92,19 +92,19 @@ needs.
 #### Examples
 
 ```python hl_lines="12"
-{!> ../docs_src/triggers/interval/example1.py !}
+{!> ../../../docs_src/triggers/interval/example1.py !}
 ```
 
 Use the `start_at` and `end_at` to provide a limit in which the scheduler should run.
 
 ```python hl_lines="12-14"
-{!> ../docs_src/triggers/interval/example2.py !}
+{!> ../../../docs_src/triggers/interval/example2.py !}
 ```
 
 What about using `add_task` as decorator?
 
 ```python hl_lines="8"
-{!> ../docs_src/triggers/interval/example3.py !}
+{!> ../../../docs_src/triggers/interval/example3.py !}
 ```
 
 What is the jitter? A simple random component that can be added to the execution. This can be
@@ -112,7 +112,7 @@ useful if there are multiple server running tasks and you don't want them to run
 at the exact same time or to prevent the same task to run concurrently.
 
 ```python hl_lines="12"
-{!> ../docs_src/triggers/interval/example4.py !}
+{!> ../../../docs_src/triggers/interval/example4.py !}
 ```
 
 ## CronTrigger
@@ -237,25 +237,25 @@ scheduler.add_task(my_task, 'cron', hour=4, minute=25)
 #### Examples
 
 ```python hl_lines="15"
-{!> ../docs_src/triggers/cron/example1.py !}
+{!> ../../../docs_src/triggers/cron/example1.py !}
 ```
 
 Use the `start_at` and `end_at` to provide a limit in which the scheduler should run.
 
 ```python hl_lines="14"
-{!> ../docs_src/triggers/cron/example2.py !}
+{!> ../../../docs_src/triggers/cron/example2.py !}
 ```
 
 What about using `add_task` as decorator?
 
 ```python hl_lines="7"
-{!> ../docs_src/triggers/cron/example3.py !}
+{!> ../../../docs_src/triggers/cron/example3.py !}
 ```
 
 What about some jitter?
 
 ```python hl_lines="11"
-{!> ../docs_src/triggers/cron/example4.py !}
+{!> ../../../docs_src/triggers/cron/example4.py !}
 ```
 
 ## Combination
@@ -282,7 +282,7 @@ is considered to be finished when any of the given triggers has finished the sch
 ##### Examples
 
 ```python hl_lines="13 17"
-{!> ../docs_src/triggers/combination/and.py !}
+{!> ../../../docs_src/triggers/combination/and.py !}
 ```
 
 ### OrTrigger
@@ -302,7 +302,7 @@ is considered to be finished when all of the given triggers have finished their 
 ##### Examples
 
 ```python hl_lines="13-15 18"
-{!> ../docs_src/triggers/combination/or.py !}
+{!> ../../../docs_src/triggers/combination/or.py !}
 ```
 
 ### ShutdownTrigger
@@ -312,7 +312,7 @@ as well as it's arguments and the store of a task.
 
 It is useful to implement a lifecycle pattern.
 
-{!> ../docs_src/triggers/shutdown.py !}
+{!> ../../../docs_src/triggers/shutdown.py !}
 
 For easing the integration in lifecycle generators, the exceptions StopIteration and StopAsyncIteration are ignored.
 
@@ -331,7 +331,7 @@ If you see the triggers provided are not good enough for your use cases, you can
 one of your own and **you must** implement the **get_next_trigger_time()** on your custom trigger.
 
 ```python
-{!> ../docs_src/triggers/custom.py !}
+{!> ../../../docs_src/triggers/custom.py !}
 ```
 
 ### Alias

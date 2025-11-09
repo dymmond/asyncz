@@ -194,5 +194,5 @@ To create a custom store **you must** subclass the `BaseStore` and it should imp
 other pieces of functionality as well.
 
 ```python
-{!> ../docs_src/stores/custom.py !}
+{!> ../../../docs_src/stores/custom.py !}
 ```

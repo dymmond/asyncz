@@ -1,0 +1,86 @@
+site_name: Asyncz
+site_description: The scheduler that simply works.
+site_url: https://asyncz.dymmond.com
+theme:
+  name: material
+  custom_dir: docs/overrides
+  language: en
+  palette:
+  - scheme: default
+    primary: orange
+    accent: red
+    media: '(prefers-color-scheme: light)'
+    toggle:
+      icon: material/toggle-switch-variant
+      name: Switch to dark mode
+  - scheme: slate
+    media: '(prefers-color-scheme: dark)'
+    primary: orange
+    accent: green
+    toggle:
+      icon: material/toggle-switch-variant-off
+      name: Switch to light mode
+  favicon: statics/images/favicon.ico
+  logo: statics/images/logo-white.svg
+  features:
+  - search.suggest
+  - search.highlight
+  - content.tabs.link
+  - content.code.copy
+  - content.code.annotate
+  - content.tooltips
+  - content.code.select
+  - navigation.indexes
+  - navigation.path
+  - navigation.tabs
+repo_name: dymmond/asyncz
+repo_url: https://github.com/dymmond/asyncz
+edit_uri: ''
+plugins:
+- search
+- macros
+nav:
+- Asyncz: index.md
+- Features:
+  - Tasks: tasks.md
+  - Events: events.md
+  - Executors: executors.md
+  - Schedulers: schedulers.md
+  - Stores: stores.md
+  - Triggers: triggers.md
+- ASGI and Frameworks:
+  - Ravyn:
+    - Overview: contrib/ravyn/index.md
+    - Scheduler: contrib/ravyn/scheduler.md
+    - Decorator: contrib/ravyn/decorator.md
+  - asgi.md
+- AsyncZ Cli: cli.md
+- Contributing: contributing.md
+- Vendors: vendors.md
+- Sponsorship: sponsorship.md
+- Release Notes: release-notes.md
+markdown_extensions:
+- toc:
+    permalink: true
+- markdown.extensions.codehilite:
+    guess_lang: false
+- mdx_include:
+    base_path: docs
+- admonition
+- codehilite
+- extra
+- pymdownx.superfences:
+    custom_fences:
+    - name: mermaid
+      class: mermaid
+      format: !!python/name:pymdownx.superfences.fence_code_format ''
+- pymdownx.tabbed:
+    alternate_style: true
+- attr_list
+- md_in_html
+extra:
+  alternate:
+  - link: /
+    name: en - English
+hooks:
+- ../../scripts/hooks.py

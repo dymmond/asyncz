@@ -1,3 +1,8 @@
+---
+hide:
+  - navigation
+---
+
 # Vendors
 
 There are vendors that inspired Asyncz that deserve to be mentioned.
