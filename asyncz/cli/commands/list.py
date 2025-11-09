@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import contextlib
 import json
 from typing import Annotated, Any
 
 from sayer import Option, command, info
 
+from asyncz.cli.bootstrap_loader import load_bootstrap_scheduler
 from asyncz.cli.utils import build_stores_map, ensure_loop, maybe_await
 from asyncz.schedulers import AsyncIOScheduler
 
@@ -12,6 +14,13 @@ from asyncz.schedulers import AsyncIOScheduler
 @command(name="list")
 def list_jobs(
     as_json: Annotated[bool, Option(False, "--json", help="Output as JSON")],
+    bootstrap: Annotated[
+        str | None,
+        Option(
+            None,
+            help="Dotted path to a class with get_scheduler(), e.g. 'ravyn.contrib.asyncz:AsynczSpec'",
+        ),
+    ],
     store: Annotated[list[str], Option([], "--store", help="Store spec alias=value. Repeatable.")],
 ) -> None:
     """
@@ -26,23 +35,35 @@ def list_jobs(
         asyncz list
         asyncz list --store durable=sqlite:///scheduler.db
         asyncz list --json --store default=memory
+        asyncz list --bootstrap ravyn.contrib.asyncz:AsynczSpec
     """
     loop = ensure_loop()
 
     async def main() -> list[dict[str, Any]] | None:
-        # 1) Build configuration for stores
-        stores_cfg: dict[str, dict[str, Any]] = build_stores_map(store)
-        cfg: dict[str, dict[str, dict[str, Any]]] = {"stores": stores_cfg}
+        # 1) Resolve scheduler
+        bootstrap_mode = bool(bootstrap)
+        if bootstrap_mode:
+            if store:
+                info("Using --bootstrap; ignoring --store.")
+            scheduler: AsyncIOScheduler = load_bootstrap_scheduler(bootstrap)  # type: ignore[arg-type]
 
-        # 2) Initialize and start a temporary scheduler instance
-        sched: AsyncIOScheduler = AsyncIOScheduler(**cfg)
-        await maybe_await(sched.start())
+            with contextlib.suppress(Exception):
+                await maybe_await(scheduler.start())
+
+        else:
+            # Default to an in-memory store if none provided to make the command useful out of the box
+            stores_cfg: dict[str, dict[str, Any]] = (
+                build_stores_map(store) if store else {"default": {"type": "memory"}}
+            )
+            cfg: dict[str, dict[str, dict[str, Any]]] = {"stores": stores_cfg}
+            scheduler = AsyncIOScheduler(**cfg)
+            await maybe_await(scheduler.start())
 
         try:
-            # 3) Fetch jobs
-            jobs = await maybe_await(sched.get_tasks())
+            # 2) Fetch jobs
+            jobs = await maybe_await(scheduler.get_tasks())
 
-            # 4) Format payload
+            # 3) Format payload
             payload: list[dict[str, Any]] = [
                 {
                     "id": j.id,
@@ -53,11 +74,9 @@ def list_jobs(
                 for j in jobs
             ]
 
-            # 5) Output or return
+            # 4) Output
             if as_json:
-                # Print JSON so stdout-based parsers work…
                 info(json.dumps(payload, default=str))
-                # …and also return it so r.return_value works if supported.
                 return payload
             else:
                 for r in payload:
@@ -67,7 +86,8 @@ def list_jobs(
                     )
                 return None
         finally:
-            # 6) Shutdown the temporary scheduler
-            await maybe_await(sched.shutdown())
+            # 5) Shutdown only if we created a temporary scheduler
+            if not bootstrap_mode:
+                await maybe_await(scheduler.shutdown())
 
     loop.run_until_complete(main())

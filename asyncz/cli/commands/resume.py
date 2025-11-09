@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from datetime import datetime
 from typing import Annotated, Any
 
-from sayer import Argument, Option, command, success
+from sayer import Argument, Option, command, info, success
 
+from asyncz.cli.bootstrap_loader import load_bootstrap_scheduler
 from asyncz.cli.utils import build_stores_map, ensure_loop, maybe_await
 from asyncz.schedulers import AsyncIOScheduler
 from asyncz.stores.base import BaseStore
@@ -15,6 +17,13 @@ from asyncz.tasks import Task as AsynczTask
 @command
 def resume(
     job_id: Annotated[str, Argument(help="Job ID")],
+    bootstrap: Annotated[
+        str | None,
+        Option(
+            None,
+            help="Dotted path to a class with get_scheduler(), e.g. 'ravyn.contrib.asyncz:AsynczSpec'",
+        ),
+    ],
     store: Annotated[list[str], Option([], "--store", help="Store spec alias=value. Repeatable.")],
 ) -> None:
     """
@@ -30,42 +39,48 @@ def resume(
     loop: asyncio.AbstractEventLoop = ensure_loop()
 
     async def main() -> None:
-        """The core asynchronous logic for resuming the job, recalculating its next run time."""
+        """Core async logic for resuming a job and recalculating its next run time."""
+        # 1) Resolve scheduler
+        bootstrap_mode = bool(bootstrap)
+        if bootstrap_mode:
+            if store:
+                info("Using --bootstrap; ignoring --store.")
+            scheduler: AsyncIOScheduler = load_bootstrap_scheduler(bootstrap)  # type: ignore[arg-type]
+            with contextlib.suppress(Exception):
+                await maybe_await(scheduler.start())
+        else:
+            stores_cfg: dict[str, dict[str, Any]] = (
+                build_stores_map(store) if store else {"default": {"type": "memory"}}
+            )
+            cfg: dict[str, dict[str, Any]] = {"stores": stores_cfg}
+            scheduler = AsyncIOScheduler(**cfg)
+            await maybe_await(scheduler.start())
 
-        # 1. Configuration and Initialization
-        stores_cfg: dict[str, dict[str, Any]] = (
-            build_stores_map(store) if store else {"default": {"type": "memory"}}
-        )
-        cfg: dict[str, dict[str, Any]] = {"stores": stores_cfg}
-        target_alias: str = next(iter(stores_cfg.keys()))
-
-        sched: AsyncIOScheduler = AsyncIOScheduler(**cfg)
-        await maybe_await(sched.start())
-
-        # 2. Lookup Task and Store
+        # 2) Lookup the task and its backing store alias
+        # Use None to let the scheduler find the correct store alias for the task.
         task: AsynczTask
-        store_obj: BaseStore
-        # TaskLookupError raised if missing
-        task, _ = sched.lookup_task(job_id, target_alias)  # type: ignore
-        store_obj = sched.lookup_store(target_alias)  # type: ignore
+        store_alias: str
+        task, store_alias = scheduler.lookup_task(job_id, None)  # type: ignore
 
-        # 3. Compute Next Run Time
-        now: datetime = datetime.now(sched.timezone)
-        # Use None for last_run_time to calculate the next trigger time based on the current time ('now').
-        next_run: datetime | None = task.trigger.get_next_trigger_time(sched.timezone, None, now)  # type: ignore[union-attr]
+        # 3) Compute the next run time from "now" (resume semantics)
+        now: datetime = datetime.now(scheduler.timezone)
+        next_run: datetime | None = task.trigger.get_next_trigger_time(  # type: ignore[union-attr]
+            scheduler.timezone, None, now
+        )
 
-        # 4. Update or Remove Task
+        # 4) Update or delete in the appropriate store
         if next_run:
-            # Update the in-memory task object and persist directly to the store
             task.update_task(next_run_time=next_run)
+            store_obj: BaseStore = scheduler.lookup_store(store_alias)  # type: ignore
             store_obj.update_task(task)
             success(f"Resumed job {job_id}")
         else:
-            # If the schedule yields no further run times, delete the task (schedule finished)
-            sched.delete_task(job_id, target_alias)
+            # No further runs: remove the task entirely
+            scheduler.delete_task(job_id, store_alias)
             success(f"Removed job {job_id} (schedule finished)")
 
-        # 5. Shutdown
-        await maybe_await(sched.shutdown())
+        # 5) Shutdown only if we created a temporary scheduler
+        if not bootstrap_mode:
+            await maybe_await(scheduler.shutdown())
 
     loop.run_until_complete(main())
