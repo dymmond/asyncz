@@ -30,7 +30,7 @@ be late (None means "allow the task to run no matter how late it is").
 Creating a task is as simple as:
 
 ```python
-{!> ../docs_src/tasks/create_task.py !}
+{!> ../../../docs_src/tasks/create_task.py !}
 ```
 
 ## Update a task
@@ -38,7 +38,7 @@ Creating a task is as simple as:
 You can also update a specific task and its properties directly.
 
 ```python hl_lines="26-30"
-{!> ../docs_src/tasks/update_task.py !}
+{!> ../../../docs_src/tasks/update_task.py !}
 ```
 
 Internally the task is using the given scheduler to be updated and then executed.
@@ -53,7 +53,7 @@ You can also reschedule a task when need and by that what it means is **changing
 The trigger must be the [alias of the trigger object](./triggers.md#alias).
 
 ```python hl_lines="26-30"
-{!> ../docs_src/tasks/reschedule_task.py !}
+{!> ../../../docs_src/tasks/reschedule_task.py !}
 ```
 
 ## Tasks with lifecyle
@@ -78,7 +78,7 @@ g.send("hello world")
 Now let's adapt this for tasks with lifecycle:
 
 ```python
-{!> ../docs_src/tasks/lifecycle.py !}
+{!> ../../../docs_src/tasks/lifecycle.py !}
 ```
 
 Note the `make_function` and `make_async_function` decorators. They are required because the generator
@@ -111,7 +111,7 @@ When this is no problem, this is the easiest way.
 lifecycle:
 
 ```python title="Tick only one lifecycle task, with shutdown"
-{!> ../docs_src/tasks/lifecycle_mp_tick_only_one.py !}
+{!> ../../../docs_src/tasks/lifecycle_mp_tick_only_one.py !}
 ```
 
 The memory store is just required for the shutdown task and can be left out when having no shutdown tasks or the shutdown tasks use a global referencable function
@@ -119,7 +119,7 @@ like `lifecycle_tick`.
 
 
 ```python title="Tick only one lifecycle task, without shutdown"
-{!> ../docs_src/tasks/lifecycle_mp_tick_only_one_simple.py !}
+{!> ../../../docs_src/tasks/lifecycle_mp_tick_only_one_simple.py !}
 ```
 
 #### Option 2: Single life-cycle task, setup on demand
@@ -135,7 +135,7 @@ Here we start the clients and clean in the lock protected cleanup phase the clie
 The clever part of the design is: whenever a process is stopped the next scheduler picks up:
 
 ```python title="Only one concurrent lifecycle task"
-{!> ../docs_src/tasks/lifecycle_mp_only_one_instance.py !}
+{!> ../../../docs_src/tasks/lifecycle_mp_only_one_instance.py !}
 ```
 
 Can we simplify this? Yes. By sacrificing execution accuracy of the background job we can just remove the store lock from the scheduler
@@ -144,7 +144,7 @@ When a worker process is stopped, it is here possible that one cycle is skipped.
 this is the way to go.
 
 ```python title="Only one concurrent lifecycle task with lower accuracy"
-{!> ../docs_src/tasks/lifecycle_mp_only_one_instance_simple.py !}
+{!> ../../../docs_src/tasks/lifecycle_mp_only_one_instance_simple.py !}
 ```
 
 #### Conclusions

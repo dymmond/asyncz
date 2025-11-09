@@ -38,7 +38,7 @@ This is how Ravyn usually works. Let us assume:
 * You want to pass some extra configurations to the scheduler.
 
 ```python hl_lines="42-48"
-{!> ../docs_src/contrib/ravyn/scheduler.py !}
+{!> ../../../docs_src/contrib/ravyn/scheduler.py !}
 ```
 
 As stated above, this is just an illustration on how Ravyn operates with Asyncz

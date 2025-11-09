@@ -80,5 +80,5 @@ maximum.
 All the states are done via pydantic models so you should also keep that in mind.
 
 ```python
-{!> ../docs_src/executors/custom.py !}
+{!> ../../../docs_src/executors/custom.py !}
 ```

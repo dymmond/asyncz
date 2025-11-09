@@ -71,7 +71,7 @@ a [thread pool](./executors.md#threadpoolexecutor).
 The first way of doing the configuration is in a simple pythonic fashion.
 
 ```python
-{!> ../docs_src/schedulers/method1.py !}
+{!> ../../../docs_src/schedulers/method1.py !}
 ```
 
 #### Second option
@@ -80,7 +80,7 @@ The second option is by starting the scheduler and injecting a dictionary direct
 instantiation.
 
 ```python
-{!> ../docs_src/schedulers/method2.py !}
+{!> ../../../docs_src/schedulers/method2.py !}
 ```
 
 #### Third option
@@ -88,7 +88,7 @@ instantiation.
 The third option is by starting the scheduler and use the `setup` method.
 
 ```python
-{!> ../docs_src/schedulers/method3.py !}
+{!> ../../../docs_src/schedulers/method3.py !}
 ```
 
 ### Multi-Proccessing mode
@@ -105,7 +105,7 @@ Parameters:
 - `pgrp` - Replaced by the pgrp of the process. Formatting possible.
 
 ```python
-{!> ../docs_src/schedulers/method_mp.py !}
+{!> ../../../docs_src/schedulers/method_mp.py !}
 ```
 
 !!! Note
@@ -140,13 +140,13 @@ mandatory functions such as `start` and `shutdown`.
 To start the scheduler simply run:
 
 ```python
-{!> ../docs_src/schedulers/start.py !}
+{!> ../../../docs_src/schedulers/start.py !}
 ```
 
 To stop the scheduler simply run:
 
 ```python
-{!> ../docs_src/schedulers/shutdown.py !}
+{!> ../../../docs_src/schedulers/shutdown.py !}
 ```
 
 ## Adding tasks
@@ -170,7 +170,7 @@ Adding a task via `add_task` is the most common.
 So, how can you add a task?
 
 ```python hl_lines="26-29 32-38 41-47"
-{!> ../docs_src/schedulers/add_task.py !}
+{!> ../../../docs_src/schedulers/add_task.py !}
 ```
 
 What happen here is actually very simple. We created an instance of the `AsyncIOScheduler` and
@@ -238,7 +238,7 @@ If this behavior is unwanted, `scheduler.add_task` can be used in a partial.
 
 
 ```python hl_lines="10-12 19-23 29-33"
-{!> ../docs_src/schedulers/add_task_decorator.py !}
+{!> ../../../docs_src/schedulers/add_task_decorator.py !}
 ```
 
 ## Deleting tasks
@@ -255,7 +255,7 @@ This is probably the most common way of removing tasks from the scheduler using 
 store alias.
 
 ```python hl_lines="27 34 40 41"
-{!> ../docs_src/schedulers/delete_task.py !}
+{!> ../../../docs_src/schedulers/delete_task.py !}
 ```
 
 ## Delete
@@ -265,7 +265,7 @@ somewhere ocne the instance is received and for tasks scheduled by the[task deco
 this method does not work, instead only the [delete task](#delete-task) will work.
 
 ```python hl_lines="23 29"
-{!> ../docs_src/schedulers/delete.py !}
+{!> ../../../docs_src/schedulers/delete.py !}
 ```
 
 ## Pause and resume task
@@ -286,7 +286,7 @@ Like the previous examples, there are also multiple ways of achieving that.
 Like [delete_task](#delete-task), you can pause a task using the id.
 
 ```python hl_lines="22 29 35-36"
-{!> ../docs_src/schedulers/pause_task.py !}
+{!> ../../../docs_src/schedulers/pause_task.py !}
 ```
 
 ### Pause
@@ -294,7 +294,7 @@ Like [delete_task](#delete-task), you can pause a task using the id.
 The same is applied to the simple pause where you can do it directly via task instance.
 
 ```python hl_lines="23 29"
-{!> ../docs_src/schedulers/pause.py !}
+{!> ../../../docs_src/schedulers/pause.py !}
 ```
 
 ### Resume task
@@ -302,7 +302,7 @@ The same is applied to the simple pause where you can do it directly via task in
 Resuming a task is as simple as again, passing a task id.
 
 ```python hl_lines="22 29 35-36"
-{!> ../docs_src/schedulers/resume_task.py !}
+{!> ../../../docs_src/schedulers/resume_task.py !}
 ```
 
 ### Resume
@@ -310,7 +310,7 @@ Resuming a task is as simple as again, passing a task id.
 Same for the resume. You can resume a task directly from the instance.
 
 ```python hl_lines="23 29"
-{!> ../docs_src/schedulers/resume.py !}
+{!> ../../../docs_src/schedulers/resume.py !}
 ```
 
 !!! Check
@@ -332,13 +332,13 @@ You can update any [attribute of the task](./tasks.md#parameters) by calling:
 ### From a task instance
 
 ```python hl_lines="26-30"
-{!> ../docs_src/tasks/update_task.py !}
+{!> ../../../docs_src/tasks/update_task.py !}
 ```
 
 ### From the scheduler
 
 ```python hl_lines="38-39"
-{!> ../docs_src/schedulers/update_task.py !}
+{!> ../../../docs_src/schedulers/update_task.py !}
 ```
 
 ### Important note
@@ -357,13 +357,13 @@ instance. The trigger must be the [alias of the trigger object](./triggers.md#al
 ### Reschedule the task instance
 
 ```python hl_lines="26-30"
-{!> ../docs_src/tasks/reschedule_task.py !}
+{!> ../../../docs_src/tasks/reschedule_task.py !}
 ```
 
 ### Reschedule from the scheduler
 
 ```python hl_lines="38-39"
-{!> ../docs_src/schedulers/reschedule_task.py !}
+{!> ../../../docs_src/schedulers/reschedule_task.py !}
 ```
 
 ## Resume and pause the tasks
@@ -373,13 +373,13 @@ Resuming and pausing task processing (all tasks) is also allowed with simple ins
 ### Pausing all tasks
 
 ```python hl_lines="35"
-{!> ../docs_src/schedulers/pausing_all_tasks.py !}
+{!> ../../../docs_src/schedulers/pausing_all_tasks.py !}
 ```
 
 ### Resuming all tasks
 
 ```python hl_lines="38"
-{!> ../docs_src/schedulers/resuming_all_tasks.py !}
+{!> ../../../docs_src/schedulers/resuming_all_tasks.py !}
 ```
 
 ## Start the scheduler in the paused state
@@ -387,7 +387,7 @@ Resuming and pausing task processing (all tasks) is also allowed with simple ins
 Starting the scheduler without the paused state means without the first wakeup call.
 
 ```python hl_lines="35"
-{!> ../docs_src/schedulers/start_with_paused.py !}
+{!> ../../../docs_src/schedulers/start_with_paused.py !}
 ```
 
 ## BaseScheduler
@@ -470,7 +470,7 @@ There are also some optional functionalities you can override if you want.
 * **create_default_executor** - Override this function if you want a different default executor.
 
 ```python
-{!> ../docs_src/schedulers/custom_scheduler.py !}
+{!> ../../../docs_src/schedulers/custom_scheduler.py !}
 ```
 
 ## Limit the number of currently executing instances
@@ -486,7 +486,7 @@ occasions and may carry some additional information with them regarding detauls 
 event. Check the [events](./events.md) section to see the available events.
 
 ```python hl_lines="18"
-{!> ../docs_src/schedulers/add_event.py !}
+{!> ../../../docs_src/schedulers/add_event.py !}
 ```
 
 ## Final thoughts

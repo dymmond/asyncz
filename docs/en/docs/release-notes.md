@@ -1,8 +1,21 @@
+---
+hide:
+  - navigation
+---
+
 # Release Notes
 
 ## 0.14.0
 
-- Add new Asyncz client and support for Python 3.14
+### Added
+
+- New [Asyncz client](./cli.md).
+- Support for Python 3.14
+
+### Changed
+
+- Updated internals to allow multiple languages for documentation.
+- Documentation structure.
 
 ## 0.13.5
 
