@@ -83,7 +83,7 @@ testing = [
     "mypy>=0.982,<2.0.0",
     "ravyn>=0.1.0",
     "starlette",
-    "lilya",
+    "lilya[standard]>=0.22.11",
     "sqlalchemy",
     "httpx",
     "pytz>=2022.6",

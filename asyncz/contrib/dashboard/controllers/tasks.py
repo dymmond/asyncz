@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable, Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from lilya.controllers import Controller
@@ -12,14 +12,16 @@ from lilya.templating.controllers import TemplateController
 
 from asyncz.cli.utils import import_callable
 from asyncz.contrib.dashboard.controllers._helpers import (
+    parse_ids_from_request_form,
     parse_trigger,
     render_table,
+    safe_lookup_executor,
+    safe_lookup_store,
     serialize,
 )
 from asyncz.contrib.dashboard.mixins import DashboardMixin
-from asyncz.executors.base import BaseExecutor
+from asyncz.exceptions import TaskLookupError
 from asyncz.schedulers import AsyncIOScheduler
-from asyncz.stores.base import BaseStore
 from asyncz.tasks import Task as AsynczTask
 
 
@@ -85,8 +87,9 @@ class TaskRunController(_BaseTaskAction):
             run_times = [now]
 
         # Submit task to executor
-        executor: BaseExecutor = self.scheduler.lookup_executor(task.executor)  # type: ignore
-        executor.send_task(task, run_times)
+        executor = safe_lookup_executor(self.scheduler, getattr(task, "executor", None))
+        if executor is not None:
+            executor.send_task(task, run_times)
 
         # Update schedule state
         last_run: datetime = run_times[-1]
@@ -97,11 +100,11 @@ class TaskRunController(_BaseTaskAction):
         if next_run:
             # Update the task's next run time and persist the change
             task.update_task(next_run_time=next_run)
-            store_obj: BaseStore = self.scheduler.lookup_store(store_alias)  # type: ignore
-            store_obj.update_task(task)
         else:
-            # If schedule is finished, delete the task
-            self.scheduler.delete_task(task.id, store_alias)
+            # No further runs: keep task but mark as paused (do NOT delete)
+            task.update_task(next_run_time=None)
+        store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
+        store_obj.update_task(task)
 
         return await self._redirect()
 
@@ -122,7 +125,7 @@ class TaskPauseController(_BaseTaskAction):
         task.update_task(next_run_time=None)
 
         # Persist the state change directly to the store
-        store_obj: BaseStore = self.scheduler.lookup_store(store_alias)  # type: ignore
+        store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
         store_obj.update_task(task)
 
         return await self._redirect()
@@ -149,11 +152,11 @@ class TaskResumeController(_BaseTaskAction):
         if next_run:
             # Update the task's next run time and persist the change
             task.update_task(next_run_time=next_run)
-            store_obj: BaseStore = self.scheduler.lookup_store(store_alias)  # type: ignore
-            store_obj.update_task(task)
         else:
-            # If schedule is finished, delete the task
-            self.scheduler.delete_task(task.id, store_alias)
+            # No further runs: keep task but mark as paused
+            task.update_task(next_run_time=None)
+        store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
+        store_obj.update_task(task)
 
         return await self._redirect()
 
@@ -168,7 +171,7 @@ class TaskRemoveController(_BaseTaskAction):
         # Lookup to get store alias
         _, store_alias = self.scheduler.lookup_task(task_id, None)
 
-        await self.scheduler.delete_task(task_id, store_alias)  # type: ignore
+        self.scheduler.delete_task(task_id, store_alias)
 
         return await self._redirect()
 
@@ -237,7 +240,7 @@ class TaskBulkPauseController(Controller):
     async def post(self, request: Request) -> HTMLResponse:
         """Processes a list of task IDs, pauses each one, and returns the updated task table."""
         form: Any = await request.form()
-        ids: list[str] = json.loads(form.get("ids") or "[]")
+        ids: list[str] = parse_ids_from_request_form(form)
 
         for task_id in ids:
             # Lookup task and store
@@ -249,9 +252,68 @@ class TaskBulkPauseController(Controller):
             task.update_task(next_run_time=None)
 
             # Persist state
-            store_obj: BaseStore = self.scheduler.lookup_store(store_alias)  # type: ignore
+            store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
             store_obj.update_task(task)
 
+        return await render_table(self.scheduler, request)
+
+
+class TaskBulkRunController(Controller):
+    """
+    Handles triggering multiple scheduled tasks to run immediately (bulk run action).
+
+    Instead of fiddling with next_run_time (which can cause tight rescheduling loops
+    around "now"), we mirror the single-row run flow: compute due run times,
+    send to the executor, and then advance (or remove) the task based on the
+    trigger's next time. This makes the action deterministic and prevents loops.
+    """
+
+    def __init__(self, *, scheduler: AsyncIOScheduler) -> None:
+        self.scheduler: AsyncIOScheduler = scheduler
+
+    async def post(self, request: Request) -> HTMLResponse:
+        form: Any = await request.form()
+        ids: list[str] = parse_ids_from_request_form(form)
+
+        now: datetime = datetime.now(self.scheduler.timezone)
+
+        for task_id in ids:
+            try:
+                # Lookup the task and its store
+                task: AsynczTask
+                store_alias: str
+                task, store_alias = self.scheduler.lookup_task(task_id, None)  # type: ignore
+
+                # Determine run times; force an immediate one-off run if not yet due
+                run_times: list[datetime] = task.get_run_times(self.scheduler.timezone, now)
+                if not run_times:
+                    run_times = [now]
+
+                # Submit to executor
+                executor = safe_lookup_executor(self.scheduler, getattr(task, "executor", None))
+                if executor is not None:
+                    executor.send_task(task, run_times)
+
+                # Advance schedule and persist (with anti-loop guard)
+                last_run: datetime = run_times[-1]
+                next_run: datetime | None = task.trigger.get_next_trigger_time(  # type: ignore
+                    self.scheduler.timezone, last_run, now
+                )
+                if next_run is not None and next_run <= now:
+                    next_run = now + timedelta(milliseconds=5)
+
+                if next_run:
+                    task.update_task(next_run_time=next_run)
+                else:
+                    # No further runs: mark paused instead of deleting
+                    task.update_task(next_run_time=None)
+                store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
+                store_obj.update_task(task)
+            except Exception:
+                # Ignore bad IDs or transient store issues; table will reflect actual state
+                continue
+
+        # Return refreshed table fragment for HTMX swap
         return await render_table(self.scheduler, request)
 
 
@@ -267,7 +329,7 @@ class TaskBulkResumeController(Controller):
         and returns the updated task table.
         """
         form: Any = await request.form()
-        ids: list[str] = json.loads(form.get("ids") or "[]")
+        ids: list[str] = parse_ids_from_request_form(form)
         now: datetime = datetime.now(self.scheduler.timezone)
 
         for task_id in ids:
@@ -284,11 +346,11 @@ class TaskBulkResumeController(Controller):
             if next_run:
                 # Update task and persist state
                 task.update_task(next_run_time=next_run)
-                store_obj: BaseStore = self.scheduler.lookup_store(store_alias)  # type: ignore
-                store_obj.update_task(task)
             else:
-                # Schedule finished, delete task
-                self.scheduler.delete_task(task.id, store_alias)
+                # No further runs: mark paused
+                task.update_task(next_run_time=None)
+            store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
+            store_obj.update_task(task)
 
         return await render_table(self.scheduler, request)
 
@@ -302,11 +364,36 @@ class TaskBulkRemoveController(Controller):
     async def post(self, request: Request) -> HTMLResponse:
         """Processes a list of task IDs, removes each one, and returns the updated task table."""
         form: Any = await request.form()
-        ids: list[str] = json.loads(form.get("ids") or "[]")
+        raw_ids = form.get("ids")
+
+        # Accept JSON-encoded list, a Python list from the form parser, or a comma-separated string.
+        ids: list[str]
+        if isinstance(raw_ids, list):
+            ids = [str(x) for x in raw_ids]
+        elif isinstance(raw_ids, str):
+            raw = raw_ids.strip()
+            try:
+                # Try JSON first (e.g. '["id1", "id2"]')
+                parsed = json.loads(raw)
+                ids = [str(x) for x in parsed] if isinstance(parsed, list) else [str(parsed)]
+            except Exception:  # noqa
+                # Fallback: comma/space separated string
+                ids = [s for s in (x.strip() for x in raw.split(",")) if s]
+        else:
+            ids = []
+
+        # De-duplicate while preserving order
+        seen = set()
+        ids = [x for x in ids if not (x in seen or seen.add(x))]  # type: ignore
 
         for task_id in ids:
-            # Note: delete_task handles store lookup internally when store_alias is None
-            await self.scheduler.delete_task(task_id)  # type: ignore
+            try:
+                # Look up to get the correct store alias, then delete from that store.
+                _, store_alias = self.scheduler.lookup_task(task_id, None)
+                self.scheduler.delete_task(task_id, store_alias)
+            except TaskLookupError:
+                # Already removed or not found; keep operation idempotent.
+                continue
 
         return await render_table(self.scheduler, request)
 
@@ -325,26 +412,37 @@ class TaskHXRunController(Controller):
         store_alias: str
         task, store_alias = self.scheduler.lookup_task(task_id, None)  # type: ignore
 
+        # Use a timezone-aware "now"
         now: datetime = datetime.now(self.scheduler.timezone)
-        run_times: list[datetime] = task.get_run_times(self.scheduler.timezone, now)
 
+        # Determine due run times; if nothing is due yet, force a one-off immediate run
+        run_times: list[datetime] = task.get_run_times(self.scheduler.timezone, now)
         if not run_times:
             run_times = [now]
 
-        executor: BaseExecutor = self.scheduler.lookup_executor(task.executor)  # type: ignore
-        executor.send_task(task, run_times)
+        # Submit task to the executor (one-shot run for the calculated times)
+        executor = safe_lookup_executor(self.scheduler, getattr(task, "executor", None))
+        if executor is not None:
+            executor.send_task(task, run_times)
 
+        # Advance the schedule deterministically to avoid tight reschedule loops
         last_run: datetime = run_times[-1]
         next_run: datetime | None = task.trigger.get_next_trigger_time(  # type: ignore
             self.scheduler.timezone, last_run, now
         )
 
+        # Guard: never persist a next_run_time that is <= now, otherwise the scheduler
+        # will wake immediately and can create a tight loop under test load.
+        if next_run is not None and next_run <= now:
+            next_run = now + timedelta(milliseconds=5)
+
         if next_run:
             task.update_task(next_run_time=next_run)
-            store_obj: BaseStore = self.scheduler.lookup_store(store_alias)  # type: ignore
-            store_obj.update_task(task)
         else:
-            self.scheduler.delete_task(task.id, store_alias)
+            # No further runs: keep task but mark as paused
+            task.update_task(next_run_time=None)
+        store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
+        store_obj.update_task(task)
 
         return await render_table(self.scheduler, request)
 
@@ -365,7 +463,7 @@ class TaskHXPauseController(Controller):
 
         task.update_task(next_run_time=None)
 
-        store_obj: BaseStore = self.scheduler.lookup_store(store_alias)  # type: ignore
+        store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
         store_obj.update_task(task)
 
         return await render_table(self.scheduler, request)
@@ -392,10 +490,11 @@ class TaskHXResumeController(Controller):
 
         if next_run:
             task.update_task(next_run_time=next_run)
-            store_obj: BaseStore = self.scheduler.lookup_store(store_alias)  # type: ignore
-            store_obj.update_task(task)
         else:
-            self.scheduler.delete_task(task.id, store_alias)
+            # No further runs: mark paused
+            task.update_task(next_run_time=None)
+        store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
+        store_obj.update_task(task)
 
         return await render_table(self.scheduler, request)
 
@@ -410,6 +509,12 @@ class TaskHXRemoveController(Controller):
         """Permanently removes the specified task and returns the updated task table."""
         task_id: str = request.path_params["task_id"]
 
-        self.scheduler.delete_task(task_id)
+        try:
+            # Resolve store alias first to ensure we remove from the correct store.
+            _, store_alias = self.scheduler.lookup_task(task_id, None)
+            self.scheduler.delete_task(task_id, store_alias)
+        except TaskLookupError:
+            # If it's already gone, just refresh the table.
+            pass
 
         return await render_table(self.scheduler, request)

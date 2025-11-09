@@ -6,16 +6,18 @@ from lilya.routing import Include, RoutePath
 from lilya.staticfiles import StaticFiles
 
 from asyncz import monkay
-from asyncz.contrib.dashboard.controllers import home, tasks
+from asyncz.contrib.dashboard.controllers import home
 from asyncz.contrib.dashboard.controllers.tasks import (
     TaskBulkPauseController,
     TaskBulkRemoveController,
     TaskBulkResumeController,
+    TaskBulkRunController,
     TaskCreateController,
     TaskHXPauseController,
     TaskHXRemoveController,
     TaskHXResumeController,
     TaskHXRunController,
+    TasklistController,
     TaskTablePartialController,
 )
 from asyncz.contrib.dashboard.engine import templates
@@ -50,30 +52,9 @@ def create_dashboard_app(scheduler: Any) -> Lilya:
                 routes=[
                     RoutePath(
                         "/",
-                        tasks.TasklistController.with_init(scheduler=scheduler),
-                        name="tasks:list",
+                        TasklistController.with_init(scheduler=scheduler),
+                        name="tasks:index",
                     ),
-                    RoutePath(
-                        "/{task_id:str}/run",
-                        tasks.TaskRunController.with_init(scheduler=scheduler),
-                        name="tasks:run",
-                    ),
-                    RoutePath(
-                        "/{task_id:str}/pause",
-                        tasks.TaskPauseController.with_init(scheduler=scheduler),
-                        name="tasks:pause",
-                    ),
-                    RoutePath(
-                        "/{task_id:str}/resume",
-                        tasks.TaskResumeController.with_init(scheduler=scheduler),
-                        name="tasks:resume",
-                    ),
-                    RoutePath(
-                        "/{task_id:str}/remove",
-                        tasks.TaskRemoveController.with_init(scheduler=scheduler),
-                        name="tasks:remove",
-                    ),
-                    # NEW partial + modal create
                     RoutePath(
                         "/partials/table",
                         TaskTablePartialController.with_init(scheduler=scheduler),
@@ -84,7 +65,6 @@ def create_dashboard_app(scheduler: Any) -> Lilya:
                         TaskCreateController.with_init(scheduler=scheduler),
                         name="tasks:create",
                     ),
-                    # NEW bulk operations
                     RoutePath(
                         "/hx/bulk/pause",
                         TaskBulkPauseController.with_init(scheduler=scheduler),
@@ -100,7 +80,11 @@ def create_dashboard_app(scheduler: Any) -> Lilya:
                         TaskBulkRemoveController.with_init(scheduler=scheduler),
                         name="tasks:bulk_remove",
                     ),
-                    # Replace per-row actions for HTMX
+                    RoutePath(
+                        "/hx/bulk/run",
+                        TaskBulkRunController.with_init(scheduler=scheduler),
+                        name="tasks:bulk_run",
+                    ),
                     RoutePath(
                         "/{task_id:str}/run",
                         TaskHXRunController.with_init(scheduler=scheduler),

@@ -32,14 +32,26 @@ app = Lilya(
 )
 
 
-@app.on_event("startup")
-async def _start() -> None:
-    sched.start()
-
-
-@app.on_event("shutdown")
-async def _stop() -> None:
-    sched.shutdown()
+# @app.on_event("startup")
+# async def _start() -> None:
+#     sched.start()
+#
+#
+# @app.on_event("shutdown")
+# async def _stop() -> None:
+#     """
+#     Best-effort shutdown for the dashboard-owned scheduler.
+#     Avoids 'RuntimeError: Event loop is closed' when the test client
+#     or app lifecycle already shut down the loop.
+#     """
+#     try:
+#         loop = getattr(sched, "event_loop", None)
+#         if loop is None or getattr(loop, "is_closed", lambda: False)():
+#             return
+#         sched.shutdown()
+#     except RuntimeError:
+#         # Loop may close between check and call
+#         pass
 
 
 if __name__ == "__main__":
