@@ -87,7 +87,8 @@ testing = [
     "sqlalchemy",
     "httpx",
     "pytz>=2022.6",
-    "freezegun"
+    "freezegun",
+    "ipdb"
 ]
 
 [tool.hatch.envs.default.scripts]

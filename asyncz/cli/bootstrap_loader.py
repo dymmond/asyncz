@@ -5,6 +5,8 @@ from typing import Any
 
 from asyncz.schedulers import AsyncIOScheduler
 
+BOOTSTRAP_CACHE: dict[str, AsyncIOScheduler] = {}
+
 
 def import_protocol(path: str) -> Any:
     """
@@ -57,6 +59,9 @@ def load_bootstrap_scheduler(path: str) -> AsyncIOScheduler:
         TypeError: If the resolved target does not match one of the supported patterns
                    or if the final result is not an `AsyncIOScheduler`.
     """
+    if path in BOOTSTRAP_CACHE:
+        return BOOTSTRAP_CACHE[path]
+
     obj: Any = import_protocol(path)
 
     # 1. Class with get_scheduler() (e.g., BootstrapApp)
@@ -65,18 +70,21 @@ def load_bootstrap_scheduler(path: str) -> AsyncIOScheduler:
         if hasattr(instance, "get_scheduler") and callable(instance.get_scheduler):
             scheduler: AsyncIOScheduler = instance.get_scheduler()
             assert_scheduler(scheduler)
+            BOOTSTRAP_CACHE[path] = scheduler
             return scheduler
 
     # 2. Object with get_scheduler() (e.g., a globally instantiated manager)
-    if hasattr(obj, "get_scheduler") and callable(instance.get_scheduler):
-        scheduler = instance.get_scheduler()
+    if hasattr(obj, "get_scheduler") and callable(obj.get_scheduler):
+        scheduler = obj.get_scheduler()
         assert_scheduler(scheduler)
+        BOOTSTRAP_CACHE[path] = scheduler
         return scheduler
 
     # 3. Callable returning a scheduler (e.g., `get_global_scheduler`)
     if callable(obj):
         scheduler = obj()
         assert_scheduler(scheduler)
+        BOOTSTRAP_CACHE[path] = scheduler
         return scheduler
 
     raise TypeError(
@@ -97,3 +105,16 @@ def assert_scheduler(scheduler: Any) -> None:
     """
     if not isinstance(scheduler, AsyncIOScheduler):
         raise TypeError("Bootstrap did not return an AsyncIOScheduler instance.")
+
+
+def clear_bootstrap_cache() -> None:
+    """
+    Clears the internal cache used for storing dynamically loaded scheduler bootstrap targets.
+
+    This function is necessary, particularly in testing or development environments (e.g., hot-reloading),
+    to ensure that the application reloads the scheduler instance from its source path
+    and doesn't rely on a stale, previously cached reference.
+    """
+    # Assuming BOOTSTRAP_CACHE is callable and has a standard `.clear()` method
+    # (e.g., it is a dictionary or a cache object from functools or similar library).
+    BOOTSTRAP_CACHE.clear()
