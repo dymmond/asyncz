@@ -51,7 +51,6 @@ from asyncz.schedulers.datastructures import TaskDefaultStruct
 from asyncz.schedulers.types import LoggersType, SchedulerType
 from asyncz.stores.memory import MemoryStore
 from asyncz.stores.types import StoreType
-from asyncz.tasks import Task
 from asyncz.tasks.types import TaskType
 from asyncz.triggers.types import TriggerType
 from asyncz.typing import Undefined, undefined
@@ -391,7 +390,10 @@ class BaseScheduler(SchedulerType):
         return LifespanHook(app, setup=setup, do_forward=not handle_lifespan)
 
     def add_executor(
-        self, executor: Union[ExecutorType, str], alias: str = "default", **executor_options: Any
+        self,
+        executor: Union[ExecutorType, str],
+        alias: str = "default",
+        **executor_options: Any,
     ) -> None:
         with self.executor_lock:
             if alias in self.executors:
@@ -558,9 +560,13 @@ class BaseScheduler(SchedulerType):
             replace_existing: True to replace an existing task with the same id
                               (but retain the number of runs from the existing one).
         """
+        from asyncz.tasks import Task
+
         if fn is not None:
             warnings.warn(
-                "The parameter 'fn' was renamed to 'fn_or_task'", DeprecationWarning, stacklevel=2
+                "The parameter 'fn' was renamed to 'fn_or_task'",
+                DeprecationWarning,
+                stacklevel=2,
             )
             fn_or_task = fn
         if isinstance(fn_or_task, TaskType):

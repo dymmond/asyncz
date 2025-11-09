@@ -88,3 +88,10 @@ tasks:
     desc: Runs the coverage tests
     cmds:
       - hatch run test:coverage {{ .ARGS }}
+
+  # ---------------------- DASHBOARD ----------------------------------
+
+  dashboard:
+    desc: Starts the dashboard in development mode
+    cmds:
+      - python asyncz/contrib/dashboard/serve.py

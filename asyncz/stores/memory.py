@@ -22,6 +22,17 @@ class MemoryStore(BaseStore):
     def lookup_task(self, task_id: str) -> Optional["TaskType"]:
         return self.tasks_index.get(task_id, (None, None))[0]
 
+    def get_task(self, task_id: str) -> "TaskType":
+        """Return the task by id or raise TaskLookupError if it's missing.
+
+        This mirrors the expected BaseStore API used by dashboard helpers
+        that probe stores for task membership.
+        """
+        task = self.lookup_task(task_id)
+        if task is None:
+            raise TaskLookupError(task_id)
+        return task
+
     def get_due_tasks(self, now: datetime) -> list["TaskType"]:
         now_timestamp = datetime_to_utc_timestamp(now)
         pending = []
@@ -53,17 +64,28 @@ class MemoryStore(BaseStore):
     def update_task(self, task: "TaskType") -> None:
         assert task.id is not None, "The task is in decorator mode."
         old_task, old_timestamp = self.tasks_index.get(task.id, (None, None))
+
+        new_timestamp = datetime_to_utc_timestamp(task.next_run_time or None)
+
         if old_task is None:
-            raise TaskLookupError(task.id)
+            # Not present yet: be tolerant and insert it (dashboard flows may update before first commit)
+            index = self.get_task_index(new_timestamp, task.id)
+            self.tasks.insert(index, (task, new_timestamp))
+            self.tasks_index[task.id] = (task, new_timestamp)
+            return
 
         old_index = self.get_task_index(old_timestamp, old_task.id)  # type: ignore
-        new_timestamp = datetime_to_utc_timestamp(task.next_run_time or None)
         if old_timestamp == new_timestamp:
+            # Keep the slot, just replace the task tuple
             self.tasks[old_index] = (task, new_timestamp)
         else:
+            # Remove from the old slot and re-insert at the new sorted position
             del self.tasks[old_index]
             new_index = self.get_task_index(new_timestamp, task.id)
             self.tasks.insert(new_index, (task, new_timestamp))
+
+        # Always refresh the index mapping
+        self.tasks_index[task.id] = (task, new_timestamp)
 
     def delete_task(self, task_id: str) -> None:
         task, timestamp = self.tasks_index.get(task_id, (None, None))

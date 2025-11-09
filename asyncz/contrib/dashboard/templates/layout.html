@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="icon" href="{{ favicon }}"/>
+  <title>AsyncZ | {{ title }}</title>
+
+  <!-- Tailwind via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Project assets -->
+  <link rel="stylesheet" href="{{ url_for('statics', path='/css/asyncz.css') }}">
+  <script src="{{ url_for('statics', path='/js/asyncz.js') }}"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+
+  <!-- Optional Tailwind runtime config (kept for compatibility) -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            asyncz: {
+              amber: "{{ sidebar_bg_colour }}"
+            }
+          },
+          boxShadow: {
+            soft: "0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06)"
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    .loader {
+      border-top-color: #3490dc;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    /* Fancy focus ring for accessibility */
+    .focus-ring:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(59,130,246,.45);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 via-white to-gray-100 text-gray-900 antialiased">
+  {% include "shared/loading.html" %}
+  {% include "shared/messages.html" %}
+
+  <div class="min-h-screen flex">
+    <!-- Sidebar -->
+    <aside class="hidden md:flex md:w-72 bg-asyncz-amber text-white flex-col sticky top-0 h-screen shadow-xl shadow-black/10">
+      <div class="p-5 flex items-center gap-3">
+        <div class="h-9 w-9 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center shadow-soft">
+          <!-- AsyncZ logo-ish spark -->
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5l-9 9m5.25-8.25L19.5 15M6.75 19.5 19.5 6.75" />
+          </svg>
+        </div>
+        <div class="text-xl font-semibold tracking-tight">
+           <a href="{{ url_prefix }}">Asyncz</a>
+        </div>
+      </div>
+
+      <nav class="px-3 py-2 space-y-1 text-sm">
+        <!-- Dashboard -->
+        <a href="{{ url_prefix }}"
+           class="group flex items-center gap-3 px-3 py-2 rounded-lg focus-ring transition
+                  hover:bg-white/10 {{ 'bg-white/10' if active_page=='dashboard' else '' }}">
+          <span class="inline-flex h-5 w-5 items-center justify-center">
+            <!-- Heroicon: Squares2x2 -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition
+                        {{ 'text-white' if active_page=='dashboard' else 'text-white/80 group-hover:text-white' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.5h6.5v6.75h-6.5V4.5zM13.75 4.5h6.5v6.75h-6.5V4.5zM3.75 12.75h6.5v6.75h-6.5v-6.75zM13.75 12.75h6.5v6.75h-6.5v-6.75z"/>
+            </svg>
+          </span>
+          <span class="font-medium">Dashboard</span>
+        </a>
+
+        <!-- Tasks -->
+        <a href="{{ url_prefix }}/tasks"
+           class="group flex items-center gap-3 px-3 py-2 rounded-lg focus-ring transition
+                  hover:bg-white/10 {{ 'bg-white/10' if active_page=='tasks' else '' }}">
+          <span class="inline-flex h-5 w-5 items-center justify-center">
+            <!-- Heroicon: Queue List -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition
+                        {{ 'text-white' if active_page=='tasks' else 'text-white/80 group-hover:text-white' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 6.75h13.5M3 12h13.5M3 17.25h8.25M18 8.25l2.25 2.25L24 6" />
+            </svg>
+          </span>
+          <span class="font-medium">Tasks</span>
+        </a>
+      </nav>
+
+      <div class="mt-auto p-4 text-xs text-white/70">
+        <div class="rounded-lg bg-white/5 p-3 leading-5">
+          <div class="font-semibold text-white/90">Tip</div>
+          Use the CLI with <code class="font-mono">--bootstrap</code> to control this scheduler from your terminal.
+        </div>
+        <div class="text-[11px] mt-3 opacity-70">
+          © {{ (now()|string) if false else '' }} AsyncZ
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="flex-1 min-w-0">
+      <!-- Top header, centered title -->
+      <header class="border-b bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/60 sticky top-0 z-10">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4">
+          <h1 class="text-2xl font-semibold tracking-tight">
+            {{ page_header or title }}
+          </h1>
+        </div>
+      </header>
+
+      <section class="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+        {% if messages and messages|length %}
+          <div class="space-y-2 mb-4">
+            {% for m in messages %}
+              <div class="px-3 py-2 rounded border shadow-soft
+                          {{ 'bg-green-50 border-green-200 text-green-900' if m.level=='success' else 'bg-blue-50 border-blue-200 text-blue-900' }}">
+                {{ m.text }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+      </section>
+    </main>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const overlay = document.getElementById("loading-overlay");
+      const showLoading = () => overlay && overlay.classList.remove("hidden");
+      const hideLoading = () => overlay && overlay.classList.add("hidden");
+
+      // Utility: does a node (form/link/button) live inside a <dialog>?
+      const inDialog = (el) => !!(el && el.closest && el.closest('dialog'));
+      const hasHx = (el) => !!(el && (
+        el.hasAttribute('hx-post') || el.hasAttribute('hx-get') ||
+        el.hasAttribute('hx-put')  || el.hasAttribute('hx-delete') ||
+        el.hasAttribute('data-hx')
+      ));
+
+      // FORMS: only show overlay if this is a real navigation submit OR an HTMX request.
+      document.querySelectorAll('form').forEach((form) => {
+        const method = (form.getAttribute('method') || '').toLowerCase();
+        form.addEventListener('submit', (e) => {
+          // 1) Skip dialog-close forms and generic dialog forms without HTMX
+          if (method === 'dialog') return;
+          if (inDialog(form) && !hasHx(form)) return;
+
+          // 2) If target is _blank or has data-no-loading, skip
+          if (form.getAttribute('target') === '_blank' || form.hasAttribute('data-no-loading')) return;
+
+          // 3) Otherwise show loading
+          showLoading();
+        });
+      });
+
+      // LINKS: only show for real navigations (no hash, no target, no data-no-loading)
+      document.querySelectorAll('a[href]').forEach((link) => {
+        link.addEventListener('click', () => {
+          const href = link.getAttribute('href') || '';
+          if (link.hasAttribute('data-no-loading')) return;
+          if (!href || href.startsWith('#')) return;
+          if (link.hasAttribute('target')) return;
+          if (inDialog(link)) return; // don't show when clicking links inside dialogs
+          showLoading();
+        });
+      });
+
+      // BUTTONS acting as links
+      document.querySelectorAll('button[data-href]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (btn.hasAttribute('data-no-loading')) return;
+          if (inDialog(btn)) return; // no overlay for dialog-local buttons
+          const to = btn.getAttribute('data-href');
+          if (!to) return;
+          showLoading();
+          window.location.href = to;
+        });
+      });
+
+      // DIALOG lifecycle: make sure overlay hides when dialog is closed/cancelled
+      document.querySelectorAll('dialog').forEach((dialog) => {
+        dialog.addEventListener('close', hideLoading);
+        dialog.addEventListener('cancel', hideLoading);
+
+        // Also prevent overlay on explicit Close buttons inside dialog
+        dialog.querySelectorAll('form[method="dialog"], button[data-close], [data-dialog-close]')
+          .forEach((el) => {
+            el.addEventListener('click', () => {
+              hideLoading();
+            });
+          });
+      });
+
+      // HTMX safety nets: hide when HTMX completes or errors
+      document.body.addEventListener('htmx:afterOnLoad', hideLoading);
+      document.body.addEventListener('htmx:responseError', hideLoading);
+
+      // Page lifecycle: hide on page show (e.g., bfcache restores)
+      window.addEventListener('pageshow', hideLoading);
+    });
+  </script>
+</body>
+</html>
