@@ -9,6 +9,7 @@ hide:
 
 ### Added
 
+- New [settings](./settings.md) module using `ASYNCZ_SETTINGS_MODULE`.
 - New [Asyncz client](./cli.md).
 - Support for Python 3.14
 
