@@ -12,6 +12,7 @@ from lilya.templating.controllers import TemplateController
 
 from asyncz.cli.utils import import_callable
 from asyncz.contrib.dashboard.controllers._helpers import (
+    filter_items,
     parse_ids_from_request_form,
     parse_trigger,
     render_table,
@@ -42,13 +43,18 @@ class TasklistController(DashboardMixin, TemplateController):
         tasks: Sequence[AsynczTask] = self.scheduler.get_tasks()  # type: ignore
         items: list[dict[str, Any]] = [serialize(t) for t in tasks]
 
+        # Simple server-side filter for the search box in the toolbar
+        q: str | None = request.query_params.get("q") if request.query_params else None
+        filtered: list[dict[str, Any]] = filter_items(items, q)
+
         ctx: dict[str, Any] = await self.get_context_data(request)
         ctx.update(
             {
                 "title": "Tasks",
                 "page_header": "Tasks",
                 "active_page": "tasks",
-                "tasks": items,
+                "tasks": filtered,
+                "q": q or "",
             }
         )
         return await self.render_template(request, context=ctx)
@@ -176,18 +182,25 @@ class TaskRemoveController(_BaseTaskAction):
         return await self._redirect()
 
 
-class TaskTablePartialController(Controller):
+class TaskTablePartialController(DashboardMixin, Controller):
     """Renders the HTML table fragment of tasks, used by HTMX for real-time updates."""
 
     def __init__(self, *, scheduler: AsyncIOScheduler) -> None:
         self.scheduler: AsyncIOScheduler = scheduler
 
     async def get(self, request: Request) -> HTMLResponse:
-        """Handles GET request and returns the rendered table partial."""
-        return await render_table(self.scheduler, request)
+        """Handles GET request and returns the rendered table partial (with search)."""
+        tasks: Sequence[AsynczTask] = self.scheduler.get_tasks()  # type: ignore
+        items: list[dict[str, Any]] = [serialize(t) for t in tasks]
+        q: str | None = request.query_params.get("q") if request.query_params else None
+        filtered: list[dict[str, Any]] = filter_items(items, q)
+
+        context = await self.get_context_data(request)
+        context.update({"tasks": filtered, "q": q or ""})
+        return await render_table(self.scheduler, request, context)
 
 
-class TaskCreateController(Controller):
+class TaskCreateController(DashboardMixin, Controller):
     """Handles creation of a new task via a modal form submission."""
 
     def __init__(self, *, scheduler: AsyncIOScheduler) -> None:
@@ -228,10 +241,11 @@ class TaskCreateController(Controller):
         )
 
         # Return updated table partial (HTMX response)
-        return await render_table(self.scheduler, request)
+        context = await self.get_context_data(request)
+        return await render_table(self.scheduler, request, context)
 
 
-class TaskBulkPauseController(Controller):
+class TaskBulkPauseController(DashboardMixin, Controller):
     """Handles pausing multiple tasks via an HTMX POST request."""
 
     def __init__(self, *, scheduler: AsyncIOScheduler) -> None:
@@ -255,10 +269,11 @@ class TaskBulkPauseController(Controller):
             store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
             store_obj.update_task(task)
 
-        return await render_table(self.scheduler, request)
+        context = await self.get_context_data(request)
+        return await render_table(self.scheduler, request, context)
 
 
-class TaskBulkRunController(Controller):
+class TaskBulkRunController(DashboardMixin, Controller):
     """
     Handles triggering multiple scheduled tasks to run immediately (bulk run action).
 
@@ -314,10 +329,11 @@ class TaskBulkRunController(Controller):
                 continue
 
         # Return refreshed table fragment for HTMX swap
-        return await render_table(self.scheduler, request)
+        context = await self.get_context_data(request)
+        return await render_table(self.scheduler, request, context)
 
 
-class TaskBulkResumeController(Controller):
+class TaskBulkResumeController(DashboardMixin, Controller):
     """Handles resuming multiple paused tasks via an HTMX POST request."""
 
     def __init__(self, *, scheduler: AsyncIOScheduler) -> None:
@@ -352,10 +368,11 @@ class TaskBulkResumeController(Controller):
             store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
             store_obj.update_task(task)
 
-        return await render_table(self.scheduler, request)
+        context = await self.get_context_data(request)
+        return await render_table(self.scheduler, request, context)
 
 
-class TaskBulkRemoveController(Controller):
+class TaskBulkRemoveController(DashboardMixin, Controller):
     """Handles removing multiple tasks via an HTMX POST request."""
 
     def __init__(self, *, scheduler: AsyncIOScheduler) -> None:
@@ -395,10 +412,11 @@ class TaskBulkRemoveController(Controller):
                 # Already removed or not found; keep operation idempotent.
                 continue
 
-        return await render_table(self.scheduler, request)
+        context = await self.get_context_data(request)
+        return await render_table(self.scheduler, request, context)
 
 
-class TaskHXRunController(Controller):
+class TaskHXRunController(DashboardMixin, Controller):
     """Handles running a single task immediately, returning the updated table partial."""
 
     def __init__(self, *, scheduler: AsyncIOScheduler) -> None:
@@ -444,10 +462,11 @@ class TaskHXRunController(Controller):
         store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
         store_obj.update_task(task)
 
-        return await render_table(self.scheduler, request)
+        context = await self.get_context_data(request)
+        return await render_table(self.scheduler, request, context)
 
 
-class TaskHXPauseController(Controller):
+class TaskHXPauseController(DashboardMixin, Controller):
     """Handles pausing a single task, returning the updated table partial."""
 
     def __init__(self, *, scheduler: AsyncIOScheduler) -> None:
@@ -466,10 +485,11 @@ class TaskHXPauseController(Controller):
         store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
         store_obj.update_task(task)
 
-        return await render_table(self.scheduler, request)
+        context = await self.get_context_data(request)
+        return await render_table(self.scheduler, request, context)
 
 
-class TaskHXResumeController(Controller):
+class TaskHXResumeController(DashboardMixin, Controller):
     """Handles resuming a single task, returning the updated table partial."""
 
     def __init__(self, *, scheduler: AsyncIOScheduler) -> None:
@@ -496,10 +516,11 @@ class TaskHXResumeController(Controller):
         store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
         store_obj.update_task(task)
 
-        return await render_table(self.scheduler, request)
+        context = await self.get_context_data(request)
+        return await render_table(self.scheduler, request, context)
 
 
-class TaskHXRemoveController(Controller):
+class TaskHXRemoveController(DashboardMixin, Controller):
     """Handles removing a single task, returning the updated table partial."""
 
     def __init__(self, *, scheduler: AsyncIOScheduler) -> None:
@@ -515,6 +536,7 @@ class TaskHXRemoveController(Controller):
             self.scheduler.delete_task(task_id, store_alias)
         except TaskLookupError:
             # If it's already gone, just refresh the table.
-            pass
+            ...
 
-        return await render_table(self.scheduler, request)
+        context = await self.get_context_data(request)
+        return await render_table(self.scheduler, request, context)

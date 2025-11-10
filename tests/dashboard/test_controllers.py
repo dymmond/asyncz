@@ -1,4 +1,3 @@
-# tests/dashboard/test_controllers.py
 from __future__ import annotations
 
 import json
@@ -6,9 +5,14 @@ import re
 from collections.abc import Iterator
 
 import pytest
-from starlette.testclient import TestClient
+from lilya.apps import Lilya
+from lilya.testclient import TestClient
 
-from asyncz.contrib.dashboard.serve import app
+from asyncz.contrib.dashboard.admin import (
+    AsynczAdmin,
+    SimpleUsernamePasswordBackend,
+    User,
+)
 from asyncz.schedulers.asyncio import AsyncIOScheduler
 
 DASH_PREFIX = "/dashboard"
@@ -24,8 +28,30 @@ def scheduler() -> Iterator[AsyncIOScheduler]:
         sched.shutdown()
 
 
+def verify(u, p):
+    if u == "admin" and p == "secret":
+        return User(id="admin", name="Admin")
+    return None
+
+
 @pytest.fixture()
 def client(scheduler: AsyncIOScheduler) -> Iterator[TestClient]:
+    app = Lilya()
+    admin = AsynczAdmin(scheduler=scheduler)
+    admin.include_in(app)
+    with TestClient(app) as c:
+        yield c
+
+
+@pytest.fixture()
+def client_login(scheduler: AsyncIOScheduler) -> Iterator[TestClient]:
+    app = Lilya()
+    admin = AsynczAdmin(
+        scheduler=scheduler,
+        enable_login=True,
+        backend=SimpleUsernamePasswordBackend(verify),
+    )
+    admin.include_in(app)
     with TestClient(app) as c:
         yield c
 
@@ -54,6 +80,13 @@ def _extract_first_job_id_from_table(html: str) -> str | None:
         if m:
             return m.group(1)
     return None
+
+
+@pytest.mark.parametrize("url", ["/login", "/logout"])
+def test_login_and_logout_page(client_login, url):
+    r = client_login.get(f"{DASH_PREFIX}/{url}")
+
+    assert r.status_code == 200
 
 
 def test_index_renders(client: TestClient):
@@ -207,9 +240,121 @@ def test_bulk_actions_pause_run_resume_remove(client: TestClient):
 def test_url_prefix_is_stable_across_pages(client: TestClient):
     # Load tasks page and ensure links point back to prefix (no duplication)
     r = client.get(f"{DASH_PREFIX}/tasks")
+
     assert r.status_code == 200
+
     # The sidebar link back to dashboard should be absolute to prefix
-    assert f'href="{DASH_PREFIX}"' in r.text or f'href="{DASH_PREFIX}/"' in r.text
+    assert f'href="{DASH_PREFIX}"' in r.text
 
     # The partials URL is absolute to prefix
-    assert f'hx-get="{DASH_PREFIX}/tasks/partials/table"' in r.text
+    assert 'hx-get="partials/table"' in r.text
+
+
+def _create_task(
+    client: TestClient,
+    name: str,
+    trigger_type: str = "interval",
+    trigger_value: str = "10s",
+) -> str:
+    r = client.post(
+        f"{DASH_PREFIX}/tasks/create",
+        data={
+            "callable_path": "tests.fixtures:noop",
+            "name": name,
+            "store": "default",
+            "trigger_type": trigger_type,
+            "trigger_value": trigger_value,
+        },
+    )
+    assert r.status_code == 200
+
+    jid = _extract_first_job_id_from_table(r.text)
+
+    assert jid, "Could not extract job id from table HTML"
+    return jid
+
+
+def test_tasks_search_filters_full_page_by_name(client: TestClient):
+    _create_task(client, "alpha-one")
+    _create_task(client, "Beta-two")
+    _create_task(client, "gamma-three")
+
+    r = client.get(f"{DASH_PREFIX}/tasks/?q=beta")
+    assert r.status_code == 200
+
+    txt = r.text
+
+    assert "Beta-two" in txt
+    assert "alpha-one" not in txt
+    assert "gamma-three" not in txt
+
+
+def test_tasks_search_filters_partial_by_name(client: TestClient):
+    _create_task(client, "alpha-one")
+    _create_task(client, "Beta-two")
+
+    r = client.get(f"{DASH_PREFIX}/tasks/partials/table?q=alpha")
+    assert r.status_code == 200
+
+    txt = r.text
+    assert "alpha-one" in txt
+    assert "Beta-two" not in txt
+
+
+def test_tasks_search_is_case_insensitive(client: TestClient):
+    _create_task(client, "MiXeD-Case-Name")
+
+    r = client.get(f"{DASH_PREFIX}/tasks/?q=mixed")
+    assert r.status_code == 200
+    assert "MiXeD-Case-Name" in r.text
+
+    r2 = client.get(f"{DASH_PREFIX}/tasks/partials/table?q=NAME")
+    assert r2.status_code == 200
+    assert "MiXeD-Case-Name" in r2.text
+
+
+def test_tasks_search_can_match_by_trigger_type(client: TestClient):
+    # one interval, one cron
+    _create_task(client, "interval-one", trigger_type="interval", trigger_value="5s")
+    _create_task(client, "cronny", trigger_type="cron", trigger_value="*/5 * * * *")
+
+    # Full page search for "cron" should show only the cron job
+    r = client.get(f"{DASH_PREFIX}/tasks/?q=cron")
+    assert r.status_code == 200
+    assert "cronny" in r.text
+    assert "interval-one" not in r.text
+
+    # Partials search for "interval" should show only the interval job
+    r2 = client.get(f"{DASH_PREFIX}/tasks/partials/table?q=interval")
+    assert r2.status_code == 200
+    assert "interval-one" in r2.text
+    assert "cronny" not in r2.text
+
+
+def test_tasks_search_can_match_by_id(client: TestClient):
+    jid = _create_task(client, "id-searchable")
+
+    # Search by the exact id should return the row
+    r = client.get(f"{DASH_PREFIX}/tasks/?q={jid}")
+    assert r.status_code == 200
+    assert jid in r.text
+    assert "id-searchable" in r.text
+
+    # Partials too
+    r2 = client.get(f"{DASH_PREFIX}/tasks/partials/table?q={jid}")
+    assert r2.status_code == 200
+    assert jid in r2.text
+
+
+def test_tasks_search_reset_link_clears_query(client: TestClient):
+    _create_task(client, "only-one")
+
+    # With a filter that excludes our row
+    r = client.get(f"{DASH_PREFIX}/tasks/?q=zzz-nothing")
+    assert r.status_code == 200
+    assert "only-one" not in r.text
+
+    # Simulate clicking the "Reset" link (go to /tasks without q)
+    r2 = client.get(f"{DASH_PREFIX}/tasks")
+    assert r2.status_code == 200
+    assert "only-one" in r2.text

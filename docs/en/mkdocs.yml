@@ -48,6 +48,7 @@ nav:
   - Schedulers: schedulers.md
   - Stores: stores.md
   - Triggers: triggers.md
+  - Settings: settings.md
 - ASGI and Frameworks:
   - Ravyn:
     - Overview: contrib/ravyn/index.md
@@ -55,6 +56,7 @@ nav:
     - Decorator: contrib/ravyn/decorator.md
   - asgi.md
 - AsyncZ Cli: cli.md
+- Dashboard UI: dashboard.md
 - Contributing: contributing.md
 - Vendors: vendors.md
 - Sponsorship: sponsorship.md
