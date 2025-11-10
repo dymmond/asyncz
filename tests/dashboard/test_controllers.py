@@ -1,4 +1,3 @@
-# tests/dashboard/test_controllers.py
 from __future__ import annotations
 
 import json
@@ -6,9 +5,14 @@ import re
 from collections.abc import Iterator
 
 import pytest
-from starlette.testclient import TestClient
+from lilya.apps import Lilya
+from lilya.testclient import TestClient
 
-from asyncz.contrib.dashboard.serve import app
+from asyncz.contrib.dashboard.admin import (
+    AsynczAdmin,
+    SimpleUsernamePasswordBackend,
+    User,
+)
 from asyncz.schedulers.asyncio import AsyncIOScheduler
 
 DASH_PREFIX = "/dashboard"
@@ -24,8 +28,30 @@ def scheduler() -> Iterator[AsyncIOScheduler]:
         sched.shutdown()
 
 
+def verify(u, p):
+    if u == "admin" and p == "secret":
+        return User(id="admin", name="Admin")
+    return None
+
+
 @pytest.fixture()
 def client(scheduler: AsyncIOScheduler) -> Iterator[TestClient]:
+    app = Lilya()
+    admin = AsynczAdmin(scheduler=scheduler)
+    admin.include_in(app)
+    with TestClient(app) as c:
+        yield c
+
+
+@pytest.fixture()
+def client_login(scheduler: AsyncIOScheduler) -> Iterator[TestClient]:
+    app = Lilya()
+    admin = AsynczAdmin(
+        scheduler=scheduler,
+        enable_login=True,
+        backend=SimpleUsernamePasswordBackend(verify),
+    )
+    admin.include_in(app)
     with TestClient(app) as c:
         yield c
 
@@ -54,6 +80,13 @@ def _extract_first_job_id_from_table(html: str) -> str | None:
         if m:
             return m.group(1)
     return None
+
+
+@pytest.mark.parametrize("url", ["/login", "/logout"])
+def test_login_and_logout_page(client_login, url):
+    r = client_login.get(f"{DASH_PREFIX}/{url}")
+
+    assert r.status_code == 200
 
 
 def test_index_renders(client: TestClient):

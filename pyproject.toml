@@ -228,6 +228,15 @@ junit_family = "xunit2"
 
 [tool.hatch.build.targets.sdist]
 include = ["/asyncz"]
+exclude = [
+    "/asyncz/contrib/dashboard/development"
+]
+
+[tool.hatch.build.targets.wheel]
+include = ["/asyncz"]
+exclude = [
+    "/asyncz/contrib/dashboard/development"
+]
 
 [[tool.mypy.overrides]]
 module = ["yaml.*", "uvicorn.*"]

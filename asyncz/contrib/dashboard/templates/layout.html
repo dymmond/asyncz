@@ -102,6 +102,18 @@
           <div class="font-semibold text-white/90">Tip</div>
           Use the CLI with <code class="font-mono">--bootstrap</code> to control this scheduler from your terminal.
         </div>
+        <a href="{{ url_prefix }}/logout"
+           class="group flex items-center gap-3 px-3 py-2 rounded-lg focus-ring transition hover:bg-white/10 mt-4">
+          <span class="inline-flex h-5 w-5 items-center justify-center">
+            <!-- Heroicon: ArrowRightOnRectangle -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white/80 group-hover:text-white"
+                 fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H3"/>
+            </svg>
+          </span>
+          <span class="font-medium">Logout</span>
+        </a>
         <div class="text-[11px] mt-3 opacity-70">
           © {{ (now()|string) if false else '' }} AsyncZ
         </div>

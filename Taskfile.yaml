@@ -94,4 +94,4 @@ tasks:
   dashboard:
     desc: Starts the dashboard in development mode
     cmds:
-      - python asyncz/contrib/dashboard/serve.py
+      - python asyncz/contrib/dashboard/development/run.py
