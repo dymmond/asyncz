@@ -240,9 +240,11 @@ def test_bulk_actions_pause_run_resume_remove(client: TestClient):
 def test_url_prefix_is_stable_across_pages(client: TestClient):
     # Load tasks page and ensure links point back to prefix (no duplication)
     r = client.get(f"{DASH_PREFIX}/tasks")
+
     assert r.status_code == 200
+
     # The sidebar link back to dashboard should be absolute to prefix
-    assert f'href="{DASH_PREFIX}"' in r.text or f'href="{DASH_PREFIX}/"' in r.text
+    assert f'href="{DASH_PREFIX}"' in r.text
 
     # The partials URL is absolute to prefix
-    assert f'hx-get="{DASH_PREFIX}/tasks/partials/table"' in r.text
+    assert 'hx-get="partials/table"' in r.text

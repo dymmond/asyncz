@@ -303,3 +303,38 @@ def safe_lookup_store(
 
     # No stores at all
     raise KeyError("No stores are configured on the scheduler.")
+
+
+def filter_items(items: list[dict[str, Any]], q: str | None) -> list[dict[str, Any]]:
+    """
+    Filters a list of task/job dictionaries by a simple, case-insensitive substring match.
+
+    The search is performed across the **'id'**, **'name'**, **'store'**, and **'trigger'**
+    fields of each dictionary. If the search query `q` is falsy (empty or None),
+    the original list of items is returned unchanged.
+
+    Args:
+        items: A list of dictionaries (serialized task objects).
+        q: The search query string.
+
+    Returns:
+        A new list containing only the items that match the search query, or the
+        original list if no query was provided.
+    """
+    if not q:
+        return items
+
+    needle: str = q.strip().lower()
+    filtered: list[dict[str, Any]] = []
+
+    for it in items:
+        # Normalize all checked fields to lower case strings for case-insensitive matching
+        id_s: str = str(it.get("id", "")).lower()
+        name_s: str = str(it.get("name", "")).lower()
+        store_s: str = str(it.get("store", "")).lower()
+        trigger_s: str = str(it.get("trigger", "")).lower()
+
+        if needle in id_s or needle in name_s or needle in store_s or needle in trigger_s:
+            filtered.append(it)
+
+    return filtered

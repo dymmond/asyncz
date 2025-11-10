@@ -12,6 +12,7 @@ from lilya.templating.controllers import TemplateController
 
 from asyncz.cli.utils import import_callable
 from asyncz.contrib.dashboard.controllers._helpers import (
+    filter_items,
     parse_ids_from_request_form,
     parse_trigger,
     render_table,
@@ -42,13 +43,18 @@ class TasklistController(DashboardMixin, TemplateController):
         tasks: Sequence[AsynczTask] = self.scheduler.get_tasks()  # type: ignore
         items: list[dict[str, Any]] = [serialize(t) for t in tasks]
 
+        # Simple server-side filter for the search box in the toolbar
+        q: str | None = request.query_params.get("q") if request.query_params else None
+        filtered: list[dict[str, Any]] = filter_items(items, q)
+
         ctx: dict[str, Any] = await self.get_context_data(request)
         ctx.update(
             {
                 "title": "Tasks",
                 "page_header": "Tasks",
                 "active_page": "tasks",
-                "tasks": items,
+                "tasks": filtered,
+                "q": q or "",
             }
         )
         return await self.render_template(request, context=ctx)
@@ -183,8 +189,16 @@ class TaskTablePartialController(DashboardMixin, Controller):
         self.scheduler: AsyncIOScheduler = scheduler
 
     async def get(self, request: Request) -> HTMLResponse:
-        """Handles GET request and returns the rendered table partial."""
+        """Handles GET request and returns the rendered table partial (with search)."""
+        # Recompute items and apply the same filter used on the full page, so
+        # the auto-refresh keeps the same subset that the user searched for.
+        tasks: Sequence[AsynczTask] = self.scheduler.get_tasks()  # type: ignore
+        items: list[dict[str, Any]] = [serialize(t) for t in tasks]
+        q: str | None = request.query_params.get("q") if request.query_params else None
+        filtered: list[dict[str, Any]] = filter_items(items, q)
+
         context = await self.get_context_data(request)
+        context.update({"tasks": filtered, "q": q or ""})
         return await render_table(self.scheduler, request, context)
 
 
