@@ -4,6 +4,7 @@ Please do not use this anywhere in your code base
 """
 
 from lilya.apps import Lilya
+from lilya.routing import Include
 
 from asyncz.contrib.dashboard.admin import (
     AsynczAdmin,
@@ -21,9 +22,9 @@ def verify(u: str, p: str) -> User | None:
     return None
 
 
-app = Lilya()
 asyncz_admin = AsynczAdmin(enable_login=True, backend=SimpleUsernamePasswordBackend(verify))  # type: ignore
-asyncz_admin.include_in(app)
+app = Lilya(routes=[Include(asyncz_admin.url_prefix, app=asyncz_admin.get_asgi_app())])
+# asyncz_admin.include_in(app)
 
 
 @app.on_event("startup")

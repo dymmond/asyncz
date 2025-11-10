@@ -48,14 +48,14 @@
   <!-- Bulk actions (acts on checked rows inside the table partial) -->
   <div class="px-5 py-3 border-b bg-gray-50">
     <form id="bulk-form" class="flex flex-wrap gap-2 items-center"
-          hx-post="{{ url_prefix }}/tasks/hx/bulk/pause" hx-target="#tasks-table" hx-swap="innerHTML">
+          hx-post="hx/bulk/pause" hx-target="#tasks-table" hx-swap="innerHTML">
       <input type="hidden" name="ids" id="bulk-ids" value="" />
       <span class="text-sm text-gray-600 mr-2">With selected:</span>
 
       <button type="submit" class="inline-flex items-center gap-1 rounded-md border border-yellow-300 bg-yellow-50 px-3 py-1.5 text-sm font-medium text-yellow-800 hover:bg-yellow-100">Pause</button>
 
       <button type="button" class="inline-flex items-center gap-1 rounded-md border border-blue-300 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-800 hover:bg-blue-100"
-              onclick="submitBulk('{{ url_prefix }}/tasks/hx/bulk/run')">
+              onclick="submitBulk('hx/bulk/run')">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <path stroke-linecap="round" stroke-linejoin="round" d="M8 5v14l11-7z" />
         </svg>
@@ -63,17 +63,17 @@
       </button>
 
       <button type="button" class="inline-flex items-center gap-1 rounded-md border border-green-300 bg-green-50 px-3 py-1.5 text-sm font-medium text-green-800 hover:bg-green-100"
-              onclick="submitBulk('{{ url_prefix }}/tasks/hx/bulk/resume')">Resume</button>
+              onclick="submitBulk('hx/bulk/resume')">Resume</button>
 
       <button type="button" class="inline-flex items-center gap-1 rounded-md border border-red-300 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-800 hover:bg-red-100"
-              onclick="if(confirm('Remove selected tasks?')) submitBulk('{{ url_prefix }}/tasks/hx/bulk/remove')">Remove</button>
+              onclick="if(confirm('Remove selected tasks?')) submitBulk('hx/bulk/remove')">Remove</button>
     </form>
   </div>
 
   <!-- HTMX table container: auto-load + auto-refresh + target for swaps -->
   <div id="tasks-table" class="overflow-x-auto"
-       hx-get="{{ url_prefix }}/tasks/partials/table"
-       hx-trigger="load once, every 60s"
+       hx-get="partials/table"
+       hx-trigger="load delay:10000ms once, every 60s"
        hx-request="queue:last"
        hx-swap="innerHTML">
     <div class="p-6 text-center text-gray-500">Loading…</div>

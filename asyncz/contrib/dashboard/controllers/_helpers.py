@@ -103,7 +103,7 @@ def parse_trigger(trigger_type: str, trigger_value: str | None = None) -> Any:
         return DateTrigger(run_date=dt_obj)
 
 
-async def render_table(scheduler: Any, request: Request) -> HTMLResponse:
+async def render_table(scheduler: Any, request: Request, context: Any) -> HTMLResponse:
     """
     Renders the HTML table fragment for the list of scheduled tasks, supporting optional search filtering.
 
@@ -132,7 +132,8 @@ async def render_table(scheduler: Any, request: Request) -> HTMLResponse:
         ]
 
     # Render the table template
-    html: str = templates.get_template("tasks/_table.html").render({"tasks": items})
+    context.update({"tasks": items})
+    html: str = templates.get_template("tasks/_table.html").render(context)
 
     return HTMLResponse(html)
 

@@ -215,6 +215,10 @@ class Settings(BaseSettings):
     This attribute holds the version information as defined in the library's
     package metadata. It's read-only and primarily for informational purposes.
     """
+    secret_key: str | None = None
+    """
+    The secret used for cryptography and for the Dashboard to use sessions.
+    """
 
     @property
     def dashboard_config(self) -> Any:
@@ -230,4 +234,4 @@ class Settings(BaseSettings):
         """
         from asyncz.contrib.dashboard.config import DashboardConfig
 
-        return DashboardConfig()
+        return DashboardConfig(secret_key=self.secret_key)

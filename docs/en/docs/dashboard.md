@@ -116,13 +116,15 @@ You can customize your `DashboardConfig` to change `dashboard_url_prefix`, `sess
 
 ### The DashboardConfig
 
-This is where you can change custom dashboard settings to match your preferences.
+This is where you can change custom dashboard settings to match your preferences. **It must be a Python dataclass.**
 
 ```python
 # myproject/dashboard/config.py
+from dataclasses import dataclass
 from asyncz.contrib.dashboard.config import DashboardConfig
 
 
+@dataclass
 class MyDashboard(DashboardConfig):
     title: str = "Dashboard"
     header_title: str = "Asyncz "
