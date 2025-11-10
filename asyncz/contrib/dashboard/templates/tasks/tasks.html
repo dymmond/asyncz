@@ -72,11 +72,11 @@
 
   <!-- HTMX table container: auto-load + auto-refresh + target for swaps -->
   <div id="tasks-table" class="overflow-x-auto"
-       hx-get="partials/table"
-       hx-trigger="load delay:10000ms once, every 60s"
+       hx-get="partials/table{% if q %}?q={{ q|urlencode }}{% endif %}"
+       hx-trigger="load once, every 60s"
        hx-request="queue:last"
        hx-swap="innerHTML">
-    <div class="p-6 text-center text-gray-500">Loading…</div>
+    {% include "tasks/_table.html" %}
   </div>
 </div>
 

@@ -190,8 +190,6 @@ class TaskTablePartialController(DashboardMixin, Controller):
 
     async def get(self, request: Request) -> HTMLResponse:
         """Handles GET request and returns the rendered table partial (with search)."""
-        # Recompute items and apply the same filter used on the full page, so
-        # the auto-refresh keeps the same subset that the user searched for.
         tasks: Sequence[AsynczTask] = self.scheduler.get_tasks()  # type: ignore
         items: list[dict[str, Any]] = [serialize(t) for t in tasks]
         q: str | None = request.query_params.get("q") if request.query_params else None
