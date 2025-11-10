@@ -30,9 +30,6 @@ class User:
         self.extra: dict[str, Any] = extra
 
 
-### `AuthBackend` Protocol
-
-
 class AuthBackend(Protocol):
     """
     Protocol defining the interface for an authentication backend used by the
