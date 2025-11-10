@@ -48,6 +48,7 @@ nav:
   - Schedulers: schedulers.md
   - Stores: stores.md
   - Triggers: triggers.md
+  - Settings: settings.md
 - ASGI and Frameworks:
   - Ravyn:
     - Overview: contrib/ravyn/index.md

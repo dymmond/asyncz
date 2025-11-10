@@ -24,7 +24,7 @@ class User:
             is_admin: Boolean indicating if the user has administrative privileges (default: True).
             **extra: Additional, arbitrary user data to store (e.g., email, roles).
         """
-        self.id: str = id
+        self.id: str | int = id
         self.name: str = name
         self.is_admin: bool = is_admin
         self.extra: dict[str, Any] = extra
