@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+from typing import cast
+
 from lilya.apps import ChildLilya, Lilya
 from lilya.middleware.base import DefineMiddleware
-from lilya.middleware.base import Middleware as LilyaMiddleware
 from lilya.middleware.cors import CORSMiddleware
 from lilya.requests import Request
 from lilya.responses import Response
 from lilya.routing import Include, Path
+from lilya.types import ASGIApp
 
 from asyncz import monkay
 from asyncz.contrib.dashboard import create_dashboard_app
@@ -30,6 +32,10 @@ class AsynczAdmin:
         backend: AuthBackend | None = None,
         url_prefix: str | None = None,
         scheduler: AsyncIOScheduler | None = None,
+        include_session: bool = True,
+        include_cors: bool = True,
+        login_path: str = "/login",
+        allowlist: tuple[str, ...] = ("/login", "/logout", "/static", "/assets"),
     ) -> None:
         """
         Initializes the Asyncz Admin dashboard instance.
@@ -58,6 +64,12 @@ class AsynczAdmin:
         self.enable_login: bool = enable_login
         self.backend: AuthBackend = backend  # type: ignore[assignment]
 
+        # Extras
+        self.include_session = include_session
+        self.include_cors = include_cors
+        self.login_path = login_path
+        self.allowlist = allowlist
+
         # Build the internal ChildLilya application immediately
         self.child_app: ChildLilya = self._build_child()
 
@@ -70,18 +82,22 @@ class AsynczAdmin:
             The fully configured `ChildLilya` application instance.
         """
         config = monkay.settings.dashboard_config
+        middlewares: list[DefineMiddleware] = []
 
-        # 1. Base Middleware Setup (CORS, Session, AuthGate)
-        middlewares: list[LilyaMiddleware] = [
-            DefineMiddleware(
-                CORSMiddleware,
-                allow_origins=["*"],
-                allow_methods=["*"],
-                allow_headers=["*"],
-                allow_credentials=True,
-            ),
-            config.session_middleware,
-        ]
+        if self.include_cors:
+            # 1. Base Middleware Setup (CORS, Session, AuthGate)
+            middlewares = [
+                DefineMiddleware(
+                    CORSMiddleware,
+                    allow_origins=["*"],
+                    allow_methods=["*"],
+                    allow_headers=["*"],
+                    allow_credentials=True,
+                ),
+            ]
+
+        if self.include_session:
+            middlewares.append(config.session_middleware)
 
         if self.enable_login:
             # Append AuthGateMiddleware if login is enabled
@@ -89,8 +105,8 @@ class AsynczAdmin:
                 DefineMiddleware(
                     AuthGateMiddleware,
                     authenticate=self.backend.authenticate,
-                    login_path="/login",
-                    allowlist=("/login", "/logout", "/static", "/assets"),
+                    login_path=self.login_path,
+                    allowlist=self.allowlist,
                 )
             )
 
@@ -136,3 +152,12 @@ class AsynczAdmin:
             app: The host `Lilya` application instance.
         """
         app.add_child_lilya(self.url_prefix, self.child_app)
+
+    def get_asgi_app(self) -> ASGIApp:
+        """
+        Returns the dashboard's internal `object` application to be mounted in any ASGI framework.
+
+        Returns:
+            ASGIApp: The application instance.
+        """
+        return cast(ASGIApp, self.child_app)

@@ -14,7 +14,7 @@ class User:
     authentication and attached to the request state.
     """
 
-    def __init__(self, id: str, name: str, is_admin: bool = True, **extra: Any):
+    def __init__(self, id: str | int, name: str, is_admin: bool = True, **extra: Any):
         """
         Initializes the User object.
 

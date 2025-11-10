@@ -11,6 +11,13 @@ hide:
 
 - New [settings](./settings.md) module using `ASYNCZ_SETTINGS_MODULE`.
 - New [Asyncz client](./cli.md).
+- [Asyncz Dashboard](./dashboard.md) allowing to have a UI vision of your current scheduler and tasks.
+- Introduced [AsynczAdmin](./dashboard.md#asyncz-dashboard--admin) class for embedding the dashboard directly into Lilya apps.
+- Added optional login and session-based authentication through `SimpleUsernamePasswordBackend`.
+- Implemented `AuthGateMiddleware` to protect dashboard routes and handle HTMX redirects.
+- Added CORS and session middleware support in `AsynczAdmin` with customizable options.
+- Integrated `DashboardConfig` access via global settings (`settings.dashboard_config`).
+- Introduced detailed documentation and examples for custom `AuthBackend` implementations.
 - Support for Python 3.14
 
 ### Changed
