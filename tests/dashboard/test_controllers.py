@@ -84,31 +84,32 @@ def _extract_first_job_id_from_table(html: str) -> str | None:
 
 @pytest.mark.parametrize("url", ["/login", "/logout"])
 def test_login_and_logout_page(client_login, url):
-    r = client_login.get(f"{DASH_PREFIX}/{url}")
+    response = client_login.get(f"{DASH_PREFIX}/{url}")
 
-    assert r.status_code == 200
+    assert response.status_code == 200
 
 
 def test_index_renders(client: TestClient):
-    r = client.get(f"{DASH_PREFIX}/")
-    assert r.status_code == 200
-    assert "Scheduler" in r.text
-    assert "Total Tasks" in r.text
+    response = client.get(f"{DASH_PREFIX}/")
+
+    assert response.status_code == 200
+    assert "Scheduler" in response.text
+    assert "Total Tasks" in response.text
 
 
 def test_tasks_page_renders(client: TestClient):
-    r = client.get(f"{DASH_PREFIX}/tasks/")
-    assert r.status_code == 200
-    assert "Tasks" in r.text  # header
+    response = client.get(f"{DASH_PREFIX}/tasks/")
+    assert response.status_code == 200
+    assert "Tasks" in response.text  # header
 
 
 def test_tasks_partial_table_initial(client: TestClient):
-    r = client.get(f"{DASH_PREFIX}/tasks/partials/table")
+    response = client.get(f"{DASH_PREFIX}/tasks/partials/table")
 
-    assert r.status_code == 200
+    assert response.status_code == 200
 
     # At minimum returns a <table> ... </table> fragment
-    assert "<table" in r.text and "</table>" in r.text
+    assert "<table" in response.text and "</table>" in response.text
 
 
 def test_create_task_and_list(client: TestClient):
@@ -122,12 +123,12 @@ def test_create_task_and_list(client: TestClient):
         "kwargs": "",
     }
 
-    r = client.post(f"{DASH_PREFIX}/tasks/create", data=payload)
+    response = client.post(f"{DASH_PREFIX}/tasks/create", data=payload)
 
-    assert r.status_code == 200
+    assert response.status_code == 200
 
     # Should return the refreshed table fragment containing our task name
-    assert "cli-dash-noop" in r.text
+    assert "cli-dash-noop" in response.text
 
     # Double-check through partials endpoint
     r2 = client.get(f"{DASH_PREFIX}/tasks/partials/table")
@@ -144,31 +145,31 @@ def test_per_row_actions_run_pause_resume_remove(client: TestClient):
         "trigger_type": "interval",
         "trigger_value": "10s",
     }
-    r = client.post(f"{DASH_PREFIX}/tasks/create", data=payload)
-    assert r.status_code == 200
-    html = r.text
+    response = client.post(f"{DASH_PREFIX}/tasks/create", data=payload)
+    assert response.status_code == 200
+    html = response.text
 
     # 2) Grab the job id from the returned table
     job_id = _extract_first_job_id_from_table(html)
     assert job_id, f"Could not find job id in: {html[:500]}"
 
     # 3) Run now
-    r = client.post(f"{DASH_PREFIX}/tasks/{job_id}/run")
-    assert r.status_code == 200
+    response = client.post(f"{DASH_PREFIX}/tasks/{job_id}/run")
+    assert response.status_code == 200
 
     # 4) Pause
-    r = client.post(f"{DASH_PREFIX}/tasks/{job_id}/pause")
-    assert r.status_code == 200
-    assert "Paused" in r.text or "pause" in r.text.lower() or job_id in r.text
+    response = client.post(f"{DASH_PREFIX}/tasks/{job_id}/pause")
+    assert response.status_code == 200
+    assert "Paused" in response.text or "pause" in response.text.lower() or job_id in response.text
 
     # 5) Resume
-    r = client.post(f"{DASH_PREFIX}/tasks/{job_id}/resume")
-    assert r.status_code == 200
-    assert "Resume" in r.text or "Scheduled" in r.text or job_id in r.text
+    response = client.post(f"{DASH_PREFIX}/tasks/{job_id}/resume")
+    assert response.status_code == 200
+    assert "Resume" in response.text or "Scheduled" in response.text or job_id in response.text
 
     # 6) Remove
-    r = client.post(f"{DASH_PREFIX}/tasks/{job_id}/remove")
-    assert r.status_code == 200
+    response = client.post(f"{DASH_PREFIX}/tasks/{job_id}/remove")
+    assert response.status_code == 200
 
     # Table should no longer contain the job
     r2 = client.get(f"{DASH_PREFIX}/tasks/partials/table")
@@ -180,7 +181,7 @@ def test_bulk_actions_pause_run_resume_remove(client: TestClient):
     # Create three tasks
     created_ids: list[str] = []
     for idx in range(3):
-        r = client.post(
+        response = client.post(
             f"{DASH_PREFIX}/tasks/create",
             data={
                 "callable_path": "tests.fixtures:noop",
@@ -190,44 +191,44 @@ def test_bulk_actions_pause_run_resume_remove(client: TestClient):
                 "trigger_value": "15s",
             },
         )
-        assert r.status_code == 200
-        jid = _extract_first_job_id_from_table(r.text)
+        assert response.status_code == 200
+        jid = _extract_first_job_id_from_table(response.text)
         assert jid
         created_ids.append(jid)
 
     ids_json = json.dumps(created_ids)
 
     # Pause
-    r = client.post(
+    response = client.post(
         f"{DASH_PREFIX}/tasks/hx/bulk/pause",
         data={"ids": ids_json},
         headers={"HX-Request": "true"},
     )
-    assert r.status_code == 200
+    assert response.status_code == 200
 
     # Run
-    r = client.post(
+    response = client.post(
         f"{DASH_PREFIX}/tasks/hx/bulk/run",
         data={"ids": ids_json},
         headers={"HX-Request": "true"},
     )
-    assert r.status_code == 200
+    assert response.status_code == 200
 
     # Resume
-    r = client.post(
+    response = client.post(
         f"{DASH_PREFIX}/tasks/hx/bulk/resume",
         data={"ids": ids_json},
         headers={"HX-Request": "true"},
     )
-    assert r.status_code == 200
+    assert response.status_code == 200
 
     # Remove
-    r = client.post(
+    response = client.post(
         f"{DASH_PREFIX}/tasks/hx/bulk/remove",
         data={"ids": ids_json},
         headers={"HX-Request": "true"},
     )
-    assert r.status_code == 200
+    assert response.status_code == 200
 
     # Ensure they are gone
     r2 = client.get(f"{DASH_PREFIX}/tasks/partials/table")
@@ -239,24 +240,24 @@ def test_bulk_actions_pause_run_resume_remove(client: TestClient):
 
 def test_url_prefix_is_stable_across_pages(client: TestClient):
     # Load tasks page and ensure links point back to prefix (no duplication)
-    r = client.get(f"{DASH_PREFIX}/tasks")
+    response = client.get(f"{DASH_PREFIX}/tasks")
 
-    assert r.status_code == 200
+    assert response.status_code == 200
 
     # The sidebar link back to dashboard should be absolute to prefix
-    assert f'href="{DASH_PREFIX}"' in r.text
+    assert f'href="{DASH_PREFIX}"' in response.text
 
     # The partials URL is absolute to prefix
-    assert 'hx-get="partials/table"' in r.text
+    assert 'hx-get="partials/table"' in response.text
 
 
 def _create_task(
     client: TestClient,
     name: str,
-    trigger_type: str = "interval",
-    trigger_value: str = "10s",
+    trigger_type="interval",
+    trigger_value="10s",
 ) -> str:
-    r = client.post(
+    response = client.post(
         f"{DASH_PREFIX}/tasks/create",
         data={
             "callable_path": "tests.fixtures:noop",
@@ -266,9 +267,9 @@ def _create_task(
             "trigger_value": trigger_value,
         },
     )
-    assert r.status_code == 200
+    assert response.status_code == 200
 
-    jid = _extract_first_job_id_from_table(r.text)
+    jid = _extract_first_job_id_from_table(response.text)
 
     assert jid, "Could not extract job id from table HTML"
     return jid
@@ -279,10 +280,10 @@ def test_tasks_search_filters_full_page_by_name(client: TestClient):
     _create_task(client, "Beta-two")
     _create_task(client, "gamma-three")
 
-    r = client.get(f"{DASH_PREFIX}/tasks/?q=beta")
-    assert r.status_code == 200
+    response = client.get(f"{DASH_PREFIX}/tasks/?q=beta")
+    assert response.status_code == 200
 
-    txt = r.text
+    txt = response.text
 
     assert "Beta-two" in txt
     assert "alpha-one" not in txt
@@ -293,10 +294,10 @@ def test_tasks_search_filters_partial_by_name(client: TestClient):
     _create_task(client, "alpha-one")
     _create_task(client, "Beta-two")
 
-    r = client.get(f"{DASH_PREFIX}/tasks/partials/table?q=alpha")
-    assert r.status_code == 200
+    response = client.get(f"{DASH_PREFIX}/tasks/partials/table?q=alpha")
+    assert response.status_code == 200
 
-    txt = r.text
+    txt = response.text
     assert "alpha-one" in txt
     assert "Beta-two" not in txt
 
@@ -304,9 +305,9 @@ def test_tasks_search_filters_partial_by_name(client: TestClient):
 def test_tasks_search_is_case_insensitive(client: TestClient):
     _create_task(client, "MiXeD-Case-Name")
 
-    r = client.get(f"{DASH_PREFIX}/tasks/?q=mixed")
-    assert r.status_code == 200
-    assert "MiXeD-Case-Name" in r.text
+    response = client.get(f"{DASH_PREFIX}/tasks/?q=mixed")
+    assert response.status_code == 200
+    assert "MiXeD-Case-Name" in response.text
 
     r2 = client.get(f"{DASH_PREFIX}/tasks/partials/table?q=NAME")
     assert r2.status_code == 200
@@ -319,10 +320,10 @@ def test_tasks_search_can_match_by_trigger_type(client: TestClient):
     _create_task(client, "cronny", trigger_type="cron", trigger_value="*/5 * * * *")
 
     # Full page search for "cron" should show only the cron job
-    r = client.get(f"{DASH_PREFIX}/tasks/?q=cron")
-    assert r.status_code == 200
-    assert "cronny" in r.text
-    assert "interval-one" not in r.text
+    response = client.get(f"{DASH_PREFIX}/tasks/?q=cron")
+    assert response.status_code == 200
+    assert "cronny" in response.text
+    assert "interval-one" not in response.text
 
     # Partials search for "interval" should show only the interval job
     r2 = client.get(f"{DASH_PREFIX}/tasks/partials/table?q=interval")
@@ -335,10 +336,10 @@ def test_tasks_search_can_match_by_id(client: TestClient):
     jid = _create_task(client, "id-searchable")
 
     # Search by the exact id should return the row
-    r = client.get(f"{DASH_PREFIX}/tasks/?q={jid}")
-    assert r.status_code == 200
-    assert jid in r.text
-    assert "id-searchable" in r.text
+    response = client.get(f"{DASH_PREFIX}/tasks/?q={jid}")
+    assert response.status_code == 200
+    assert jid in response.text
+    assert "id-searchable" in response.text
 
     # Partials too
     r2 = client.get(f"{DASH_PREFIX}/tasks/partials/table?q={jid}")
@@ -350,9 +351,9 @@ def test_tasks_search_reset_link_clears_query(client: TestClient):
     _create_task(client, "only-one")
 
     # With a filter that excludes our row
-    r = client.get(f"{DASH_PREFIX}/tasks/?q=zzz-nothing")
-    assert r.status_code == 200
-    assert "only-one" not in r.text
+    response = client.get(f"{DASH_PREFIX}/tasks/?q=zzz-nothing")
+    assert response.status_code == 200
+    assert "only-one" not in response.text
 
     # Simulate clicking the "Reset" link (go to /tasks without q)
     r2 = client.get(f"{DASH_PREFIX}/tasks")

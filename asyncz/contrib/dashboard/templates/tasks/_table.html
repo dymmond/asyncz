@@ -76,7 +76,7 @@
 
             <td class="px-4 py-3">
               <div class="flex flex-wrap gap-2 justify-end">
-                <form hx-post="{{ url_prefix }}/tasks/{{ t.id }}/run" hx-target="#tasks-table" hx-swap="innerHTML">
+                <form hx-post="{{ t.id }}/run" hx-target="#tasks-table" hx-swap="innerHTML">
                   <button class="inline-flex items-center gap-1 rounded-lg bg-[#f06824] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#e35d1e]">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white/90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M8 5v14l11-7z" />
@@ -86,7 +86,7 @@
                 </form>
 
                 {% if t.next_run_time %}
-                <form hx-post="{{ url_prefix }}/tasks/{{ t.id }}/pause" hx-target="#tasks-table" hx-swap="innerHTML">
+                <form hx-post="{{ t.id }}/pause" hx-target="#tasks-table" hx-swap="innerHTML">
                   <button class="inline-flex items-center gap-1 rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-1.5 text-sm font-medium text-yellow-800 hover:bg-yellow-100">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-yellow-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M10 9v6M14 9v6" />
@@ -95,7 +95,7 @@
                   </button>
                 </form>
                 {% else %}
-                <form hx-post="{{ url_prefix }}/tasks/{{ t.id }}/resume" hx-target="#tasks-table" hx-swap="innerHTML">
+                <form hx-post="{{ t.id }}/resume" hx-target="#tasks-table" hx-swap="innerHTML">
                   <button class="inline-flex items-center gap-1 rounded-lg border border-green-300 bg-green-50 px-3 py-1.5 text-sm font-medium text-green-800 hover:bg-green-100">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M8 5v14l11-7z" />
@@ -105,7 +105,7 @@
                 </form>
                 {% endif %}
 
-                <form hx-post="{{ url_prefix }}/tasks/{{ t.id }}/remove" hx-target="#tasks-table" hx-swap="innerHTML"
+                <form hx-post="{{ t.id }}/remove" hx-target="#tasks-table" hx-swap="innerHTML"
                       onsubmit="return confirm('Remove task?')">
                   <button class="inline-flex items-center gap-1 rounded-lg border border-red-300 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-800 hover:bg-red-100">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-red-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
