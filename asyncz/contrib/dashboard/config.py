@@ -97,7 +97,6 @@ class DashboardConfig:
         )
 
 
-# --- helpers ---
 def _normalize_prefix(value: str | None) -> str:
     """Ensure a leading slash and remove trailing slash (except for root)."""
     if not value:
