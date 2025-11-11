@@ -5,6 +5,20 @@ hide:
 
 # Release Notes
 
+## 0.14.1
+
+### Fixed
+
+- Duplicate dashboard URL prefixing (`/dashboard/tasks/dashboard`) when deployed behind Nginx or under an ASGI mount.
+- Nested HTMX table container causing duplicate `#tasks-table` and incorrect `hx-get` paths.
+
+### Changed
+
+- `get_effective_prefix()` now prefers the configured `dashboard_url_prefix` and falls back to `root_path` only when configured as `/`.
+- All HTMX and action URLs in the dashboard are now relative to the current path for reverse-proxy compatibility.
+- Updated templates to remove hardcoded `/dashboard` from links and actions.
+- AsyncZ Dashboard is now fully **reverse-proxy ready** (works with `X-Forwarded-Prefix` and ASGI mounts).
+
 ## 0.14.0
 
 ### Added
