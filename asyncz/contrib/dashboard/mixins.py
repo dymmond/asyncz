@@ -10,7 +10,7 @@ from asyncz.contrib.dashboard.messages import get_messages
 
 def default_context(request: Request) -> dict:
     context = {}
-    effective_prefix = get_effective_prefix()
+    effective_prefix = get_effective_prefix(request)
     context.update(
         {
             "title": monkay.settings.dashboard_config.title,

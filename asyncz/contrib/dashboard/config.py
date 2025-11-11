@@ -1,6 +1,8 @@
 import secrets
 from dataclasses import dataclass
-from typing import Literal, cast
+from typing import Literal
+
+from lilya.requests import Request
 
 try:
     from lilya.middleware import DefineMiddleware
@@ -95,13 +97,38 @@ class DashboardConfig:
         )
 
 
-def get_effective_prefix() -> str:
-    """Compute an absolute dashboard base path, combining ASGI root_path and the
-    configured dashboard URL prefix.
+# --- helpers ---
+def _normalize_prefix(value: str | None) -> str:
+    """Ensure a leading slash and remove trailing slash (except for root)."""
+    if not value:
+        return "/"
+    v = value.strip()
+    if not v.startswith("/"):
+        v = "/" + v
+    return v if v == "/" else v.rstrip("/")
 
-    Guarantees:
-    - Always starts with '/'
-    - No trailing slash (except when the result is exactly '/')
-    - Never double-appends the configured prefix if it's already in root_path
+
+def get_effective_prefix(request: Request | None = None) -> str:
+    """Compute the effective base URL prefix for the dashboard.
+
+    - If *request* is **None**, return the configured dashboard prefix exactly as before
+      (leading '/', no trailing '/', except when it is '/'). This preserves
+      backward compatibility with tests that called the old zero-arg function.
+    - If *request* is provided, combine ASGI mount ``root_path`` (if any) with the
+      configured prefix, avoiding double-prefixing and double slashes.
     """
-    return cast(str, monkay.settings.dashboard_config.dashboard_url_prefix)
+    configured_prefix = _normalize_prefix(
+        getattr(monkay.settings.dashboard_config, "dashboard_url_prefix", "/")
+    )
+
+    # Prefer the configured prefix when it's meaningful (not '/')
+    if configured_prefix != "/":
+        return configured_prefix
+
+    # Only when configured is '/' do we consider the mount root
+    if request is not None:
+        scope = getattr(request, "scope", {}) or {}
+        mount_prefix = _normalize_prefix(scope.get("root_path") or "/")
+        return mount_prefix
+
+    return "/"
