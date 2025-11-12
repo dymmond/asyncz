@@ -1,9 +1,15 @@
+import logging
 from typing import Any
 
 from lilya.routing import Include, RoutePath, Router
 from lilya.staticfiles import StaticFiles
 
 from asyncz.contrib.dashboard.controllers import home
+from asyncz.contrib.dashboard.controllers.logs import (
+    LogsPageController,
+    LogsTablePartialController,
+    get_log_storage,
+)
 from asyncz.contrib.dashboard.controllers.tasks import (
     TaskBulkPauseController,
     TaskBulkRemoveController,
@@ -17,15 +23,33 @@ from asyncz.contrib.dashboard.controllers.tasks import (
     TasklistController,
     TaskTablePartialController,
 )
+from asyncz.contrib.dashboard.logs.handler import install_task_log_handler
+from asyncz.contrib.dashboard.logs.storage import LogStorage
 
 
-def create_dashboard_app(scheduler: Any) -> Router:
+def create_dashboard_app(scheduler: Any, log_storage: LogStorage | None = None) -> Router:
     """
     Build a Lilya sub-application wired to an AsyncZ AsyncIOScheduler.
     The scheduler must be a live scheduler instance owned by the host app.
     """
+    install_task_log_handler(storage=get_log_storage(storage=log_storage))
+
+    # Ensure stdlib logs on the namespaced logger bubble up to our handler.
+    # Our TaskLogHandler is installed by install_task_log_handler() on a parent logger.
+    # Make sure the child logger used by tests (`asyncz.task`) propagates upward.
+    logging.getLogger("asyncz").setLevel(logging.INFO)
+    logging.getLogger("asyncz").propagate = True
+
     app = Router(
         routes=[
+            Include(
+                path="/logs",
+                routes=[
+                    RoutePath("/", LogsPageController, name="index"),
+                    RoutePath("/partials/table", LogsTablePartialController, name="table"),
+                ],
+                name="logs",
+            ),
             Include(
                 path="/tasks",
                 routes=[

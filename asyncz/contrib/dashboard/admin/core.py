@@ -19,6 +19,7 @@ from asyncz.contrib.dashboard.admin.middleware.forward_root_path import (
 )
 from asyncz.contrib.dashboard.admin.protocols import AuthBackend
 from asyncz.contrib.dashboard.engine import templates
+from asyncz.contrib.dashboard.logs.storage import LogStorage
 from asyncz.schedulers.asyncio import AsyncIOScheduler
 
 
@@ -54,6 +55,7 @@ class AsynczAdmin:
         include_cors: bool = True,
         login_path: str = "/login",
         allowlist: tuple[str, ...] = ("/login", "/logout", "/static", "/assets"),
+        log_storage: LogStorage | None = None,
     ) -> None:
         """
         Initializes the Asyncz Admin dashboard instance.
@@ -92,6 +94,7 @@ class AsynczAdmin:
         self.allowlist = allowlist
 
         # Build the internal dashboard routing application immediately
+        self.log_storage: LogStorage | None = log_storage
         self.child_app: Router = self.assemble_dashboard_router()
 
     def add_sign_in_pages(self) -> list[Path | Include]:
@@ -111,7 +114,6 @@ class AsynczAdmin:
         # Assert self has backend attribute (required by logic)
         backend: AuthBackend = self.backend
 
-        # --- Login Endpoint ---
         async def login(request: Request) -> Response:
             """
             Handler for the `/login` route. Delegates GET (form rendering) and
@@ -119,7 +121,6 @@ class AsynczAdmin:
             """
             return await backend.login(request)
 
-        # --- Logout Endpoint ---
         async def logout(request: Request) -> Response:
             """
             Handler for the `/logout` route. Delegates the session clearing logic
@@ -196,7 +197,9 @@ class AsynczAdmin:
             routes=[
                 Include(
                     "/",
-                    app=create_dashboard_app(scheduler=self.scheduler),
+                    app=create_dashboard_app(
+                        scheduler=self.scheduler, log_storage=self.log_storage
+                    ),
                 ),
             ],
         )

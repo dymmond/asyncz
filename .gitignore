@@ -17,6 +17,7 @@ results/
 site/
 target/
 
+*.zip
 # files
 **/*.so
 **/*.sqlite
