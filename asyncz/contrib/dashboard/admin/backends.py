@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from lilya.compat import reverse
 from lilya.datastructures import FormData
 from lilya.requests import Request
 from lilya.responses import RedirectResponse, Response
@@ -103,8 +104,8 @@ class SimpleUsernamePasswordBackend(AuthBackend):
         }
 
         # Redirect to the requested 'next' URL or default to root
-        nxt: str = form.get("next") or "/"
-        return RedirectResponse(nxt, status_code=303)
+        next: str = form.get("next") or reverse("dashboard:index")
+        return RedirectResponse(next, status_code=303)
 
     async def logout(self, request: Request) -> Response:
         """
@@ -118,5 +119,4 @@ class SimpleUsernamePasswordBackend(AuthBackend):
         """
         # Remove user data from the session
         request.session.pop(self.session_key, None)
-
-        return RedirectResponse("/login", status_code=303)
+        return RedirectResponse(reverse("login"), status_code=303)
