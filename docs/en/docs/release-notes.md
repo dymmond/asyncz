@@ -5,6 +5,16 @@ hide:
 
 # Release Notes
 
+## 0.14.2
+
+### Changed
+
+- Replaced `ChildLilya` sub‑app mounting with `Router`‑based composition for a cleaner and more maintainable architecture.
+- `AsynczAdmin` now uses a single composed Lilya app that mounts `/login` and `/logout` at root while serving the dashboard under its prefix.
+- Simplified `include_in()` method — mounts the composed app at `/` for proper reverse‑proxy behavior.
+- Improved `url_prefix` normalization to avoid double slashes and ensure consistent route generation.
+- `AsyncZ Dashboard` is now fully reverse‑proxy agnostic and works seamlessly behind Nginx or ASGI mounts.
+
 ## 0.14.1
 
 ### Fixed

@@ -59,7 +59,7 @@
 <div class="mt-10 bg-white border rounded-xl shadow-sm overflow-hidden">
   <div class="px-5 py-4 border-b flex items-center justify-between">
     <h2 class="text-lg font-semibold">Recent tasks</h2>
-    <a href="/tasks"
+    <a href="{{ url_for('dashboard:tasks:index') }}>
        class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#f06824] text-white text-sm font-medium shadow hover:shadow-md hover:bg-[#e35d1e] transition">
       <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 4v16m8-8H4" />
@@ -83,7 +83,7 @@
         {% if not tasks or tasks|length == 0 %}
           <tr>
             <td colspan="5" class="px-4 py-8 text-center text-gray-500">
-              No tasks yet. <a href="{{ url_prefix }}/tasks" class="text-[#f06824] hover:underline">Create one</a>.
+              No tasks yet. <a href="{{ url_for('dashboard:tasks:index') }}" class="text-[#f06824] hover:underline">Create one</a>.
             </td>
           </tr>
         {% else %}
@@ -119,7 +119,7 @@
 
 <!-- CTA Section -->
 <div class="mt-10 flex justify-center">
-  <a href="{{ url_prefix }}/tasks"
+  <a href="{{ url_for('dashboard:tasks:index') }}"
      class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-[#f06824] via-[#f78d3e] to-[#ffb347] text-white font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all">
     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 drop-shadow-sm" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M12 4v16m8-8H4" />

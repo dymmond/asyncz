@@ -1,0 +1,28 @@
+<table class="min-w-full divide-y divide-gray-100">
+  <thead class="bg-gray-50">
+    <tr>
+      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time (UTC)</th>
+      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
+      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task ID</th>
+      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Logger</th>
+      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Message</th>
+    </tr>
+  </thead>
+  <tbody class="bg-white divide-y divide-gray-100 font-mono text-[13px]">
+    {% if rows|length == 0 %}
+      <tr>
+        <td colspan="5" class="px-6 py-10 text-center text-gray-500">No logs yet.</td>
+      </tr>
+    {% else %}
+      {% for r in rows %}
+      <tr>
+        <td class="px-4 py-2 whitespace-nowrap">{{ r.ts.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+        <td class="px-4 py-2 whitespace-nowrap">{{ r.level }}</td>
+        <td class="px-4 py-2 whitespace-nowrap">{{ r.task_id or "—" }}</td>
+        <td class="px-4 py-2 whitespace-nowrap">{{ r.logger }}</td>
+        <td class="px-4 py-2">{{ r.message }}</td>
+      </tr>
+      {% endfor %}
+    {% endif %}
+  </tbody>
+</table>

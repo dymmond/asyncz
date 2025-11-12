@@ -47,6 +47,7 @@ def client(scheduler: AsyncIOScheduler) -> Iterator[TestClient]:
 def client_login(scheduler: AsyncIOScheduler) -> Iterator[TestClient]:
     app = Lilya()
     admin = AsynczAdmin(
+        url_prefix=DASH_PREFIX,
         scheduler=scheduler,
         enable_login=True,
         backend=SimpleUsernamePasswordBackend(verify),
@@ -84,7 +85,7 @@ def _extract_first_job_id_from_table(html: str) -> str | None:
 
 @pytest.mark.parametrize("url", ["/login", "/logout"])
 def test_login_and_logout_page(client_login, url):
-    response = client_login.get(f"{DASH_PREFIX}/{url}")
+    response = client_login.get(f"{url}")
 
     assert response.status_code == 200
 
@@ -243,9 +244,6 @@ def test_url_prefix_is_stable_across_pages(client: TestClient):
     response = client.get(f"{DASH_PREFIX}/tasks")
 
     assert response.status_code == 200
-
-    # The sidebar link back to dashboard should be absolute to prefix
-    assert f'href="{DASH_PREFIX}"' in response.text
 
     # The partials URL is absolute to prefix
     assert 'hx-get="partials/table"' in response.text

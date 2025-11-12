@@ -13,6 +13,7 @@ def default_context(request: Request) -> dict:
     effective_prefix = get_effective_prefix(request)
     context.update(
         {
+            "request": request,
             "title": monkay.settings.dashboard_config.title,
             "header_text": monkay.settings.dashboard_config.header_title,
             "favicon": monkay.settings.dashboard_config.favicon,

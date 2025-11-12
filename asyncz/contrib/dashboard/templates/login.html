@@ -10,8 +10,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
 
   <!-- Project assets -->
-  <link rel="stylesheet" href="{{ url_for('statics', path='/css/asyncz.css') }}">
-  <script src="{{ url_for('statics', path='/js/asyncz.js') }}"></script>
+  <link rel="stylesheet" href="{{ url_for('dashboard:statics', path='css/asyncz.css') }}">
+  <script src="{{ url_for('dashboard:statics', path='js/asyncz.js') }}"></script>
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
 
   <script>
@@ -67,7 +67,7 @@
             </div>
           {% endif %}
 
-          <form method="post" action="{{ url_prefix }}/login" class="space-y-4">
+          <form method="post" action="{{ url_for('login')}}" class="space-y-4">
             <input type="hidden" name="next" value="{{ next or '' }}"/>
 
             <div>
@@ -118,7 +118,7 @@
 
       <!-- Footer links -->
       <div class="mt-6 text-center text-sm text-gray-600">
-        <a href="{{ url_prefix }}" class="underline hover:no-underline">Back to Dashboard</a>
+        <a href="{{ url_for('dashboard:index') }}" class="underline hover:no-underline">Back to Dashboard</a>
       </div>
     </div>
   </div>

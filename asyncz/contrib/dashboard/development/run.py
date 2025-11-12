@@ -23,7 +23,8 @@ def verify(u: str, p: str) -> User | None:
 
 
 asyncz_admin = AsynczAdmin(enable_login=True, backend=SimpleUsernamePasswordBackend(verify))  # type: ignore
-app = Lilya(routes=[Include(asyncz_admin.url_prefix, app=asyncz_admin.get_asgi_app())])
+app = Lilya(routes=[Include("/", app=asyncz_admin.get_asgi_app(with_url_prefix=True))])
+# app = Lilya()
 # asyncz_admin.include_in(app)
 
 

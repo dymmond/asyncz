@@ -56,7 +56,9 @@ nav:
     - Decorator: contrib/ravyn/decorator.md
   - asgi.md
 - AsyncZ Cli: cli.md
-- Dashboard UI: dashboard.md
+- Dashboard UI:
+    - dashboard/dashboard.md
+    - dashboard/logs.md
 - Contributing: contributing.md
 - Vendors: vendors.md
 - Sponsorship: sponsorship.md
