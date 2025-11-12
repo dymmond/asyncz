@@ -20,6 +20,7 @@ from asyncz.contrib.dashboard.controllers._helpers import (
     safe_lookup_store,
     serialize,
 )
+from asyncz.contrib.dashboard.messages import add_message
 from asyncz.contrib.dashboard.mixins import DashboardMixin
 from asyncz.exceptions import TaskLookupError
 from asyncz.schedulers import AsyncIOScheduler
@@ -109,9 +110,13 @@ class TaskRunController(_BaseTaskAction):
         else:
             # No further runs: keep task but mark as paused (do NOT delete)
             task.update_task(next_run_time=None)
-        store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
-        store_obj.update_task(task)
 
+        try:
+            store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
+            store_obj.update_task(task)
+        except KeyError:
+            message = "No stores are configured on the scheduler. Add one (e.g., MemoryStore) with alias 'default'."
+            add_message(request, "warning", message)
         return await self._redirect()
 
 
@@ -131,8 +136,12 @@ class TaskPauseController(_BaseTaskAction):
         task.update_task(next_run_time=None)
 
         # Persist the state change directly to the store
-        store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
-        store_obj.update_task(task)
+        try:
+            store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
+            store_obj.update_task(task)
+        except KeyError:
+            message = "No stores are configured on the scheduler. Add one (e.g., MemoryStore) with alias 'default'."
+            add_message(request, "warning", message)
 
         return await self._redirect()
 
@@ -161,8 +170,13 @@ class TaskResumeController(_BaseTaskAction):
         else:
             # No further runs: keep task but mark as paused
             task.update_task(next_run_time=None)
-        store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
-        store_obj.update_task(task)
+
+        try:
+            store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
+            store_obj.update_task(task)
+        except KeyError:
+            message = "No stores are configured on the scheduler. Add one (e.g., MemoryStore) with alias 'default'."
+            add_message(request, "warning", message)
 
         return await self._redirect()
 
@@ -194,7 +208,6 @@ class TaskTablePartialController(DashboardMixin, Controller):
         items: list[dict[str, Any]] = [serialize(t) for t in tasks]
         q: str | None = request.query_params.get("q") if request.query_params else None
         filtered: list[dict[str, Any]] = filter_items(items, q)
-
         context = await self.get_context_data(request)
         context.update({"tasks": filtered, "q": q or ""})
         return await render_table(self.scheduler, request, context)
@@ -227,8 +240,14 @@ class TaskCreateController(DashboardMixin, Controller):
         kwargs: dict[str, Any] = json.loads(raw_kwargs) if raw_kwargs else {}
 
         # Import callable and parse trigger
-        func: Callable[..., Any] = import_callable(callable_path)
-        trigger: Any = parse_trigger(trigger_type, trigger_value)
+        try:
+            func: Callable[..., Any] = import_callable(callable_path)
+            trigger: Any = parse_trigger(trigger_type, trigger_value)
+        except Exception as e:
+            message = str(e)
+            add_message(request, "error", f"{message}")
+            context = await self.get_context_data(request)
+            return await render_table(self.scheduler, request, context)
 
         # Add task to the scheduler
         self.scheduler.add_task(
@@ -266,8 +285,12 @@ class TaskBulkPauseController(DashboardMixin, Controller):
             task.update_task(next_run_time=None)
 
             # Persist state
-            store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
-            store_obj.update_task(task)
+            try:
+                store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
+                store_obj.update_task(task)
+            except KeyError:
+                message = "No stores are configured on the scheduler. Add one (e.g., MemoryStore) with alias 'default'."
+                add_message(request, "warning", message)
 
         context = await self.get_context_data(request)
         return await render_table(self.scheduler, request, context)
@@ -322,8 +345,13 @@ class TaskBulkRunController(DashboardMixin, Controller):
                 else:
                     # No further runs: mark paused instead of deleting
                     task.update_task(next_run_time=None)
-                store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
-                store_obj.update_task(task)
+
+                try:
+                    store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
+                    store_obj.update_task(task)
+                except KeyError:
+                    message = "No stores are configured on the scheduler. Add one (e.g., MemoryStore) with alias 'default'."
+                    add_message(request, "warning", message)
             except Exception:
                 # Ignore bad IDs or transient store issues; table will reflect actual state
                 continue
@@ -365,8 +393,13 @@ class TaskBulkResumeController(DashboardMixin, Controller):
             else:
                 # No further runs: mark paused
                 task.update_task(next_run_time=None)
-            store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
-            store_obj.update_task(task)
+
+            try:
+                store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
+                store_obj.update_task(task)
+            except KeyError:
+                message = "No stores are configured on the scheduler. Add one (e.g., MemoryStore) with alias 'default'."
+                add_message(request, "warning", message)
 
         context = await self.get_context_data(request)
         return await render_table(self.scheduler, request, context)
@@ -459,8 +492,13 @@ class TaskHXRunController(DashboardMixin, Controller):
         else:
             # No further runs: keep task but mark as paused
             task.update_task(next_run_time=None)
-        store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
-        store_obj.update_task(task)
+
+        try:
+            store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
+            store_obj.update_task(task)
+        except KeyError:
+            message = "No stores are configured on the scheduler. Add one (e.g., MemoryStore) with alias 'default'."
+            add_message(request, "warning", message)
 
         context = await self.get_context_data(request)
         return await render_table(self.scheduler, request, context)
@@ -482,8 +520,12 @@ class TaskHXPauseController(DashboardMixin, Controller):
 
         task.update_task(next_run_time=None)
 
-        store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
-        store_obj.update_task(task)
+        try:
+            store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
+            store_obj.update_task(task)
+        except KeyError:
+            message = "No stores are configured on the scheduler. Add one (e.g., MemoryStore) with alias 'default'."
+            add_message(request, "warning", message)
 
         context = await self.get_context_data(request)
         return await render_table(self.scheduler, request, context)
@@ -513,8 +555,13 @@ class TaskHXResumeController(DashboardMixin, Controller):
         else:
             # No further runs: mark paused
             task.update_task(next_run_time=None)
-        store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
-        store_obj.update_task(task)
+
+        try:
+            store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
+            store_obj.update_task(task)
+        except KeyError:
+            message = "No stores are configured on the scheduler. Add one (e.g., MemoryStore) with alias 'default'."
+            add_message(request, "warning", message)
 
         context = await self.get_context_data(request)
         return await render_table(self.scheduler, request, context)

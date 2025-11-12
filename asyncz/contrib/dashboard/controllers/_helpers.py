@@ -103,6 +103,89 @@ def parse_trigger(trigger_type: str, trigger_value: str | None = None) -> Any:
         return DateTrigger(run_date=dt_obj)
 
 
+def _collect_messages(request: Request, context: dict[str, Any]) -> list[dict[str, Any]]:
+    """
+    Collects flash messages from context and/or request.state._flash_messages (if any),
+    returning a normalized list of {"level": str, "text": str}.
+    """
+    msgs: list[dict[str, Any]] = []
+
+    # 1) From context
+    ctx_msgs = context.get("messages") or []
+    if isinstance(ctx_msgs, (list, tuple)):
+        for m in ctx_msgs:
+            if isinstance(m, dict) and "text" in m:
+                level = str(m.get("level", "info"))
+                msgs.append({"level": level, "text": str(m["text"])})
+            elif hasattr(m, "text"):
+                level = getattr(m, "level", "info")
+                msgs.append({"level": str(level), "text": str(m.text)})
+
+    # 2) From request.state (common pattern for add_message middleware)
+    state_msgs = getattr(getattr(request, "state", None), "_flash_messages", None)
+    if isinstance(state_msgs, (list, tuple)):
+        for m in state_msgs:
+            if isinstance(m, dict) and "text" in m:
+                level = str(m.get("level", "info"))
+                msgs.append({"level": level, "text": str(m["text"])})
+    return msgs
+
+
+def _render_messages_oob(request: Request, context: dict[str, Any]) -> str:
+    """
+    Renders an OOB (out-of-band) HTMX fragment with flash messages so that partial
+    responses (like table reloads) can still update the top-of-page banner.
+
+    Looks for `templates/partials/_messages_oob.html` first. If not found, falls back
+    to an inline builder using Tailwind classes.
+    """
+    msgs = _collect_messages(request, context)
+    if not msgs:
+        # Return an empty OOB container to clear any previous banners
+        return '<div id="flash-messages" hx-swap-oob="true"></div>'
+
+    # Try to use a user-provided partial if it exists
+    try:
+        tpl = templates.get_template("partials/_messages_oob.html")
+        # Ensure messages are available to the template
+        return tpl.render({**context, "messages": msgs})
+    except Exception:
+        # Fallback: inline render
+        parts: list[str] = [
+            '<div id="flash-messages" hx-swap-oob="true">',
+            '<div class="space-y-4 w-full">',
+        ]
+        for i, m in enumerate(msgs, start=1):
+            level = (m.get("level") or "info").lower()
+            if level == "success":
+                color = "green"
+                icon = "check-circle"
+            elif level == "error":
+                color = "red"
+                icon = "x-circle"
+            elif level == "warning":
+                color = "yellow"
+                icon = "alert-triangle"
+            else:
+                color = "blue"
+                icon = "info"
+            text = str(m.get("text", ""))
+            parts.append(
+                f"""
+                  <div id="flash-{i}" class="relative flex items-start gap-3 p-4 bg-{color}-50
+                  border-l-4 border-{color}-500 text-{color}-700 shadow transition-opacity duration-200">
+                    <i data-lucide="{icon}" class="w-5 h-5 mt-1 flex-shrink-0"></i>
+                    <div class="flex-1 leading-relaxed">{text}</div>
+                    <button type="button" onclick="(function(id){{const el=document.getElementById(id); if(el){{el.classList.add('opacity-0'); setTimeout(()=>el.remove(),200);}}}})('flash-{i}');"
+                      class="absolute top-5 right-6 text-xl font-bold leading-none text-{color}-700 hover:text-{color}-900 focus:outline-none"
+                      aria-label="Dismiss">&times;</button>
+                  </div>
+                  """
+            )
+        parts.append("</div></div>")
+        return "".join(parts)
+
+
 async def render_table(scheduler: Any, request: Request, context: Any) -> HTMLResponse:
     """
     Renders the HTML table fragment for the list of scheduled tasks, supporting optional search filtering.
@@ -112,7 +195,9 @@ async def render_table(scheduler: Any, request: Request, context: Any) -> HTMLRe
         request: The incoming Lilya Request object, used to retrieve query parameters (search query 'q').
 
     Returns:
-        HTMLResponse: A response containing the rendered `_table.html` template fragment.
+        HTMLResponse: An HTMX-friendly response containing:
+          1) An out-of-band messages fragment to update the top banner, and
+          2) The rendered `_table.html` template fragment.
     """
     tasks: list[Any] = scheduler.get_tasks()
 
@@ -133,9 +218,12 @@ async def render_table(scheduler: Any, request: Request, context: Any) -> HTMLRe
 
     # Render the table template
     context.update({"tasks": items})
-    html: str = templates.get_template("tasks/_table.html").render(context)
+    table_html: str = templates.get_template("tasks/_table.html").render(context)
 
-    return HTMLResponse(html)
+    # Also include the OOB messages so top-of-page banners update during partial swaps
+    messages_oob_html: str = _render_messages_oob(request, context)
+
+    return HTMLResponse(messages_oob_html + table_html)
 
 
 def parse_ids_from_request_form(data: dict[str, Any]) -> list[str]:
