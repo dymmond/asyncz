@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 
 from .monkay import create_monkay
 
-__version__ = "0.14.2"
+__version__ = "0.14.3"
 
 if TYPE_CHECKING:
     from .conf import settings
