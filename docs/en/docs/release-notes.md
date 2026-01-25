@@ -5,6 +5,13 @@ hide:
 
 # Release Notes
 
+## 0.14.3
+
+### Fixed
+
+- When using the settings it was causing a conflict with the types and not casting properly to the right type due
+to the `from future import __annotations__`.
+
 ## 0.14.2
 
 ### Changed
