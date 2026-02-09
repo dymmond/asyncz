@@ -81,7 +81,7 @@ testing = [
     "pytest-loguru>=0.2.0,<1",
     "redis>=4.4.0,<8.0.0",
     "mypy>=0.982,<2.0.0",
-    "ravyn>=0.1.0",
+    "ravyn>=0.3.7",
     "starlette",
     "lilya[standard]>=0.22.15",
     "sqlalchemy",
