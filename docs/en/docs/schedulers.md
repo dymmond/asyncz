@@ -107,6 +107,7 @@ If you omit the callable, `add_task()` returns a decorator-style task definition
 Asyncz also supports:
 
 - `pause()` / `resume()` for the whole scheduler
+- `run_task()` for administrative "run now" flows
 - `pause_task()` / `resume_task()`
 - `update_task()`
 - `reschedule_task()`
@@ -129,6 +130,71 @@ Examples:
 ```python
 {!> ../../../docs_src/schedulers/reschedule_task.py !}
 ```
+
+## Running a task immediately
+
+Use `scheduler.run_task(...)` when you need an explicit operator-driven execution outside the normal trigger cadence.
+
+```python
+from asyncz.schedulers import AsyncIOScheduler
+
+scheduler = AsyncIOScheduler()
+
+task = scheduler.add_task(my_cleanup, "interval", minutes=30, id="cleanup")
+scheduler.start(paused=True)
+
+# Force an immediate execution, then keep the task paused if the trigger has no
+# future run time left (useful for one-off/date tasks surfaced in admin tools).
+scheduler.run_task("cleanup", remove_finished=False)
+```
+
+Important behavior:
+
+- `run_task()` uses the task's configured executor
+- it dispatches `TASK_SUBMITTED` (or `TASK_MAX_INSTANCES`) just like the main scheduler loop
+- it recomputes and persists the next run time after submission
+- if the trigger is exhausted, `remove_finished=True` removes the task while `False` keeps it paused
+
+## Task inspection and querying
+
+Schedulers expose immutable inspection snapshots through `get_task_info()` and `get_task_infos()`.
+
+```python
+info = scheduler.get_task_info("cleanup")
+assert info is not None
+print(info.schedule_state.value, info.trigger_alias, info.next_run_time)
+
+scheduled = scheduler.get_task_infos(
+    schedule_state="scheduled",
+    trigger="interval",
+    q="cleanup",
+    sort_by="next_run_time",
+)
+```
+
+`get_task_infos()` is intended for operational surfaces such as:
+
+- admin dashboards
+- CLI list commands
+- health checks and diagnostics
+- custom support tooling
+
+Supported filters:
+
+- `schedule_state`: `pending`, `paused`, or `scheduled`
+- `executor`
+- `trigger`
+- `q`: case-insensitive free-text search across identifiers, names, callable metadata, trigger metadata, executor, store, and state
+
+Supported sort keys:
+
+- `id`
+- `name`
+- `next_run_time`
+- `schedule_state`
+- `executor`
+- `store`
+- `trigger`
 
 ## Multi-process locking
 

@@ -8,6 +8,7 @@ import pytest
 from pydantic import ValidationError
 
 from asyncz.datastructures import TaskState
+from asyncz.enums import TaskScheduleState
 from asyncz.exceptions import AsynczException
 from asyncz.schedulers.base import BaseScheduler
 from asyncz.tasks import Task
@@ -237,6 +238,46 @@ def test_repr(task):
     assert repr(task) == b"<Task (id=t\xc3\xa9st\xc3\xafd name=n\xc3\xa4m\xc3\xa9)>".decode(
         "utf-8"
     )
+
+
+@pytest.mark.parametrize(
+    ("pending", "next_run_time", "expected"),
+    [
+        (True, None, TaskScheduleState.PENDING),
+        (False, None, TaskScheduleState.PAUSED),
+        (False, "scheduled", TaskScheduleState.SCHEDULED),
+    ],
+)
+def test_schedule_state(create_task, pending, next_run_time, expected):
+    task = create_task(fn=dummyfn)
+    task.pending = pending
+    if next_run_time == "scheduled":
+        task.next_run_time = task.trigger.run_at
+    else:
+        task.next_run_time = next_run_time
+
+    assert task.schedule_state is expected
+    assert task.paused is (expected is TaskScheduleState.PAUSED)
+
+
+def test_snapshot(create_task):
+    task = create_task(fn=dummyfn)
+    task.pending = False
+    task.next_run_time = task.trigger.run_at
+
+    info = task.snapshot()
+
+    assert info.id == task.id
+    assert info.name == task.name
+    assert info.callable_name == "dummyfn"
+    assert info.callable_reference == "tests.test_tasks:dummyfn"
+    assert info.trigger_alias == "date"
+    assert info.trigger_name == "DateTrigger"
+    assert info.trigger_description == str(task.trigger)
+    assert info.schedule_state is TaskScheduleState.SCHEDULED
+    assert info.next_run_time == task.next_run_time
+    assert info.store_alias is None
+    assert info.executor == "default"
 
 
 @pytest.mark.parametrize(

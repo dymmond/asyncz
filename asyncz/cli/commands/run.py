@@ -2,17 +2,13 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-from datetime import datetime
 from typing import Annotated, Any
 
 from sayer import Argument, Option, command, info
 
 from asyncz.cli.bootstrap_loader import load_bootstrap_scheduler
 from asyncz.cli.utils import build_stores_map, ensure_loop, maybe_await
-from asyncz.executors.base import BaseExecutor
 from asyncz.schedulers import AsyncIOScheduler
-from asyncz.stores.base import BaseStore
-from asyncz.tasks import Task as AsynczTask
 
 
 @command
@@ -30,8 +26,8 @@ def run(
     """
     Trigger a job to run immediately.
 
-    This command loads the specified job, forces it to execute on its assigned
-    executor, and then updates its internal schedule state (next run time) in the store.
+    This command delegates to ``scheduler.run_task(...)`` so the CLI, dashboard,
+    and programmatic APIs all share the same "run now" semantics.
 
     Examples:
 
@@ -57,50 +53,11 @@ def run(
             scheduler = AsyncIOScheduler(**cfg)
             await maybe_await(scheduler.start())
 
-        # 2. Look up the task and its associated store
-        task: AsynczTask
-        store_alias: str
-
-        # raises TaskLookupError if missing
-        task, store_alias = scheduler.lookup_task(job_id, None)  # type: ignore
-
-        # This assert is necessary to satisfy static analysis after the successful lookup
-        assert task is not None
-
-        # 3. Look up the executor
-        executor: BaseExecutor = scheduler.lookup_executor(task.executor)  # type: ignore
-
-        # 4. Determine forced run times
-        now: datetime = datetime.now(scheduler.timezone)
-        run_times: list[datetime] = task.get_run_times(scheduler.timezone, now)
-
-        # If nothing is due according to the schedule, still allow a forced "run now".
-        if not run_times:
-            run_times = [now]
-
-        # 5. Submit the task to the executor
-        executor.send_task(task, run_times)
-
-        # 6. Update schedule state
-        last_run: datetime = run_times[-1]
-
-        # Calculate the *new* next run time based on the last run time
-        next_run: datetime | None = task.trigger.get_next_trigger_time(  # type: ignore
-            scheduler.timezone, last_run, now
-        )
-
-        if next_run:
-            # Update the in-memory task object and persist directly to the store
-            task.update_task(next_run_time=next_run)
-            store_obj: BaseStore = scheduler.lookup_store(store_alias)  # type: ignore
-            store_obj.update_task(task)
-        else:
-            # No further runs – remove task from its store.
-            scheduler.delete_task(task.id, store_alias)
-
+        # 2. Delegate the "run now" flow to the scheduler itself.
+        await maybe_await(scheduler.run_task(job_id))
         info(f"Triggered job {job_id}")
 
-        # 7. Shutdown the temporary scheduler
+        # 3. Shutdown the temporary scheduler
         if not bootstrap_mode:
             await maybe_await(scheduler.shutdown())
 

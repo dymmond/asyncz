@@ -154,6 +154,16 @@ def test_create_date_task_and_list(client: TestClient):
     assert "cli-dash-date" in response.text
 
 
+def test_dashboard_index_shows_recent_task_metadata(client: TestClient):
+    _create_task(client, "overview-task")
+
+    response = client.get(f"{DASH_PREFIX}/")
+
+    assert response.status_code == 200
+    assert "overview-task" in response.text
+    assert "noop" in response.text
+
+
 def test_per_row_actions_run_pause_resume_remove(client: TestClient):
     # 1) Create
     payload = {
@@ -360,6 +370,28 @@ def test_tasks_search_can_match_by_id(client: TestClient):
     r2 = client.get(f"{DASH_PREFIX}/tasks/partials/table?q={jid}")
     assert r2.status_code == 200
     assert jid in r2.text
+
+
+def test_tasks_filter_by_state_and_executor(client: TestClient):
+    paused_id = _create_task(client, "paused-task")
+    _create_task(client, "scheduled-task")
+
+    pause_response = client.post(f"{DASH_PREFIX}/tasks/{paused_id}/pause")
+    assert pause_response.status_code == 200
+
+    response = client.get(f"{DASH_PREFIX}/tasks/?state=paused&executor=default")
+    assert response.status_code == 200
+    assert "paused-task" in response.text
+    assert "scheduled-task" not in response.text
+
+
+def test_tasks_partial_preserves_active_filters(client: TestClient):
+    _create_task(client, "filter-me")
+
+    response = client.get(f"{DASH_PREFIX}/tasks/partials/table?q=filter&state=scheduled")
+
+    assert response.status_code == 200
+    assert "q=filter&amp;state=scheduled" in response.text
 
 
 def test_tasks_search_reset_link_clears_query(client: TestClient):

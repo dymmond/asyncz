@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from asyncz.enums import SchedulerState
+from asyncz.enums import SchedulerState, TaskScheduleState
 from asyncz.events.base import SchedulerEvent
 from asyncz.events.constants import (
     ALL_EVENTS,
@@ -658,10 +658,11 @@ class TestBaseScheduler:
             next_run_time=datetime(2022, 10, 17),
         )
 
-        task.update.assert_called_once_with(
+        task.update_task.assert_called_once_with(
             mistrigger_grace_time=5,
             max_instances=2,
             next_run_time=datetime(2022, 10, 17),
+            scheduler=scheduler,
         )
         if not pending:
             store.update_task.assert_called_once_with(task)
@@ -708,6 +709,53 @@ class TestBaseScheduler:
             scheduler.update_task.assert_called_once_with(
                 "foo", "bar", next_run_time=next_trigger_time
             )
+
+    def test_run_task_force_preserves_finished_task_when_requested(self, freeze_time):
+        scheduler = DummyScheduler(executors={"default": DebugExecutor()})
+        scheduler.start(paused=True)
+        task = scheduler.add_task(
+            lambda: "done",
+            "date",
+            id="run-now",
+            run_at=freeze_time.current + timedelta(seconds=30),
+        )
+        events = []
+        scheduler.add_listener(events.append)
+
+        returned = scheduler.run_task(task.id, remove_finished=False)
+
+        assert returned is task
+        assert returned.next_run_time is None
+        assert scheduler.get_task("run-now") is task
+        assert any(event.code == TASK_SUBMITTED for event in events)
+        assert any(event.code == TASK_EXECUTED for event in events)
+
+    def test_get_task_infos_filters_and_sorting(self, freeze_time):
+        scheduler = DummyScheduler(executors={"default": DebugExecutor(), "io": DebugExecutor()})
+        scheduler.start(paused=True)
+        scheduler.add_task(lambda: None, "interval", seconds=30, id="beta", name="Beta")
+        scheduler.add_task(
+            lambda: None,
+            "date",
+            id="alpha",
+            name="Alpha",
+            executor="io",
+            run_at=freeze_time.current + timedelta(minutes=1),
+        )
+        scheduler.pause_task("beta")
+
+        paused = scheduler.get_task_infos(schedule_state=TaskScheduleState.PAUSED)
+        assert [info.id for info in paused] == ["beta"]
+
+        filtered = scheduler.get_task_infos(q="alpha", trigger="date", executor="io")
+        assert [info.id for info in filtered] == ["alpha"]
+        assert filtered[0].schedule_state is TaskScheduleState.SCHEDULED
+
+        ordered = scheduler.get_task_infos(sort_by="name", descending=True)
+        assert [info.id for info in ordered] == ["beta", "alpha"]
+
+        with pytest.raises(ValueError):
+            scheduler.get_task_infos(sort_by="unsupported")
 
     @pytest.mark.parametrize("scheduler_started", [True, False], ids=["running", "stopped"])
     @pytest.mark.parametrize("store", [None, "other"], ids=["all stores", "specific store"])

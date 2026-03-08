@@ -9,8 +9,6 @@ from sayer import Argument, Option, command, info, success
 from asyncz.cli.bootstrap_loader import load_bootstrap_scheduler
 from asyncz.cli.utils import build_stores_map, ensure_loop, maybe_await
 from asyncz.schedulers import AsyncIOScheduler
-from asyncz.stores.base import BaseStore
-from asyncz.tasks import Task as AsynczTask
 
 
 @command
@@ -28,11 +26,8 @@ def pause(
     """
     Pause a job by ID.
 
-    This command initializes a temporary scheduler, connects to the specified job store,
-    and instructs the store to temporarily suspend the execution of the specified job ID.
-
-    This implementation achieves the pause by **directly setting the task's next run time to None**
-    in the persistent store, avoiding scheduler events that might interfere with CLI execution.
+    The CLI delegates to ``scheduler.pause_task(...)`` so command-line behavior
+    stays aligned with the scheduler's own pause semantics.
 
     Examples:
         asyncz pause <job_id>
@@ -59,19 +54,12 @@ def pause(
             scheduler = AsyncIOScheduler(**cfg)
             await maybe_await(scheduler.start())
 
-        # 2) Locate the task and the store alias that holds it
-        task: AsynczTask
-        store_alias: str
-        task, store_alias = scheduler.lookup_task(job_id, None)  # type: ignore
-
-        # 3) Mark paused: clear next_run_time and persist in the originating store
-        task.update_task(next_run_time=None)
-        store_obj: BaseStore = scheduler.lookup_store(store_alias)  # type: ignore
-        store_obj.update_task(task)
+        # 2) Delegate to the scheduler API.
+        await maybe_await(scheduler.pause_task(job_id))
 
         success(f"Paused job {job_id}")
 
-        # 4) Shutdown only if we created a temporary scheduler
+        # 3) Shutdown only if we created a temporary scheduler
         if not bootstrap_mode:
             await maybe_await(scheduler.shutdown())
 

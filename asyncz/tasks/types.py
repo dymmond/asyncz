@@ -5,7 +5,9 @@ from collections.abc import Callable, Sequence
 from datetime import datetime, tzinfo
 from typing import Any, Optional, TypeVar
 
+from asyncz.enums import TaskScheduleState
 from asyncz.schedulers.types import SchedulerType
+from asyncz.tasks.inspection import TaskInfo
 from asyncz.triggers.types import TriggerType
 
 DecoratedFn = TypeVar("DecoratedFn", bound=Callable[..., Any])
@@ -18,7 +20,13 @@ class TaskDefaultsType:
 
 
 class TaskType(TaskDefaultsType, ABC):
-    """BaseType of task."""
+    """
+    Abstract task protocol shared by scheduler, store, executor, and UI layers.
+
+    ``Task`` is the concrete implementation used by Asyncz, but several
+    subsystems depend only on this contract so they can work with serialized or
+    reconstructed tasks without caring about the exact subclass.
+    """
 
     id: Optional[str] = None
     name: Optional[str] = None
@@ -34,6 +42,37 @@ class TaskType(TaskDefaultsType, ABC):
     # are exclusively set by scheduler
     pending: bool = True
     submitted: bool = False
+
+    @property
+    def schedule_state(self) -> TaskScheduleState:
+        """
+        Return the scheduler-facing state of this task.
+
+        The state is derived entirely from the task metadata so it works for both
+        live tasks and tasks reconstructed from stores:
+
+        - pending tasks have not yet been committed to a running store
+        - paused tasks have no ``next_run_time``
+        - scheduled tasks have a future or due ``next_run_time``
+        """
+
+        if self.pending:
+            return TaskScheduleState.PENDING
+        if self.next_run_time is None:
+            return TaskScheduleState.PAUSED
+        return TaskScheduleState.SCHEDULED
+
+    @property
+    def paused(self) -> bool:
+        """
+        Convenience flag used by management APIs and the dashboard.
+
+        This intentionally distinguishes paused tasks from pending tasks so the
+        caller can tell whether a task is merely unscheduled or still waiting to
+        be committed at scheduler start time.
+        """
+
+        return self.schedule_state is TaskScheduleState.PAUSED
 
     @abstractmethod
     def update_task(self, **updates: Any) -> TaskType:
@@ -94,6 +133,49 @@ class TaskType(TaskDefaultsType, ABC):
         if scheduler is not None and task_id is not None:
             scheduler.delete_task(task_id, self.store_alias)
         return self
+
+    def snapshot(self) -> TaskInfo:
+        """
+        Build an immutable inspection snapshot for this task.
+
+        The snapshot is the preferred representation for presentation-oriented
+        code because it captures the task's observable state without exposing
+        the live mutable task object.
+        """
+
+        from asyncz.utils import get_callable_name
+
+        callable_name: str | None = None
+        if self.fn is not None:
+            try:
+                callable_name = get_callable_name(self.fn)
+            except TypeError:
+                callable_name = None
+
+        fn_reference = getattr(self, "fn_reference", None)
+        if callable_name is None and fn_reference:
+            callable_name = fn_reference.split(":")[-1]
+
+        trigger = self.trigger
+        return TaskInfo(
+            id=self.id,
+            name=self.name,
+            callable_name=callable_name,
+            callable_reference=fn_reference,
+            trigger_alias=getattr(trigger, "alias", None),
+            trigger_name=type(trigger).__name__ if trigger is not None else None,
+            trigger_description=str(trigger) if trigger is not None else None,
+            executor=self.executor,
+            store_alias=self.store_alias,
+            schedule_state=self.schedule_state,
+            next_run_time=self.next_run_time,
+            coalesce=self.coalesce,
+            max_instances=self.max_instances,
+            mistrigger_grace_time=self.mistrigger_grace_time,
+            pending=self.pending,
+            paused=self.paused,
+            submitted=self.submitted,
+        )
 
     @abstractmethod
     def get_run_times(self, timezone: tzinfo, now: datetime) -> list[datetime]:

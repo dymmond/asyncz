@@ -20,6 +20,38 @@ from asyncz.tasks import Task
 - `max_instances`
 - `next_run_time`
 
+## Task state and inspection
+
+Every task exposes a derived scheduling state:
+
+- `pending`: the task is still in the scheduler's pending queue and has not been committed to a started store yet
+- `paused`: the task exists but has no `next_run_time`
+- `scheduled`: the task has an upcoming `next_run_time`
+
+Useful task inspection helpers:
+
+- `task.schedule_state`
+- `task.paused`
+- `task.snapshot()`
+
+Example:
+
+```python
+task = scheduler.add_task(cleanup, "interval", minutes=5, id="cleanup")
+info = task.snapshot()
+
+print(info.callable_reference)
+print(info.trigger_alias)
+print(info.schedule_state.value)
+```
+
+`snapshot()` returns an immutable `TaskInfo` model that is safe to pass into:
+
+- dashboards
+- CLI formatting code
+- structured logging
+- tests and assertions
+
 ## Creating a task directly
 
 ```python

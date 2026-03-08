@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union, cast, overload
 
 from monkay.asgi import ASGIApp, LifespanHook
 
-from asyncz.enums import PluginInstance, SchedulerState
+from asyncz.enums import PluginInstance, SchedulerState, TaskScheduleState
 from asyncz.events.base import SchedulerEvent, TaskEvent, TaskSubmissionEvent
 from asyncz.events.constants import (
     ALL_EVENTS,
@@ -51,6 +51,7 @@ from asyncz.schedulers.datastructures import TaskDefaultStruct
 from asyncz.schedulers.types import LoggersType, SchedulerType
 from asyncz.stores.memory import MemoryStore
 from asyncz.stores.types import StoreType
+from asyncz.tasks.inspection import TaskInfo
 from asyncz.tasks.types import TaskType
 from asyncz.triggers.types import TriggerType
 from asyncz.typing import Undefined, undefined
@@ -640,7 +641,7 @@ class BaseScheduler(SchedulerType):
 
         with self.store_lock:
             task, store = self.lookup_task(task_id, store)
-            task.update(**new_updates)
+            task.update_task(scheduler=self, **new_updates)
 
             if store:
                 self.lookup_store(store).update_task(task)
@@ -707,6 +708,118 @@ class BaseScheduler(SchedulerType):
                 self.delete_task(task.id, store)
                 return None
 
+    def run_task(
+        self,
+        task_id: Union[TaskType, str],
+        store: Optional[str] = None,
+        *,
+        force: bool = True,
+        remove_finished: bool = True,
+    ) -> Union[TaskType, None]:
+        """
+        Submit a task to its configured executor immediately.
+
+        This method centralizes the "run now" behavior that operational surfaces
+        such as the CLI and dashboard need. It reuses the task's configured
+        executor, dispatches the same submission-related events that the main
+        scheduler loop emits, and persists the task's updated schedule state.
+
+        Args:
+            task_id: The task instance or identifier to execute immediately.
+            store: Optional preferred store alias when resolving the task.
+            force: When ``True`` and the trigger has no run times due yet, submit
+                a one-off immediate execution at ``now``.
+            remove_finished: When ``True`` and the trigger yields no further run
+                times after this execution, delete the task. When ``False``,
+                preserve the task in a paused state.
+
+        Returns:
+            The updated task when it remains scheduled or paused, or ``None`` if
+            it was removed because the schedule finished and ``remove_finished``
+            was requested.
+
+        Raises:
+            SchedulerNotRunningError: If the scheduler has not been started yet.
+            MaximumInstancesError: If the task is already at its executor's
+                concurrency limit.
+            TaskLookupError: If the task cannot be found.
+            KeyError: If the configured executor cannot be found.
+        """
+
+        if self.state == SchedulerState.STATE_STOPPED:
+            raise SchedulerNotRunningError()
+
+        if isinstance(task_id, TaskType):
+            assert task_id.id, "Cannot run a decorator style Task."
+            task_id = task_id.id
+
+        task, store_alias = self.lookup_task(task_id, store)
+        now = datetime.now(self.timezone)
+        run_times = task.get_run_times(self.timezone, now)
+        if not run_times:
+            if not force:
+                return task
+            run_times = [now]
+
+        assert task.executor is not None, "Task has no executor configured."
+        executor = self.lookup_executor(task.executor)
+
+        try:
+            executor.send_task(task, run_times)
+        except MaximumInstancesError:
+            self.loggers[self.logger_name].warning(
+                "Execution of task '%s' skipped: maximum running instances reached (%s).",
+                task,
+                task.max_instances,
+            )
+            self.dispatch_event(
+                TaskSubmissionEvent(
+                    code=TASK_MAX_INSTANCES,
+                    task_id=task_id,
+                    store=store_alias,
+                    scheduled_run_times=run_times,
+                )
+            )
+            raise
+        except Exception:
+            self.loggers[self.logger_name].exception(
+                "Error submitting task '%s' to executor '%s'.",
+                task,
+                task.executor,
+            )
+            raise
+        else:
+            self.dispatch_event(
+                TaskSubmissionEvent(
+                    code=TASK_SUBMITTED,
+                    task_id=task_id,
+                    store=store_alias,
+                    scheduled_run_times=run_times,
+                )
+            )
+
+        next_run_time = task.trigger.get_next_trigger_time(  # type: ignore[union-attr]
+            self.timezone,
+            run_times[-1],
+            now,
+        )
+
+        if next_run_time is not None and next_run_time <= now:
+            # Manual runs must always advance strictly forward so admin actions do
+            # not create zero-delay feedback loops in tests or dashboards.
+            next_run_time = now + timedelta(milliseconds=1)
+
+        if next_run_time is None and remove_finished:
+            self.delete_task(task_id, store_alias)
+            return None
+
+        task.update_task(next_run_time=next_run_time)
+        if store_alias is not None:
+            with self.store_lock:
+                self.lookup_store(store_alias).update_task(task)
+
+        return task
+
     def get_tasks(self, store: Optional[str] = None) -> list[TaskType]:
         """
         Returns a list of pending tasks (if the scheduler hasn't been started yet) and scheduled
@@ -744,6 +857,123 @@ class BaseScheduler(SchedulerType):
                 return self.lookup_task(task_id, store)[0]
             except TaskLookupError:
                 return None
+
+    def get_task_info(self, task_id: str, store: Optional[str] = None) -> Union[TaskInfo, None]:
+        """
+        Return an immutable inspection snapshot for a single task.
+
+        The returned snapshot is safe to expose in operational tooling because it
+        is detached from the underlying task object and captures only observable
+        scheduler metadata.
+        """
+
+        task = self.get_task(task_id, store)
+        return task.snapshot() if task is not None else None
+
+    def get_task_infos(
+        self,
+        store: Optional[str] = None,
+        *,
+        schedule_state: TaskScheduleState | str | None = None,
+        executor: str | None = None,
+        trigger: str | None = None,
+        q: str | None = None,
+        sort_by: str = "next_run_time",
+        descending: bool = False,
+    ) -> list[TaskInfo]:
+        """
+        Return task snapshots with scheduler-native filtering and sorting.
+
+        This API is meant for read-oriented operational tooling. Instead of every
+        consumer re-implementing its own serialization, filtering, and ordering
+        logic, the scheduler exposes a single consistent view of task metadata.
+
+        Args:
+            store: Restrict results to one store alias.
+            schedule_state: Optional state filter. Accepts a
+                ``TaskScheduleState`` member or its string value.
+            executor: Restrict results to one executor alias.
+            trigger: Restrict results to one trigger alias or trigger class name.
+            q: Case-insensitive free-text search across task identifiers, names,
+                callable information, trigger metadata, executor, and state.
+            sort_by: Field to sort on. Supported values are ``id``, ``name``,
+                ``next_run_time``, ``schedule_state``, ``executor``, ``store``,
+                and ``trigger``.
+            descending: Reverse the final sort order.
+        """
+
+        resolved_state: TaskScheduleState | None = None
+        if schedule_state is not None:
+            resolved_state = (
+                schedule_state
+                if isinstance(schedule_state, TaskScheduleState)
+                else TaskScheduleState(str(schedule_state).strip().lower())
+            )
+
+        infos = [task.snapshot() for task in self.get_tasks(store)]
+        if resolved_state is not None:
+            infos = [info for info in infos if info.schedule_state is resolved_state]
+
+        if executor:
+            infos = [info for info in infos if info.executor == executor]
+
+        if trigger:
+            trigger_value = trigger.strip().lower()
+            infos = [
+                info
+                for info in infos
+                if (info.trigger_alias or "").lower() == trigger_value
+                or (info.trigger_name or "").lower() == trigger_value
+            ]
+
+        if q:
+            needle = q.strip().lower()
+            infos = [
+                info
+                for info in infos
+                if needle in (info.id or "").lower()
+                or needle in (info.name or "").lower()
+                or needle in (info.callable_name or "").lower()
+                or needle in (info.callable_reference or "").lower()
+                or needle in (info.trigger_alias or "").lower()
+                or needle in (info.trigger_name or "").lower()
+                or needle in (info.trigger_description or "").lower()
+                or needle in (info.executor or "").lower()
+                or needle in (info.store_alias or "").lower()
+                or needle in info.schedule_state.value
+            ]
+
+        sorters: dict[str, Callable[[TaskInfo], Any]] = {
+            "id": lambda info: (info.id or "").lower(),
+            "name": lambda info: ((info.name or "").lower(), (info.id or "").lower()),
+            "next_run_time": lambda info: (
+                info.next_run_time is None,
+                info.next_run_time or datetime.max.replace(tzinfo=self.timezone),
+                (info.name or "").lower(),
+                (info.id or "").lower(),
+            ),
+            "schedule_state": lambda info: (
+                info.schedule_state.value,
+                info.next_run_time is None,
+                info.next_run_time or datetime.max.replace(tzinfo=self.timezone),
+                (info.id or "").lower(),
+            ),
+            "executor": lambda info: ((info.executor or "").lower(), (info.id or "").lower()),
+            "store": lambda info: ((info.store_alias or "").lower(), (info.id or "").lower()),
+            "trigger": lambda info: (
+                (info.trigger_alias or info.trigger_name or "").lower(),
+                (info.id or "").lower(),
+            ),
+        }
+        try:
+            key = sorters[sort_by]
+        except KeyError as exc:
+            raise ValueError(
+                "sort_by must be one of: id, name, next_run_time, schedule_state, "
+                "executor, store, trigger."
+            ) from exc
+
+        return sorted(infos, key=key, reverse=descending)
 
     def delete_task(
         self, task_id: Union[TaskType, str, None], store: Optional[str] = None

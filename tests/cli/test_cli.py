@@ -259,6 +259,68 @@ def test_run_advances_next_run_time(client: SayerTestClient, sqlite_url: str):
     assert nrt1 > nrt0
 
 
+def test_list_filters_by_state_and_trigger(client: SayerTestClient, sqlite_url: str):
+    paused = client.invoke(
+        [
+            "add",
+            "tests.fixtures:noop",
+            "--name",
+            "paused-interval",
+            "--interval",
+            "10s",
+            "--store",
+            f"durable={sqlite_url}",
+        ]
+    )
+    assert paused.exit_code == 0, paused.stderr
+    paused_id = re.search(r"Added job\s+(\S+)", paused.stdout).group(1)
+
+    scheduled = client.invoke(
+        [
+            "add",
+            "tests.fixtures:noop",
+            "--name",
+            "scheduled-date",
+            "--at",
+            "2027-01-01T10:00:00+00:00",
+            "--store",
+            f"durable={sqlite_url}",
+        ]
+    )
+    assert scheduled.exit_code == 0, scheduled.stderr
+
+    paused_result = client.invoke(["pause", paused_id, "--store", f"durable={sqlite_url}"])
+    assert paused_result.exit_code == 0, paused_result.stderr
+
+    paused_jobs = _list_json(client, f"durable={sqlite_url}")
+    assert any(job["state"] == "paused" for job in paused_jobs)
+
+    filtered = client.invoke(
+        [
+            "list",
+            "--json",
+            "--state",
+            "paused",
+            "--trigger",
+            "interval",
+            "--store",
+            f"durable={sqlite_url}",
+        ]
+    )
+    assert filtered.exit_code == 0, filtered.stderr
+    if isinstance(filtered.return_value, list):
+        payload = filtered.return_value
+    else:
+        output = (filtered.stdout or "").strip() or (filtered.stderr or "").strip()
+        if output.startswith("ℹ"):
+            output = output.lstrip("ℹ️ ").lstrip()
+        payload = json.loads(re.search(r"(\[.*\]|\{.*\})", output, re.S).group(1))
+    assert len(payload) == 1
+    assert payload[0]["id"] == paused_id
+    assert payload[0]["state"] == "paused"
+    assert payload[0]["trigger_alias"] == "interval"
+
+
 def test_pause_sets_next_run_time_null_and_resume_sets_future(
     client: SayerTestClient, sqlite_url: str
 ):

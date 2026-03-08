@@ -1,50 +1,58 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlencode
 
 from lilya.requests import Request
 from lilya.responses import HTMLResponse
 
 from asyncz.contrib.dashboard.engine import templates
+from asyncz.tasks.inspection import TaskInfo
 from asyncz.triggers.cron import CronTrigger
 from asyncz.triggers.date import DateTrigger
 from asyncz.triggers.interval import IntervalTrigger
 
 if TYPE_CHECKING:
-    from asyncz.executors.base import BaseExecutor
     from asyncz.schedulers import AsyncIOScheduler
-    from asyncz.stores.base import BaseStore
 
 
 def serialize(task: Any) -> dict[str, Any]:
     """
-    Serializes an Asyncz Task object into a standardized dictionary format suitable for
-    JSON response or dashboard rendering.
+    Convert a task or task snapshot into a dashboard-friendly dictionary.
 
     Args:
-        task: The Asyncz Task object to serialize.
+        task: A live Asyncz task or a ``TaskInfo`` snapshot.
 
     Returns:
-        A dictionary containing key task details, with `next_run_time` formatted as an ISO string.
+        A normalized mapping with both machine-friendly values and a few
+        presentation-oriented fields used by the task table templates.
     """
-    # Determine trigger type name, fallback to '-'
-    trigger: str = type(task.trigger).__name__ if getattr(task, "trigger", None) else "-"
-
-    # Get next_run_time
-    nrt: datetime | Any = getattr(task, "next_run_time", None)
-
-    # Format next_run_time as an ISO string if it's a datetime object
-    nrt_s: str | None = nrt.isoformat() if isinstance(nrt, datetime) else (nrt or None)
+    info: TaskInfo = task if isinstance(task, TaskInfo) else task.snapshot()
+    next_run_time = info.next_run_time
+    next_run_time_text = (
+        next_run_time.isoformat()
+        if isinstance(next_run_time, datetime)
+        else (next_run_time or None)
+    )
 
     return {
-        "id": task.id,
-        "name": task.name or "",
-        "trigger": str(trigger),
-        "next_run_time": nrt_s,
-        "store": getattr(task, "store_alias", None) or "default",
-        "executor": task.executor or "default",
+        "id": info.id,
+        "name": info.name or "",
+        "trigger": info.trigger_name or "-",
+        "trigger_alias": info.trigger_alias or "",
+        "trigger_description": info.trigger_description or "-",
+        "next_run_time": next_run_time_text,
+        "next_run_time_datetime": info.next_run_time,
+        "store": info.store_alias or "default",
+        "executor": info.executor or "default",
+        "callable_name": info.callable_name or "",
+        "callable_reference": info.callable_reference or "",
+        "state": info.schedule_state.value,
+        "pending": info.pending,
+        "paused": info.paused,
     }
 
 
@@ -192,38 +200,120 @@ def _render_messages_oob(request: Request, context: dict[str, Any]) -> str:
         return "".join(parts)
 
 
+def parse_task_filters(request: Request) -> dict[str, Any]:
+    """
+    Parse and normalize task-filter query parameters from a dashboard request.
+
+    The returned mapping matches the scheduler's ``get_task_infos()`` API while
+    also keeping the original form values needed by the templates.
+    """
+
+    params: Mapping[str, Any] = request.query_params
+    q = (params.get("q") or "").strip() or None
+    state = (params.get("state") or "").strip().lower() or None
+    executor = (params.get("executor") or "").strip() or None
+    trigger = (params.get("trigger") or "").strip() or None
+    sort_by = (params.get("sort") or "next_run_time").strip() or "next_run_time"
+    direction = (params.get("direction") or "asc").strip().lower() or "asc"
+    descending = direction == "desc"
+    return {
+        "q": q,
+        "schedule_state": state,
+        "executor": executor,
+        "trigger": trigger,
+        "sort_by": sort_by,
+        "descending": descending,
+        "form": {
+            "q": q or "",
+            "state": state or "",
+            "executor": executor or "",
+            "trigger": trigger or "",
+            "sort": sort_by,
+            "direction": "desc" if descending else "asc",
+        },
+    }
+
+
+def _build_task_query_suffix(filters: dict[str, str]) -> str:
+    """
+    Encode the active task filters into a reusable query-string suffix.
+
+    The suffix is appended to HTMX endpoints and form actions so the task view
+    keeps its current filters across partial refreshes and row/bulk actions.
+    """
+
+    query_values = {
+        key: value
+        for key, value in filters.items()
+        if value
+        and not (key == "sort" and value == "next_run_time")
+        and not (key == "direction" and value == "asc")
+    }
+    query = urlencode(query_values)
+    return f"?{query}" if query else ""
+
+
+def build_task_dashboard_context(scheduler: AsyncIOScheduler, request: Request) -> dict[str, Any]:
+    """
+    Build the full task-list context used by both the full page and HTMX partials.
+
+    This helper is the dashboard counterpart to ``scheduler.get_task_infos()``.
+    It keeps task filters, sorting, summary counts, and available filter options
+    in one place so the dashboard behaves consistently on first render and after
+    any asynchronous updates.
+    """
+
+    parsed = parse_task_filters(request)
+    filters = parsed["form"]
+    all_infos = scheduler.get_task_infos()
+    visible_infos = scheduler.get_task_infos(
+        schedule_state=parsed["schedule_state"],
+        executor=parsed["executor"],
+        trigger=parsed["trigger"],
+        q=parsed["q"],
+        sort_by=parsed["sort_by"],
+        descending=parsed["descending"],
+    )
+    available_executors = sorted(
+        {info.executor or "default" for info in all_infos if info.executor}
+    )
+    available_triggers = sorted(
+        {
+            (info.trigger_alias or info.trigger_name or "").lower()
+            for info in all_infos
+            if info.trigger_alias or info.trigger_name
+        }
+    )
+    return {
+        "tasks": [serialize(info) for info in visible_infos],
+        "filters": filters,
+        "query_suffix": _build_task_query_suffix(filters),
+        "available_executors": available_executors,
+        "available_triggers": available_triggers,
+        "visible_tasks": len(visible_infos),
+        "total_tasks": len(all_infos),
+        "scheduled_tasks": sum(
+            1 for info in all_infos if info.schedule_state.value == "scheduled"
+        ),
+        "paused_tasks": sum(1 for info in all_infos if info.schedule_state.value == "paused"),
+        "pending_tasks": sum(1 for info in all_infos if info.schedule_state.value == "pending"),
+    }
+
+
 async def render_table(scheduler: Any, request: Request, context: Any) -> HTMLResponse:
     """
-    Renders the HTML table fragment for the list of scheduled tasks, supporting optional search filtering.
+    Render the task table partial for the current filter set.
 
     Args:
         scheduler: The active `AsyncIOScheduler` instance.
-        request: The incoming Lilya Request object, used to retrieve query parameters (search query 'q').
+        request: The incoming Lilya request.
 
     Returns:
         HTMLResponse: An HTMX-friendly response containing:
           1) An out-of-band messages fragment to update the top banner, and
           2) The rendered `_table.html` template fragment.
     """
-    tasks: list[Any] = scheduler.get_tasks()
-
-    # Serialize all tasks
-    items: list[dict[str, Any]] = [serialize(t) for t in tasks]
-
-    # Apply optional search filter (q=...)
-    q: str | None = request.query_params.get("q") if hasattr(request, "query_params") else None
-    if q:
-        ql: str = q.lower()
-        items = [
-            t
-            for t in items
-            if ql in t["id"].lower()
-            or ql in (t["name"] or "").lower()
-            or ql in (t["store"] or "").lower()
-        ]
-
-    # Render the table template
-    context.update({"tasks": items})
+    context.update(build_task_dashboard_context(scheduler, request))
     table_html: str = templates.get_template("tasks/_table.html").render(context)
 
     # Also include the OOB messages so top-of-page banners update during partial swaps
@@ -310,125 +400,3 @@ def parse_ids_from_request_form(data: dict[str, Any]) -> list[str]:
             seen.add(ident)
             result.append(ident)
     return result
-
-
-def safe_lookup_executor(scheduler: AsyncIOScheduler, alias: str | None) -> BaseExecutor | None:
-    """
-    Safely retrieves an executor instance from the scheduler, implementing graceful fallbacks.
-
-    The search preference order is:
-    1. The executor specified by `alias`.
-    2. The executor set as `scheduler.default_executor`.
-    3. The first configured executor instance found in `scheduler.executors`.
-
-    Args:
-        scheduler: The active `AsyncIOScheduler` instance.
-        alias: The alias of the executor to look up.
-
-    Returns:
-        The `BaseExecutor` instance, or `None` if no executors are configured.
-    """
-    from asyncz.executors.base import BaseExecutor  # local import to avoid cycles
-
-    # Candidate alias: Prefer given alias, fall back to configured default, then 'default'
-    candidate: str = alias or getattr(scheduler, "default_executor", None) or "default"
-
-    try:
-        # 1. Try the candidate alias lookup
-        return scheduler.lookup_executor(candidate)  # type: ignore[return-value]
-    except KeyError:
-        # 2. Fall back to the first configured executor if the lookup failed
-        if getattr(scheduler, "executors", None):
-            for _name, exec_obj in scheduler.executors.items():
-                # Check if it's an instantiated executor object
-                if isinstance(exec_obj, BaseExecutor):
-                    return exec_obj
-        # 3. No executors configured
-        return None
-
-
-def safe_lookup_store(
-    scheduler: AsyncIOScheduler, alias: str | None = None, task_id: str | None = None
-) -> BaseStore:
-    """
-    Safely retrieves a store instance from the scheduler without attempting to create a new one.
-
-    The lookup order is:
-    1. Exact alias match if provided and present in `scheduler.stores`.
-    2. Probe stores to find the one that currently contains the given `task_id`.
-    3. Fall back to the "default" store.
-    4. Fall back to the first configured store available.
-
-    Args:
-        scheduler: The active `AsyncIOScheduler` instance.
-        alias: The specific store alias to look up.
-        task_id: An optional task ID used to probe stores for containment.
-
-    Returns:
-        The discovered `BaseStore` instance.
-
-    Raises:
-        KeyError: If the scheduler has no stores configured at all.
-    """
-    stores: dict[str, BaseStore] = getattr(scheduler, "stores", {}) or {}
-
-    # 1. Direct alias hit
-    if alias is not None and alias in stores:
-        return stores[alias]
-
-    # 2. Resolve by task id (probe stores; do NOT create new ones)
-    if task_id:
-        for _, store in stores.items():
-            try:
-                # get_task will raise TaskLookupError if not found
-                store.get_task(task_id)
-                return store
-            except Exception:
-                # Store either doesn't implement get_task or the task is not there
-                continue
-
-    # 3. Fallback to a configured default store
-    if "default" in stores:
-        return stores["default"]
-
-    # 4. Fallback to the first store available
-    for store in stores.values():
-        return store
-
-    # No stores at all
-    raise KeyError("No stores are configured on the scheduler.")
-
-
-def filter_items(items: list[dict[str, Any]], q: str | None) -> list[dict[str, Any]]:
-    """
-    Filters a list of task/job dictionaries by a simple, case-insensitive substring match.
-
-    The search is performed across the **'id'**, **'name'**, **'store'**, and **'trigger'**
-    fields of each dictionary. If the search query `q` is falsy (empty or None),
-    the original list of items is returned unchanged.
-
-    Args:
-        items: A list of dictionaries (serialized task objects).
-        q: The search query string.
-
-    Returns:
-        A new list containing only the items that match the search query, or the
-        original list if no query was provided.
-    """
-    if not q:
-        return items
-
-    needle: str = q.strip().lower()
-    filtered: list[dict[str, Any]] = []
-
-    for it in items:
-        # Normalize all checked fields to lower case strings for case-insensitive matching
-        id_s: str = str(it.get("id", "")).lower()
-        name_s: str = str(it.get("name", "")).lower()
-        store_s: str = str(it.get("store", "")).lower()
-        trigger_s: str = str(it.get("trigger", "")).lower()
-
-        if needle in id_s or needle in name_s or needle in store_s or needle in trigger_s:
-            filtered.append(it)
-
-    return filtered

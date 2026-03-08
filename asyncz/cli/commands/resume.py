@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-from datetime import datetime
 from typing import Annotated, Any
 
 from sayer import Argument, Option, command, info, success
@@ -10,8 +9,6 @@ from sayer import Argument, Option, command, info, success
 from asyncz.cli.bootstrap_loader import load_bootstrap_scheduler
 from asyncz.cli.utils import build_stores_map, ensure_loop, maybe_await
 from asyncz.schedulers import AsyncIOScheduler
-from asyncz.stores.base import BaseStore
-from asyncz.tasks import Task as AsynczTask
 
 
 @command
@@ -29,8 +26,8 @@ def resume(
     """
     Resume a paused job by ID.
 
-    This command initializes a temporary scheduler instance, connects to the specified job store,
-    and instructs the store to reactivate the execution schedule for the specified job ID.
+    The CLI delegates to ``scheduler.resume_task(...)`` so paused-job recovery
+    follows the same logic as programmatic callers and the dashboard.
 
     Examples:
         asyncz resume <job_id>
@@ -56,30 +53,14 @@ def resume(
             scheduler = AsyncIOScheduler(**cfg)
             await maybe_await(scheduler.start())
 
-        # 2) Lookup the task and its backing store alias
-        # Use None to let the scheduler find the correct store alias for the task.
-        task: AsynczTask
-        store_alias: str
-        task, store_alias = scheduler.lookup_task(job_id, None)  # type: ignore
-
-        # 3) Compute the next run time from "now" (resume semantics)
-        now: datetime = datetime.now(scheduler.timezone)
-        next_run: datetime | None = task.trigger.get_next_trigger_time(  # type: ignore[union-attr]
-            scheduler.timezone, None, now
-        )
-
-        # 4) Update or delete in the appropriate store
-        if next_run:
-            task.update_task(next_run_time=next_run)
-            store_obj: BaseStore = scheduler.lookup_store(store_alias)  # type: ignore
-            store_obj.update_task(task)
-            success(f"Resumed job {job_id}")
-        else:
-            # No further runs: remove the task entirely
-            scheduler.delete_task(job_id, store_alias)
+        # 2) Delegate to the scheduler API and mirror the resulting state in the message.
+        resumed_task = await maybe_await(scheduler.resume_task(job_id))
+        if resumed_task is None:
             success(f"Removed job {job_id} (schedule finished)")
+        else:
+            success(f"Resumed job {job_id}")
 
-        # 5) Shutdown only if we created a temporary scheduler
+        # 3) Shutdown only if we created a temporary scheduler
         if not bootstrap_mode:
             await maybe_await(scheduler.shutdown())
 

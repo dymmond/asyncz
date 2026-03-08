@@ -9,7 +9,8 @@ Asyncz includes an optional Lilya-based dashboard for inspecting tasks and runni
 
 ## What it provides
 
-- a task list with search and filtering
+- an overview page with scheduler and task-state summaries
+- a task list with search, state/executor/trigger filters, and sortable views
 - per-task actions for run, pause, resume, and remove
 - bulk task actions
 - an optional login flow
@@ -103,6 +104,54 @@ The most commonly customized fields are:
 - `https_only`
 
 You can return a custom `DashboardConfig` from `settings.dashboard_config`.
+
+## Task list behavior
+
+The task dashboard now reads from the scheduler's immutable task inspection snapshots rather than serializing live tasks ad hoc inside each controller.
+
+That means the UI can consistently show:
+
+- task id and display name
+- callable name/reference
+- trigger alias and human-readable trigger description
+- next run time
+- store and executor aliases
+- derived task state (`pending`, `paused`, or `scheduled`)
+
+The task table supports:
+
+- free-text search
+- state filtering
+- executor filtering
+- trigger filtering
+- sorting by name, trigger, state, or next run time
+
+Active filters are preserved across:
+
+- HTMX auto-refreshes
+- row actions
+- bulk actions
+
+## Dashboard "run now" semantics
+
+When you use the dashboard's **Run** action, the dashboard calls `scheduler.run_task(..., remove_finished=False)`.
+
+This is intentional:
+
+- recurring tasks advance to their next scheduled run
+- one-off/date tasks remain visible in the dashboard as **paused** instead of disappearing immediately
+
+That behavior is useful for operators because a manually triggered one-off task can still be inspected, resumed, or removed explicitly after the forced run.
+
+## Overview page
+
+The overview page summarizes:
+
+- scheduler running/stopped state
+- configured timezone
+- total task count
+- scheduled / paused / pending counts
+- recent tasks with their callable and trigger metadata
 
 ## Custom log storage
 

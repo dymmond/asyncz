@@ -8,12 +8,41 @@ from sayer import Option, command, info
 
 from asyncz.cli.bootstrap_loader import load_bootstrap_scheduler
 from asyncz.cli.utils import build_stores_map, ensure_loop, maybe_await
+from asyncz.enums import TaskScheduleState
 from asyncz.schedulers import AsyncIOScheduler
 
 
 @command(name="list")
 def list_jobs(
     as_json: Annotated[bool, Option(False, "--json", help="Output as JSON")],
+    state: Annotated[
+        str | None,
+        Option(None, "--state", help="Filter by task state: pending, paused, or scheduled."),
+    ],
+    executor: Annotated[
+        str | None,
+        Option(None, "--executor", help="Filter by executor alias."),
+    ],
+    trigger: Annotated[
+        str | None,
+        Option(None, "--trigger", help="Filter by trigger alias or trigger class name."),
+    ],
+    q: Annotated[
+        str | None,
+        Option(None, "--query", help="Case-insensitive free-text task search."),
+    ],
+    sort_by: Annotated[
+        str,
+        Option(
+            "next_run_time",
+            "--sort-by",
+            help="Sort by id, name, next_run_time, schedule_state, executor, store, or trigger.",
+        ),
+    ],
+    descending: Annotated[
+        bool,
+        Option(False, "--desc", help="Reverse the selected sort order."),
+    ],
     bootstrap: Annotated[
         str | None,
         Option(
@@ -35,6 +64,7 @@ def list_jobs(
         asyncz list
         asyncz list --store durable=sqlite:///scheduler.db
         asyncz list --json --store default=memory
+        asyncz list --state paused --sort-by name
         asyncz list --bootstrap ravyn.contrib.asyncz:AsynczSpec
     """
     loop = ensure_loop()
@@ -60,29 +90,50 @@ def list_jobs(
             await maybe_await(scheduler.start())
 
         try:
-            # 2) Fetch jobs
-            jobs = await maybe_await(scheduler.get_tasks())
+            # 2) Fetch task snapshots
+            schedule_state = (
+                TaskScheduleState(state.strip().lower()) if state is not None else None
+            )
+            infos = await maybe_await(
+                scheduler.get_task_infos(
+                    schedule_state=schedule_state,
+                    executor=executor,
+                    trigger=trigger,
+                    q=q,
+                    sort_by=sort_by,
+                    descending=descending,
+                )
+            )
 
             # 3) Format payload
             payload: list[dict[str, Any]] = [
                 {
-                    "id": j.id,
-                    "name": j.name,
-                    "trigger": type(j.trigger).__name__,
-                    "next_run_time": getattr(j, "next_run_time", None),
+                    "id": item.id,
+                    "name": item.name,
+                    "trigger": item.trigger_name,
+                    "trigger_alias": item.trigger_alias,
+                    "trigger_description": item.trigger_description,
+                    "next_run_time": item.next_run_time,
+                    "state": item.schedule_state.value,
+                    "store": item.store_alias,
+                    "executor": item.executor,
+                    "callable_name": item.callable_name,
+                    "callable_reference": item.callable_reference,
                 }
-                for j in jobs
+                for item in infos
             ]
 
             # 4) Output
             if as_json:
-                info(json.dumps(payload, default=str))
+                print(json.dumps(payload, default=str))
                 return payload
             else:
                 for r in payload:
                     info(
                         f"{r['id']:<32} {r['name'] or '-':<24} "
-                        f"{r['trigger']:<16} {r['next_run_time']}"
+                        f"{r['state']:<10} {r['trigger'] or '-':<16} "
+                        f"{(r['store'] or '-'): <12} {(r['executor'] or '-'): <12} "
+                        f"{r['next_run_time']}"
                     )
                 return None
         finally:

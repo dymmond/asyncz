@@ -55,11 +55,30 @@
   </div>
 </div>
 
+<div class="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+  <div class="rounded-xl border border-green-100 bg-green-50 px-4 py-3">
+    <div class="text-xs uppercase tracking-wide text-green-700">Scheduled</div>
+    <div class="mt-1 text-2xl font-semibold text-green-900">{{ scheduled_tasks }}</div>
+  </div>
+  <div class="rounded-xl border border-yellow-100 bg-yellow-50 px-4 py-3">
+    <div class="text-xs uppercase tracking-wide text-yellow-700">Paused</div>
+    <div class="mt-1 text-2xl font-semibold text-yellow-900">{{ paused_tasks }}</div>
+  </div>
+  <div class="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+    <div class="text-xs uppercase tracking-wide text-blue-700">Pending</div>
+    <div class="mt-1 text-2xl font-semibold text-blue-900">{{ pending_tasks }}</div>
+  </div>
+  <div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+    <div class="text-xs uppercase tracking-wide text-gray-600">Stores / Executors</div>
+    <div class="mt-1 text-2xl font-semibold text-gray-900">{{ store_count }} / {{ executor_count }}</div>
+  </div>
+</div>
+
 <!-- Recent Tasks Table -->
 <div class="mt-10 bg-white border rounded-xl shadow-sm overflow-hidden">
   <div class="px-5 py-4 border-b flex items-center justify-between">
     <h2 class="text-lg font-semibold">Recent tasks</h2>
-    <a href="{{ url_for('dashboard:tasks:index') }}>
+    <a href="{{ url_for('dashboard:tasks:index') }}"
        class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#f06824] text-white text-sm font-medium shadow hover:shadow-md hover:bg-[#e35d1e] transition">
       <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 4v16m8-8H4" />
@@ -92,16 +111,21 @@
             <td class="px-4 py-3">
               <div class="font-mono text-xs break-all">{{ t.id }}</div>
               <div class="text-gray-500 text-sm">{{ t.name or '-' }}</div>
+              <div class="mt-1 text-xs text-gray-500">{{ t.callable_reference or t.callable_name or '-' }}</div>
             </td>
             <td class="px-4 py-3">
-              <span class="px-2 py-1 rounded-full border text-xs">{{ t.trigger }}</span>
+              <span class="px-2 py-1 rounded-full border text-xs">{{ t.trigger_alias or t.trigger }}</span>
             </td>
             <td class="px-4 py-3">{{ t.next_run_time or '-' }}</td>
             <td class="px-4 py-3"><span class="font-mono text-xs">{{ t.store }}</span></td>
             <td class="px-4 py-3 text-right">
-              {% if t.next_run_time %}
+              {% if t.state == "scheduled" %}
                 <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-green-50 text-green-700 border border-green-200">
                   <span class="h-1.5 w-1.5 rounded-full bg-green-500"></span> Scheduled
+                </span>
+              {% elif t.state == "pending" %}
+                <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-blue-50 text-blue-700 border border-blue-200">
+                  <span class="h-1.5 w-1.5 rounded-full bg-blue-500"></span> Pending
                 </span>
               {% else %}
                 <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-yellow-50 text-yellow-700 border border-yellow-200">
