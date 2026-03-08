@@ -3,8 +3,8 @@
 *.sqlite3
 .hypothesis/
 .idea/
-.mypy_cache/
 .pytest_cache/
+.ruff_cache/
 .scannerwork/
 .tox/
 .venv/

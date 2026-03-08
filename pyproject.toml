@@ -64,7 +64,7 @@ Source = "https://github.com/dymmond/asyncz"
 
 
 [tool.hatch.envs.default]
-dependencies = ["pre-commit>=3.0.0,<5.0.0", "ipdb", "types-tzlocal"]
+dependencies = ["pre-commit>=3.0.0,<5.0.0", "ipdb", "types-tzlocal", "ruff==0.12.5"]
 
 [project.scripts]
 asyncz = "asyncz.cli.app:main"
@@ -78,7 +78,7 @@ testing = [
     "pytest-cov >=2.12.0,<8.0.0",
     "pytest-asyncio >=1.0,<2.0.0",
     "redis>=4.4.0,<8.0.0",
-    "mypy>=0.982,<2.0.0",
+    "ty",
     "ravyn>=0.3.7",
     "starlette",
     "lilya[standard]>=0.22.15",
@@ -107,8 +107,8 @@ clean_pyc = "find . -type f -name \"*.pyc\" -delete"
 clean_pyi = "find . -type f -name \"*.pyi\" -delete"
 clean_pycache = "find . -type d -name \"*__pycache__*\" -delete"
 build_with_check = "hatch build; twine check dist/*"
-lint = "hatch fmt --check && hatch run test:check_types"
-format = "hatch fmt && hatch fmt --check && hatch run test:check_types"
+lint = "ruff check . && ruff format --check . && hatch run test:check_types"
+format = "ruff check --fix . && ruff format . && hatch run test:check_types"
 
 [tool.hatch.envs.test]
 features = ["testing"]
@@ -117,7 +117,7 @@ features = ["testing"]
 test = "hatch test -- {args}"
 test_man = "hatch test -- {args} -s -vv"
 coverage = "hatch test -- --cov=asyncz --cov=tests --cov-report=term-missing:skip-covered --cov-report=html tests {args}"
-check_types = "mypy -p asyncz"
+check_types = "ty check asyncz"
 
 [tool.hatch.envs.hatch-test]
 features = ["testing"]
@@ -150,22 +150,29 @@ dependencies = ["ruff==0.12.5"]
 [tool.hatch.version]
 path = "asyncz/__init__.py"
 
-[tool.mypy]
-plugins = [
-  "pydantic.mypy"
-]
-warn_unused_configs = true
-warn_unreachable = true
-warn_return_any = true
-strict = true
-disallow_untyped_decorators = true
-disallow_any_generics = false
-implicit_reexport = false
-show_error_codes = true
-disallow_incomplete_defs = true
-disable_error_code = "attr-defined,no-untyped-call"
-warn_unused_ignores = true
-warn_redundant_casts = true
+[tool.ty]
+
+[tool.ty.src]
+exclude = ["asyncz/contrib/dashboard/development/run.py"]
+
+[tool.ty.terminal]
+error-on-warning = true
+
+[tool.ty.rules]
+unused-type-ignore-comment = "ignore"
+unresolved-attribute = "ignore"
+call-top-callable = "ignore"
+call-non-callable = "ignore"
+invalid-type-form = "ignore"
+invalid-assignment = "ignore"
+invalid-argument-type = "ignore"
+invalid-declaration = "ignore"
+unknown-argument = "ignore"
+unresolved-import = "ignore"
+not-subscriptable = "ignore"
+missing-argument = "ignore"
+too-many-positional-arguments = "ignore"
+invalid-return-type = "ignore"
 
 [tool.ruff]
 line-length=99
@@ -187,33 +194,6 @@ keep-runtime-typing = true
 max-line-length = 99
 max-doc-length = 120
 
-[[tool.mypy.overrides]]
-module = "asyncz.tests.*"
-ignore_missing_imports = true
-check_untyped_defs = true
-ignore_errors = true
-
-[[tool.mypy.overrides]]
-module = "docs_src.*"
-ignore_errors = true
-
-[[tool.mypy.overrides]]
-module = [
-    "sqlalchemy.*",
-    "asyncpg",
-    "alembic",
-    "sqlalchemy_utils.*",
-    "slugify",
-    "pytz",
-    "backports.*"
-]
-ignore_missing_imports = true
-ignore_errors = true
-
-[[tool.mypy.overrides]]
-module = "tests.*"
-ignore_errors = true
-
 
 [tool.pytest.ini_options]
 addopts = ["--strict-config", "--strict-markers"]
@@ -234,8 +214,3 @@ include = ["/asyncz"]
 exclude = [
     "/asyncz/contrib/dashboard/development"
 ]
-
-[[tool.mypy.overrides]]
-module = ["yaml.*", "uvicorn.*"]
-ignore_missing_imports = true
-ignore_errors = true
