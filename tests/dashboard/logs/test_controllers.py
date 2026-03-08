@@ -1,6 +1,7 @@
 # tests/dashboard/test_logger.py
 from __future__ import annotations
 
+import logging
 import time
 from collections.abc import Iterator
 
@@ -73,14 +74,7 @@ def client_login(scheduler: AsyncIOScheduler) -> Iterator[TestClient]:
 @pytest.fixture(scope="module")
 def _log_helpers():
     """
-    Access the logging helpers/sinks used by the dashboard.
-    We do imports here so tests skip cleanly if the module path changes.
-
-    Expected helpers:
-      - install_task_log_handler(storage=...)
-      - get_task_logger(task_id)
-      - install_loguru_sink(storage=...)  (or logger.add(...) wrapper)
-      - get_log_storage()
+    Access the logging helpers used by the dashboard.
     """
     try:
         from asyncz.contrib.dashboard.controllers.logs import (  # type: ignore
@@ -91,19 +85,10 @@ def _log_helpers():
             install_task_log_handler,
         )
 
-        # Optional: if you exposed a convenience installer for loguru
-        try:
-            from asyncz.contrib.dashboard.logs.handler import (  # type: ignore
-                install_loguru_sink,
-            )
-        except Exception:  # pragma: no cover - optional helper
-            install_loguru_sink = None
-
         return {
             "install_task_log_handler": install_task_log_handler,
             "get_task_logger": get_task_logger,
             "get_log_storage": get_log_storage,
-            "install_loguru_sink": install_loguru_sink,
         }
     except Exception as e:
         pytest.skip(f"Logs handler/storage helpers not available yet: {e!r}")
@@ -112,10 +97,7 @@ def _log_helpers():
 @pytest.fixture(autouse=True)
 def _wire_logging(_log_helpers):
     """
-    Ensure both stdlib and loguru events land in the same in-memory storage
-    that the Logs controller reads from.
-
-    Called automatically for each test.
+    Ensure stdlib events land in the same in-memory storage that the Logs controller reads from.
     """
     storage = _log_helpers["get_log_storage"]()
     # Clear storage between tests if your storage supports it
@@ -124,11 +106,6 @@ def _wire_logging(_log_helpers):
 
     # stdlib → storage
     _log_helpers["install_task_log_handler"](storage=storage)
-
-    # loguru → storage (if you exposed a helper). Otherwise, tests will still pass
-    # for stdlib-only paths, and the loguru test will skip if missing.
-    if _log_helpers["install_loguru_sink"]:
-        _log_helpers["install_loguru_sink"](storage=storage)
     yield
     # Optional teardown/cleanup can go here.
 
@@ -246,3 +223,21 @@ def test_logs_reset_link(client: TestClient, _log_helpers):
     response = client.get(f"{DASH_PREFIX}/logs/partials/table")
     assert response.status_code == 200
     assert "visible after reset" in response.text
+
+
+def test_custom_storage_is_used_for_reads_and_writes(client: TestClient):
+    from asyncz.contrib.dashboard.controllers.logs import get_log_storage
+    from asyncz.contrib.dashboard.logs.handler import install_task_log_handler
+    from asyncz.contrib.dashboard.logs.storage import MemoryLogStorage
+
+    custom_storage = MemoryLogStorage(maxlen=10)
+    resolved = get_log_storage(storage=custom_storage)
+    install_task_log_handler(custom_storage)
+    logging.getLogger("asyncz.custom").info("custom sink", extra={"job_id": "jid-custom"})
+    time.sleep(0.01)
+
+    assert resolved is custom_storage
+    assert get_log_storage() is custom_storage
+    rows = list(custom_storage.query(task_id="jid-custom"))
+    assert len(rows) == 1
+    assert rows[0].message == "custom sink"

@@ -21,8 +21,6 @@ if TYPE_CHECKING:
 class BaseExecutor(ExecutorType):
     """
     Base model for the executors. It defines the interface for all the executors used by the Asyncz.
-
-    Asyncz uses loguru for its logging as it is more descriptive and intuitive.
     """
 
     @property
@@ -183,7 +181,7 @@ async def run_coroutine_task(
                     TaskExecutionEvent(
                         code=TASK_MISSED,
                         task_id=task.id,
-                        alias=store_alias,
+                        store=store_alias,
                         scheduled_run_time=run_time,
                     )
                 )
@@ -200,7 +198,7 @@ async def run_coroutine_task(
                 TaskExecutionEvent(
                     code=TASK_ERROR,
                     task_id=task.id,
-                    alias=store_alias,
+                    store=store_alias,
                     scheduled_run_time=run_time,
                     exception=exc,
                     traceback=formatted_trace_back,
@@ -213,7 +211,7 @@ async def run_coroutine_task(
                 TaskExecutionEvent(
                     code=TASK_EXECUTED,
                     task_id=task.id,
-                    alias=store_alias,
+                    store=store_alias,
                     scheduled_run_time=run_time,
                     return_value=return_value,
                 )

@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 class AsyncIOExecutor(BaseExecutor):
     """
     Executor used for AsyncIO, typically can also be plugged into any ASGI framework as well,
-    for example, Ravyn, Starlite, FastAPI...
+    for example, Ravyn, Starlette, or FastAPI.
 
     Runs the task in the default executor event loop.
 

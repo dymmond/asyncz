@@ -1,22 +1,25 @@
 import gc
+import logging
 import time
 from asyncio import CancelledError
 from collections import defaultdict
 from datetime import datetime
 from threading import Event
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock
 
 import pytest
 import pytz
-from loguru import logger
 
 from asyncz.events.constants import TASK_ERROR, TASK_EXECUTED, TASK_MISSED
 from asyncz.exceptions import MaximumInstancesError
 from asyncz.executors.asyncio import AsyncIOExecutor
 from asyncz.executors.base import run_coroutine_task, run_task
+from asyncz.executors.process_pool import ProcessPoolExecutor
 from asyncz.schedulers.asyncio import AsyncIOScheduler
-from asyncz.schedulers.base import BaseScheduler, LoguruLogging
+from asyncz.schedulers.base import BaseScheduler, ClassicLogging
 from asyncz.tasks import Task
+
+logger = logging.getLogger("tests.asyncz.executors")
 
 
 @pytest.fixture
@@ -24,7 +27,7 @@ def scheduler_mocked(timezone):
     scheduler_ = Mock(BaseScheduler, timezone=timezone)
     scheduler_.instances = defaultdict(lambda: 0)
     scheduler_.create_lock = MagicMock()
-    scheduler_.loggers = LoguruLogging()
+    scheduler_.loggers = ClassicLogging()
     return scheduler_
 
 
@@ -60,7 +63,10 @@ def success():
 def test_max_instances(scheduler_mocked, executor, create_task, freeze_time):
     events = []
     scheduler_mocked.dispatch_event = lambda event: events.append(event)
-    task = create_task(fn=wait_event, max_instances=2, next_run_time=None)
+    task_kwargs = {"fn": wait_event, "max_instances": 2, "next_run_time": None}
+    if isinstance(executor, ProcessPoolExecutor):
+        task_kwargs["mistrigger_grace_time"] = None
+    task = create_task(**task_kwargs)
     executor.send_task(task, [freeze_time.current])
     executor.send_task(task, [freeze_time.current])
 
@@ -78,7 +84,10 @@ def test_max_instances(scheduler_mocked, executor, create_task, freeze_time):
 )
 def test_send_task(scheduler_mocked, executor, create_task, freeze_time, timezone, event_code, fn):
     scheduler_mocked.dispatch_event = MagicMock()
-    task = create_task(fn=fn, id="foo")
+    task_kwargs = {"fn": fn, "id": "foo"}
+    if event_code != TASK_MISSED and isinstance(executor, ProcessPoolExecutor):
+        task_kwargs["mistrigger_grace_time"] = None
+    task = create_task(**task_kwargs)
     task.store_alias = "test_store"
     run_time = (
         timezone.localize(datetime(1970, 1, 1))
@@ -113,7 +122,7 @@ def dummy_run_task(task, store_alias, run_times, logger_name):
 
 def test_run_task_error(monkeypatch, executor):
     """
-    Tests that run_task_error is properly called. Since we use loguru, there is no need to parse the exceptions.
+    Tests that run_task_error is properly called.
     """
 
     def run_task_error(task_id, exc, traceback):
@@ -142,9 +151,8 @@ def test_run_task_memory_leak():
         raise Exception("dummy")
 
     fake_task = Mock(Task, id="dummy", fn=fn, args=(), kwargs={}, mistrigger_grace_time=1)
-    with patch("loguru.logger"):
-        for _ in range(5):
-            run_task(fake_task, "foo", [datetime.now(pytz.UTC)], logger)
+    for _ in range(5):
+        run_task(fake_task, "foo", [datetime.now(pytz.UTC)], logger)
 
     foos = [x for x in gc.get_objects() if type(x) is FooBar]
     assert len(foos) == 0
@@ -198,9 +206,8 @@ async def test_run_task_memory_leak_two():
         raise Exception("dummy")
 
     fake_task = Mock(Task, id="dummy", fn=fn, args=(), kwargs={}, mistrigger_grace_time=1)
-    with patch("loguru.logger"):
-        for _ in range(5):
-            await run_coroutine_task(fake_task, "foo", [datetime.now(pytz.utc)], logger)
+    for _ in range(5):
+        await run_coroutine_task(fake_task, "foo", [datetime.now(pytz.utc)], logger)
 
     foos = [x for x in gc.get_objects() if type(x) is FooBar]
     assert len(foos) == 0

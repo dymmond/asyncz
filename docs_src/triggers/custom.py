@@ -1,10 +1,12 @@
 from datetime import datetime, tzinfo
+import logging
 from typing import Optional, Union
-
-from loguru import logger
 
 from asyncz.schedulers import AsyncIOScheduler
 from asyncz.triggers.base import BaseTrigger
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class CustomTrigger(BaseTrigger):

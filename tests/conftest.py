@@ -6,7 +6,7 @@ import pytest
 import pytz
 
 from asyncz.schedulers.asyncio import AsyncIOScheduler
-from asyncz.schedulers.base import BaseScheduler, LoguruLogging
+from asyncz.schedulers.base import BaseScheduler, ClassicLogging
 from asyncz.tasks import Task
 
 
@@ -85,7 +85,7 @@ def create_task(task_defaults, timezone):
         mock_scheduler = Mock(
             BaseScheduler,
             timezone=timezone,
-            loggers=LoguruLogging(),
+            loggers=ClassicLogging(),
             lock_path="",
             startup_delay=0,
         )

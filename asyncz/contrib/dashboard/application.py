@@ -29,7 +29,7 @@ from asyncz.contrib.dashboard.logs.storage import LogStorage
 
 def create_dashboard_app(scheduler: Any, log_storage: LogStorage | None = None) -> Router:
     """
-    Build a Lilya sub-application wired to an AsyncZ AsyncIOScheduler.
+    Build a Lilya sub-application wired to an Asyncz AsyncIOScheduler.
     The scheduler must be a live scheduler instance owned by the host app.
     """
     install_task_log_handler(storage=get_log_storage(storage=log_storage))

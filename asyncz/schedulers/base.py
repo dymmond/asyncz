@@ -65,37 +65,7 @@ class ClassicLogging(LoggersType):
         return logging.getLogger(item)
 
 
-class LoguruLoggerFnWrapper:
-    def __init__(self, logger: Any, fn_name: str) -> None:
-        self.logger = logger
-        self.fn_name = fn_name
-
-    def __call__(self, *args: Any, exc_info: bool = False, **kwargs: Any) -> Any:
-        logger = self.logger
-        logger = logger.opt(exception=True, depth=2) if exc_info else logger.opt(depth=2)
-        return getattr(logger, self.fn_name)(*args, **kwargs)
-
-
-class LoguruLoggerWrapper:
-    def __init__(self, logger: Any) -> None:
-        self.logger = logger
-
-    def __getattr__(self, item: str) -> LoguruLoggerFnWrapper:
-        return LoguruLoggerFnWrapper(self.logger, item)
-
-
 default_loggers_class: type[LoggersType] = ClassicLogging
-
-try:
-    from loguru import logger
-
-    class LoguruLogging(LoggersType):
-        def __missing__(self, item: str) -> logging.Logger:
-            return cast(logging.Logger, LoguruLoggerWrapper(logger.bind(name=item)))
-
-    default_loggers_class = LoguruLogging
-except ImportError:
-    pass
 
 
 class BaseScheduler(SchedulerType):
@@ -105,7 +75,7 @@ class BaseScheduler(SchedulerType):
     Takes the following keyword arguments:
 
     Args:
-        logger: logger to use for the scheduler's logging (defaults to asyncz.scheduler).
+        logger_name: suffix added to the scheduler logger namespace.
         timezone: The default time zone (defaults to the local timezone).
         store_retry_interval: The minimum number of seconds to wait between
             retries in the scheduler's main loop if the task store raises an exception when getting
@@ -1192,10 +1162,9 @@ class BaseScheduler(SchedulerType):
                             scheduled_run_times=run_times,
                         )
                         events.append(event)
-                    except Exception:
+                    except Exception as exc:
                         self.loggers[self.logger_name].exception(
-                            f"Error submitting task '{task}' to executor '{task.executor}'.",
-                            exc_info=True,
+                            f"Error submitting task '{task}' to executor '{task.executor}': {exc}"
                         )
                     else:
                         event = TaskSubmissionEvent(

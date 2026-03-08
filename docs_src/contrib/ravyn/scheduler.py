@@ -1,4 +1,4 @@
-from loguru import logger
+import logging
 
 from asyncz.schedulers import AsyncIOScheduler
 from asyncz.triggers import IntervalTrigger
@@ -6,6 +6,9 @@ from asyncz.triggers import IntervalTrigger
 from ravyn.contrib.schedulers.asyncz.config import AsynczConfig
 from ravyn.contrib.schedulers.asyncz.decorator import scheduler
 from ravyn import Ravyn
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 # Run every 2 minutes

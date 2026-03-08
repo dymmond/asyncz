@@ -1,8 +1,11 @@
 from datetime import timezone as tz
-from loguru import logger
+import logging
 
 from asyncz.events.constants import TASK_ADDED, TASK_REMOVED
 from asyncz.schedulers.asyncio import AsyncIOScheduler
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Create the scheduler
 scheduler = AsyncIOScheduler(timezone=tz.utc)

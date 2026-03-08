@@ -26,3 +26,4 @@ target/
 .coverage
 .python-version
 coverage.*
+docs/generated

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from textwrap import dedent
 
@@ -298,9 +298,7 @@ def test_bootstrap_pause_sets_next_run_time_null_and_resume_sets_future(
     nxt2 = next(j["next_run_time"] for j in jobs2 if j["id"] == job_id)
 
     assert nxt2 is not None
-    assert datetime.fromisoformat(nxt2).replace(tzinfo=None) > datetime.utcnow() - timedelta(
-        seconds=1
-    )
+    assert datetime.fromisoformat(nxt2) > datetime.now(timezone.utc) - timedelta(seconds=1)
 
 
 def test_bootstrap_ignores_store_flag(client: SayerTestClient, bootstrap_spec_path: str):

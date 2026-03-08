@@ -1,46 +1,55 @@
 # Events
 
-The events are special objects that are triggered on specific occasions and may carry some
-additional information with them regarding detauls of that specific event.
+Asyncz emits structured event objects when schedulers, stores, executors, and tasks change state. All event models live in `asyncz.events.base`, and the event code constants live in `asyncz.events.constants`.
 
-Asyncz events are pydantic objects that carry the information across the system and because
-they are pydantic objects that also means it can be leveraged by specific validations.
+## Event models
 
-## SchedulerEvent
+### `SchedulerEvent`
 
-The base event of all Asyncz events. If you want to create your own custom event, it is **advised**
-to subclass it and all the events are inherited from this class which means they inherit also
-the superclass parameters.
+The base event type. It carries:
 
-### Parameters
+- `code`: the event code
+- `alias`: the store or executor alias involved in the event, when relevant
 
-* **code** - The code type of the event.
-* **alias** - The alias given to a [store](./stores.md) or [executor](./executors.md)
+### `TaskEvent`
 
-## TaskEvent
+Extends `SchedulerEvent` with task-specific data:
 
-The events related to a specific [task](./tasks.md).
+- `task_id`
+- `store`
 
-### Parameters
+### `TaskSubmissionEvent`
 
-* **task_id** - The identifier given to a task.
-* **store** - The alias given to a store.
+Extends `TaskEvent` with:
 
-## TaskSubmissionEvent
+- `scheduled_run_times`: the run times the scheduler submitted to an executor
 
-Event related to the submission of a task.
+### `TaskExecutionEvent`
 
-### Parameters
+Extends `TaskEvent` with:
 
-* **scheduled_run_times** - List of datetimes when the task is supposed to run.
+- `scheduled_run_time`
+- `return_value`
+- `exception`
+- `traceback`
 
-## TaskExecutionEvent
+## Common event codes
 
-Event relared to the running of a task within the executor.
+Import codes from `asyncz.events.constants` and register listeners with `scheduler.add_listener(...)`.
 
-### Parameters
+Typical codes include:
 
-* **scheduled_run_times** - The time when the task was scheduled to be run.
-* **return_value** - The return value of the task successfully executed.
-* **exception** - The exception raised by the task.
-* **traceback** - A formated traceback for the exception.
+- `SCHEDULER_START`
+- `SCHEDULER_SHUTDOWN`
+- `TASK_ADDED`
+- `TASK_REMOVED`
+- `TASK_SUBMITTED`
+- `TASK_EXECUTED`
+- `TASK_ERROR`
+- `TASK_MISSED`
+
+## Adding a listener
+
+```python
+{!> ../../../docs_src/schedulers/add_event.py !}
+```
