@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
-from functools import lru_cache
 from typing import Any
 
 from lilya.requests import Request
@@ -11,10 +10,9 @@ from lilya.templating.controllers import TemplateController
 from asyncz.contrib.dashboard.logs.storage import LogStorage, MemoryLogStorage
 from asyncz.contrib.dashboard.mixins import DashboardMixin
 
-_storage: MemoryLogStorage | None = None
+_storage: LogStorage | None = None
 
 
-@lru_cache
 def get_log_storage(storage: LogStorage | None = None) -> LogStorage:
     """
     Retrieves the currently configured log storage instance.
@@ -24,7 +22,14 @@ def get_log_storage(storage: LogStorage | None = None) -> LogStorage:
     Returns:
         LogStorage: The active log storage object (defaults to `MemoryLogStorage`).
     """
-    return storage or MemoryLogStorage(maxlen=20_000)
+    global _storage
+
+    if storage is not None:
+        _storage = storage
+    elif _storage is None:
+        _storage = MemoryLogStorage(maxlen=20_000)
+
+    return _storage
 
 
 def append_log(entry: dict) -> None:

@@ -1,0 +1,121 @@
+site_name: Asyncz
+site_description: Async-first scheduling for ASGI applications.
+site_url: https://asyncz.dymmond.com
+docs_dir: docs/generated
+site_dir: site
+theme:
+  name: material
+  language: en
+  palette:
+  - scheme: default
+    primary: deep orange
+    accent: green
+    media: '(prefers-color-scheme: light)'
+    toggle:
+      icon: material/lightbulb
+      name: Switch to dark mode
+  - scheme: slate
+    media: '(prefers-color-scheme: dark)'
+    primary: deep orange
+    accent: light green
+    toggle:
+      icon: material/lightbulb-outline
+      name: Switch to light mode
+  favicon: statics/images/favicon.ico
+  logo: statics/images/logo-white.svg
+  features:
+  - search.suggest
+  - search.highlight
+  - content.tabs.link
+  - content.code.copy
+  - content.code.annotate
+  - content.code.select
+  - navigation.indexes
+  - navigation.path
+repo_name: dymmond/asyncz
+repo_url: https://github.com/dymmond/asyncz
+edit_uri: ''
+extra_css:
+  - stylesheets/extra.css
+plugins:
+- search
+- meta-descriptions:
+    export_csv: false
+    quiet: false
+    enable_checks: false
+    min_length: 50
+    max_length: 160
+    trim: false
+- mkdocstrings:
+    handlers:
+      python:
+        options:
+          extensions:
+          - griffe_typingdoc
+          show_root_heading: true
+          show_if_no_docstring: true
+          inherited_members: true
+          members_order: source
+          separate_signature: true
+          unwrap_annotated: true
+          filters:
+          - '!^_'
+          merge_init_into_class: true
+          docstring_section_style: spacy
+          signature_crossrefs: true
+          show_symbol_type_heading: true
+          show_symbol_type_toc: true
+nav:
+- index.md
+- Guides:
+  - schedulers.md
+  - triggers.md
+  - tasks.md
+  - executors.md
+  - stores.md
+  - events.md
+  - asgi.md
+  - cli.md
+- Dashboard:
+  - dashboard/dashboard.md
+  - dashboard/logs.md
+- Integrations:
+  - contrib/ravyn/index.md
+  - contrib/ravyn/scheduler.md
+  - contrib/ravyn/decorator.md
+- API Reference:
+  - reference.md
+- Project:
+  - settings.md
+  - contributing.md
+  - vendors.md
+  - sponsorship.md
+  - release-notes.md
+markdown_extensions:
+- attr_list
+- toc:
+    permalink: true
+- admonition
+- pymdownx.superfences:
+    custom_fences:
+      - name: mermaid
+        class: mermaid
+- pymdownx.tabbed:
+    alternate_style: true
+- pymdownx.inlinehilite
+- pymdownx.highlight:
+    use_pygments: true
+    anchor_linenums: true
+    line_spans: __span
+    pygments_lang_class: true
+- md_in_html
+
+extra:
+  social:
+    - icon: fontawesome/brands/github-alt
+      link: https://github.com/dymmond/asyncz
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/XVeWXSrJ
+
+extra_css:
+- stylesheets/extra.css

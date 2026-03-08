@@ -12,6 +12,16 @@ _TASK_ID_KEYS: tuple[str, ...] = ("task_id", "job_id", "asyncz_task_id")
 """Tuple of attribute keys checked on a LogRecord to extract the associated task ID."""
 
 
+def _extract_task_id(record: logging.LogRecord) -> str | None:
+    for key in _TASK_ID_KEYS:
+        value = getattr(record, key, None)
+        if value is None:
+            value = record.__dict__.get(key)
+        if value:
+            return str(value)
+    return None
+
+
 class TaskLogHandler(logging.Handler):
     """
     A custom logging handler that processes log records and writes them into a
@@ -38,10 +48,10 @@ class TaskLogHandler(logging.Handler):
         and appends the resulting `LogEntry` to the storage.
         """
         with contextlib.suppress(Exception):
-            task_id = getattr(record, "task_id", None) or record.__dict__.get("task_id")
+            task_id = _extract_task_id(record)
             self.storage.append(
                 {
-                    "ts": datetime.now(timezone.utc),
+                    "ts": datetime.fromtimestamp(record.created, timezone.utc),
                     "level": record.levelname,
                     "task_id": task_id,
                     "logger": record.name,
@@ -84,7 +94,7 @@ def get_task_logger(task_id: str, name: str = "asyncz") -> TaskLoggerAdapter:
 
     Args:
         task_id: The unique ID of the job/task currently executing.
-        name: The name of the underlying logger (default: "asyncz.task").
+        name: The name of the underlying logger (default: "asyncz").
 
     Returns:
         TaskLoggerAdapter: An adapter ready for logging within a task context.
@@ -116,14 +126,17 @@ def install_task_log_handler(storage: LogStorage, level: int = logging.INFO) -> 
         The installed singleton `TaskLogHandler` instance.
     """
     global _handler
+    storage = storage or get_log_storage()
     if _handler is not None:
+        if isinstance(_handler, TaskLogHandler):
+            _handler.storage = storage
+        _handler.setLevel(level)
         return _handler
 
-    storage = storage or get_log_storage()
-    _handler = TaskLogHandler(storage)
+    _handler = TaskLogHandler(storage, level=level)
 
     root = logging.getLogger("asyncz")
-    root.setLevel(logging.DEBUG)
+    root.setLevel(min(root.level or level, level))
     root.addHandler(_handler)
     root.propagate = True  # let parent/handlers still receive if needed
     return _handler

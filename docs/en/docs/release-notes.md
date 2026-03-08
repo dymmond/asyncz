@@ -1,9 +1,26 @@
----
-hide:
-  - navigation
----
-
 # Release Notes
+
+## 0.15.0
+
+### Changed
+
+- Replaced the `loguru` integration with Python's built-in `logging` module across the scheduler, dashboard, CLI examples, and documentation.
+- Migrated the documentation stack from `mkdocs-material` to `zensical` and aligned the docs build flow with the current project structure.
+- Expanded and corrected the documentation for schedulers, triggers, tasks, stores, executors, ASGI integration, settings, CLI usage, dashboard usage, and API reference material.
+- Standardized the development type-checking and linting workflow around Ruff and `ty`.
+
+### Fixed
+
+- Date trigger creation from the CLI and dashboard now uses the correct `run_at` parameter and handles encoded UTC offsets more reliably.
+- Dashboard log storage configuration is now shared correctly between log writers and readers when using a custom storage backend.
+- Dashboard log records now resolve task identifiers consistently from `task_id`, `job_id`, and `asyncz_task_id`.
+- Coroutine execution events now populate the task store alias consistently.
+- MongoDB store aliases are now normalized consistently between CLI parsing and scheduler plugin defaults.
+- Removed a duplicate executor pool shutdown path.
+
+### Removed
+
+- Removed the `loguru` dependency and the `loguru`-based logging backend.
 
 ## 0.14.3
 
@@ -20,7 +37,7 @@ to the `from future import __annotations__`.
 - `AsynczAdmin` now uses a single composed Lilya app that mounts `/login` and `/logout` at root while serving the dashboard under its prefix.
 - Simplified `include_in()` method — mounts the composed app at `/` for proper reverse‑proxy behavior.
 - Improved `url_prefix` normalization to avoid double slashes and ensure consistent route generation.
-- `AsyncZ Dashboard` is now fully reverse‑proxy agnostic and works seamlessly behind Nginx or ASGI mounts.
+- `Asyncz Dashboard` is now fully reverse-proxy agnostic and works seamlessly behind Nginx or ASGI mounts.
 
 ## 0.14.1
 
@@ -34,7 +51,7 @@ to the `from future import __annotations__`.
 - `get_effective_prefix()` now prefers the configured `dashboard_url_prefix` and falls back to `root_path` only when configured as `/`.
 - All HTMX and action URLs in the dashboard are now relative to the current path for reverse-proxy compatibility.
 - Updated templates to remove hardcoded `/dashboard` from links and actions.
-- AsyncZ Dashboard is now fully **reverse-proxy ready** (works with `X-Forwarded-Prefix` and ASGI mounts).
+- Asyncz Dashboard is now fully **reverse-proxy ready** (works with `X-Forwarded-Prefix` and ASGI mounts).
 
 ## 0.14.0
 
@@ -130,7 +147,7 @@ to the `from future import __annotations__`.
 
 - Allow submitting paused tasks.
 - Allow changing in-place attributes of tasks when submitting with `add_task`.
-- Allow selecting logger (classical, loguru).
+- Allow selecting alternate logger implementations.
 - Allow naming schedulers with an extra logger name.
 
 ### Fixed
@@ -144,7 +161,7 @@ to the `from future import __annotations__`.
 - `pending_tasks` has now no more store alias in it.
 - `tzlocal` is now optional.
 - Tasks use the timezone of the scheduler for their triggers which require a timezone.
-- `loguru` is now optional.
+- Logging backends became optional.
 
 ## 0.10.1
 

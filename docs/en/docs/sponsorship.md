@@ -1,8 +1,3 @@
----
-hide:
-  - navigation
----
-
 # Help Asyncz
 
 Do you like **Asyncz** and would like to help Asyncz, other userd and the author?

@@ -20,6 +20,7 @@ executors: dict[str, str] = {
 stores: dict[str, str] = {
     "memory": "asyncz.stores.memory:MemoryStore",
     "file": "asyncz.stores.file:FileStore",
+    "mongo": "asyncz.stores.mongo:MongoDBStore",
     "mongodb": "asyncz.stores.mongo:MongoDBStore",
     "redis": "asyncz.stores.redis:RedisStore",
     "sqlalchemy": "asyncz.stores.sqlalchemy:SQLAlchemyStore",

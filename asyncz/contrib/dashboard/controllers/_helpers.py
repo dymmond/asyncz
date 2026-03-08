@@ -96,11 +96,17 @@ def parse_trigger(trigger_type: str, trigger_value: str | None = None) -> Any:
 
     if tt == "date":
         # DateTrigger logic: Expects ISO 8601 datetime string
+        if "T" in tv and " " in tv:
+            head, tail = tv.rsplit(" ", 1)
+            if len(tail) == 5 and tail[2] == ":" and tail.replace(":", "").isdigit():
+                tv = f"{head}+{tail}"
         try:
             dt_obj: datetime = datetime.fromisoformat(tv)
         except Exception as e:
             raise ValueError(f"Invalid ISO datetime: {tv}") from e
-        return DateTrigger(run_date=dt_obj)
+        return DateTrigger(run_at=dt_obj)
+
+    raise ValueError(f"Unsupported trigger type: {trigger_type}")
 
 
 def _collect_messages(request: Request, context: dict[str, Any]) -> list[dict[str, Any]]:

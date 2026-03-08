@@ -157,7 +157,7 @@ def parse_store(spec: str) -> tuple[str, dict[str, Any]]:
         return alias, {"type": "redis", "url": value}
 
     if value.startswith("mongo://") or value.startswith("mongodb://"):
-        return alias, {"type": "mongo", "url": value}
+        return alias, {"type": "mongodb", "url": value}
 
     # fallback to sqlalchemy for anything else that looks like a DB URL
     return alias, {"type": "sqlalchemy", "database": value}

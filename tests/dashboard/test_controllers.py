@@ -137,6 +137,23 @@ def test_create_task_and_list(client: TestClient):
     assert "cli-dash-noop" in r2.text
 
 
+def test_create_date_task_and_list(client: TestClient):
+    payload = {
+        "callable_path": "tests.fixtures:noop",
+        "name": "cli-dash-date",
+        "store": "default",
+        "trigger_type": "date",
+        "trigger_value": "2027-01-01T10:00:00+00:00",
+        "args": "",
+        "kwargs": "",
+    }
+
+    response = client.post(f"{DASH_PREFIX}/tasks/create", data=payload)
+
+    assert response.status_code == 200
+    assert "cli-dash-date" in response.text
+
+
 def test_per_row_actions_run_pause_resume_remove(client: TestClient):
     # 1) Create
     payload = {

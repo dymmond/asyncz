@@ -52,7 +52,6 @@ class BasePoolExecutor(BaseExecutor):
         if self.overwrite_wait is not None:
             wait = self.overwrite_wait
         self.pool.shutdown(wait, cancel_futures=self.cancel_futures)
-        self.pool.shutdown(wait)
 
 
 class ThreadPoolExecutor(BasePoolExecutor):

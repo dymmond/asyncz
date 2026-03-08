@@ -1,12 +1,13 @@
 import json
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
 from sayer.testing import SayerTestClient
 
 from asyncz.cli.app import asyncz_cli
+from asyncz.cli.utils import parse_store
 
 
 @pytest.fixture()
@@ -190,6 +191,34 @@ def test_add_with_args_kwargs_and_json_list(client: SayerTestClient, sqlite_url:
     assert any(j["name"] == "echoer" and j["trigger"] == "IntervalTrigger" for j in jobs)
 
 
+def test_add_with_at_creates_date_trigger(client: SayerTestClient, sqlite_url: str):
+    r = client.invoke(
+        [
+            "add",
+            "tests.fixtures:noop",
+            "--name",
+            "run-once",
+            "--at",
+            "2027-01-01T10:00:00+00:00",
+            "--store",
+            f"durable={sqlite_url}",
+        ]
+    )
+
+    assert r.exit_code == 0, r.stderr
+
+    jobs = _list_json(client, f"durable={sqlite_url}")
+
+    assert any(j["name"] == "run-once" and j["trigger"] == "DateTrigger" for j in jobs)
+
+
+def test_parse_store_mongodb_url_uses_registered_plugin_name():
+    alias, cfg = parse_store("durable=mongodb://localhost:27017/asyncz")
+
+    assert alias == "durable"
+    assert cfg["type"] == "mongodb"
+
+
 def test_run_advances_next_run_time(client: SayerTestClient, sqlite_url: str):
     # Add an every-10s job
     r = client.invoke(
@@ -273,9 +302,7 @@ def test_pause_sets_next_run_time_null_and_resume_sets_future(
     assert nxt2 is not None
 
     # Should be in the future (a tiny tolerance for clock drift)
-    assert datetime.fromisoformat(nxt2).replace(tzinfo=None) > datetime.utcnow() - timedelta(
-        seconds=1
-    )
+    assert datetime.fromisoformat(nxt2) > datetime.now(timezone.utc) - timedelta(seconds=1)
 
 
 def test_remove_actually_deletes(client: SayerTestClient, sqlite_url: str):

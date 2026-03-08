@@ -1,149 +1,82 @@
 # Schedulers
 
-Schedulers are the *thing* that makes all magic and binds everything together. You can see it as a
-glue.
+Schedulers coordinate every other Asyncz component. They own the configured stores and executors, calculate due run times, submit work, dispatch events, and expose the public task-management API.
 
-Usually the developer does not deal/handle the [stores](./stores.md), [executors](./executors.md)
-or even [triggers](./triggers.md) manually, instead that is managed by the scheduler that acts
-as an interface amongst them all.
+## Available schedulers
 
-Asyncz being dedicated to ASGI and asyncio brings the [AsyncIOScheduler](#asyncioscheduler)
-out of the box and only supports this one natively but like everything in Asyncz, you can also
-create your own [custom scheduler](#custom-scheduler) that does not necessarily need to be for
-async. You can build your own scheduler for blocking/background applications.
+### `AsyncIOScheduler`
 
-In fact, Asyncz is used by [Ravyn](https://ravyn.dymmond.com) as internal scheduling system
-and uses the [supported scheduler](./contrib/ravyn/scheduler.md) from Asyncz to perform its
-tasks.
+The default scheduler for most applications. It can reuse an existing event loop or create an isolated loop when needed.
 
-## Parameters
+```python
+from asyncz.schedulers import AsyncIOScheduler
+```
 
-All schedulers contain at least:
+### `NativeAsyncIOScheduler`
 
-* **global_config** - A python dictionary containing configurations for the schedulers. See the
-examples of how to [configure a scheduler](#configuring-the-scheduler).
+Use this variant when the surrounding application already owns the running event loop and you want `start()` / `shutdown()` to be awaitable.
 
-    <sup>Default: `None`</sup>
+```python
+from asyncz.schedulers import NativeAsyncIOScheduler
+```
 
-* **kwargs** - Any keyword parameters being passed to the scheduler up instantiation.
+## Defaults
 
-    <sup>Default: `None`</sup>
+When you instantiate a scheduler with no explicit configuration, Asyncz will lazily add:
 
-## Configuring the scheduler
+- the `memory` store as `default`
+- the `asyncio` executor as `default`
 
-Due its simplificy, Asyncz provides some ways of configuring the scheduler for you.
+## Configuring a scheduler
 
-=== "In a nutshell"
+Asyncz accepts direct Python objects, plugin aliases, or configuration dictionaries.
 
-    ```python
-    from asyncz.schedulers.asyncio import AsyncIOScheduler
-
-    scheduler = AsyncIOScheduler()
-    ```
-
-=== "From the schedulers"
-
-    ```python
-    from asyncz.schedulers import AsyncIOScheduler
-
-    scheduler = AsyncIOScheduler()
-    ```
-
-**What is happening here?**:
-
-When you create the scheduler like the examples above, it is creating an [AsyncIOScheduler](#asyncioscheduler)
-with a [MemoryStore](./stores.md#memorystore) named `default` and starting the
-<a href='https://docs.python.org/3/library/asyncio-eventloop.html' target='_blank'>asyncio event loop</a>.
-
-### Example configuration
-
-Let us assume you now need a very custom configuration with more than one store, executors and
-custom settings.
-
-* Two stores - A [mongo](./stores.md#mongodbstore) and a [redis](./stores.md#redisstore).
-* Two executors - An [asyncio](./executors.md#asyncioexecutor) and
-a [thread pool](./executors.md#threadpoolexecutor).
-* Coalesce turned off for new tasks by default.
-* Maximum instance limiting to 4 for new tasks.
-
-#### First option
-
-The first way of doing the configuration is in a simple pythonic fashion.
+### Python-first configuration
 
 ```python
 {!> ../../../docs_src/schedulers/method1.py !}
 ```
 
-#### Second option
-
-The second option is by starting the scheduler and injecting a dictionary directly upon
-instantiation.
+### Configuration dictionary at construction time
 
 ```python
 {!> ../../../docs_src/schedulers/method2.py !}
 ```
 
-#### Third option
-
-The third option is by starting the scheduler and use the `setup` method.
+### Reconfiguring with `setup()`
 
 ```python
 {!> ../../../docs_src/schedulers/method3.py !}
 ```
 
-### Multi-Proccessing mode
+## Logging
 
-Asyncz schedulers have an optional multiprocessing mode. It can be activated by setting the
-`lock_path` option to e.g. `"/tmp/asyncz_{store}_{pgrp}.lock"`
+Asyncz uses the standard `logging` module.
 
-This defines a per-store process lock via a file.
+The default scheduler logger namespace is:
 
-Parameters:
-
-- `{store}` (no format string) - Set the store name. Should be provided.
-- `ppid` - Replaced by the ppid of the process. Formatting possible.
-- `pgrp` - Replaced by the pgrp of the process. Formatting possible.
-
-```python
-{!> ../../../docs_src/schedulers/method_mp.py !}
+```text
+asyncz.schedulers
 ```
 
-!!! Note
-    You may want to set an explicit `startup_delay` in case of the initial started tasks are behaving spurious.
-    By default a `startup_delay` of 1 second is used in case of lock_path not empty. Otherwise the default is 0.
+If you pass `logger_name="worker-a"`, the scheduler logger becomes:
 
+```text
+asyncz.schedulers.worker-a
+```
 
-## Changing logger name and class
+Stores and executors follow the same convention:
 
-`asyncz` uses a custom way of logging: it builds up a dictionary store with loggers of the standard logger interface.
-They are retrieved from schedulers via their alias name plus prefix.
+- `asyncz.stores.<alias>`
+- `asyncz.executors.<alias>`
 
-e.g. `asyncz.schedulers`, `asyncz.stores.default`, `asyncz.executors.default`
+If you need custom logger creation, provide a custom `loggers_class`. The built-in implementation is `asyncz.schedulers.base.ClassicLogging`.
 
-Scheduler has an optional parameter named `logger_name`. If set the the schedulers logger becomes:
-
-`asyncz.schedulers.<name specified>`
-
-By default `asyncz` uses loguru as logger (when available) and falls back to classical logging.
-
-If this is not wished there are some methods:
-
-- setting either via global config or direct the value of `loggers_class` to `asyncz.schedulers.base:ClassicLogging` (or the class itself instead of the string) when creating a scheduler object
-- setting `asyncz.schedulers.base.default_loggers_class` to ClassicLogging (same file, only class is possible here)
-
-
-## Starting and stopping the scheduler
-
-Every scheduler inherits from the [BaseScheduler](#basescheduler) and therefore implement the
-mandatory functions such as `start` and `shutdown`.
-
-To start the scheduler simply run:
+## Starting and stopping
 
 ```python
 {!> ../../../docs_src/schedulers/start.py !}
 ```
-
-To stop the scheduler simply run:
 
 ```python
 {!> ../../../docs_src/schedulers/shutdown.py !}
@@ -151,346 +84,76 @@ To stop the scheduler simply run:
 
 ## Adding tasks
 
-A scheduler to work needs tasks, of course and Asyncz offers some ways of adding tasks into the
-scheduler.
+`scheduler.add_task(...)` is the main entry point for registering work.
 
-* [add_tasks](#add-tasks)
-* [add tasks as decorator](#add-tasks-as-decorator)
+- Pass a trigger instance directly.
+- Or pass a trigger alias plus trigger-specific keyword arguments.
+- The return value is an `asyncz.tasks.Task`.
 
-There is also a third option but that is related with the integration with ASGI frameworks, for
-instance [Ravyn](./contrib/ravyn/decorator.md) which it should not be used in this agnostic
-context.
-
-### Add tasks
-
-Adding a task via `add_task` is the most common.
-
-**The `add_task` returns an instance of [Task](./tasks.md).**
-
-So, how can you add a task?
-
-```python hl_lines="26-29 32-38 41-47"
+```python
 {!> ../../../docs_src/schedulers/add_task.py !}
 ```
 
-What happen here is actually very simple. We created an instance of the `AsyncIOScheduler` and
-added the functions `send_email_newsletter`, `collect_www_info`, `check_status` to the scheduler
-and started it.
+### Decorator mode
 
-Why then passing `CronTrigger` and `IntervalTrigger` instances instead of simply passing `cron`
-or `interval`?
+If you omit the callable, `add_task()` returns a decorator-style task definition.
 
-Well, we want to pass some attributes to the object and this way makes it cleaner
-and simpler.
-
-When adding tasks there is not a specific order. **You can add tasks at any given time**. If the
-scheduler is not yet running, once it does it will add the tasks to it.
-
-
-### Parameters
-
-* **fn_or_task** - (positional or via this name). The callable function to execute or the task to submit.
-* **id** - The unique identifier of this task. Leave empty to autogenerate an id or switch to the
-* **name** - The description of this task.
-* **args** - Positional arguments to the callable.
-* **kwargs** - Keyword arguments to the callable.
-* **coalesce** - Whether to only run the task once when several run times are due.
-* **trigger** - The trigger object that controls the schedule of this task.
-* **executor** - The name of the executor that will run this task.
-* **mistrigger_grace_time** - The time (in seconds) how much this task's execution is allowed to
-be late (None means "allow the task to run no matter how late it is").
-* **max_instances** - The maximum number of concurrently executing instances allowed for this task.
-* **next_run_time** - The next scheduled run time of this task. If set to None, the task start paused.
-* **replace_existing** - The submitted task replaces an existing task with the same id. Otherwise a `ConflictId` error is thrown.
-
-!!! Note
-    `add_task` has a special pause mode: `next_run_time` can be set to None for starting a Task paused. This works also with Task objects.
-
-!!! Tip
-    When submitting a Task object, most attributes can be changed by providing arguments for e.g. trigger, name and other kwargs. However the task is updated in-place. No copy is made.
-    This has interesting effects: for example a decorator mode Task can be turned in a normal one by providing an id and is submitted in-place.
-
-## Add tasks as decorator
-
-When leaving out the `fn` parameter, you get back a decorator mode Task.
-
-It has two submodes:
-
-- with provided id
-- without provided id
-
-Both modes share, that a copy of the task is created and submitted (with the function applied on it).
-
-### With provided id
-
-The Task copy is submitted to the scheduler with `replacing_existing=True`. Other tasks with the same id are replaced.
-For getting the copy the task.id can be used to retrieve it.
-
-### Without provided id
-
-The Task copy is submitted to the scheduler with `replacing_existing=False` and has an autogenerated `id`.
-
-Also the function decorated has now an attribute: `asyncz_tasks` containing the copy. If multiple decorator mode tasks are applied all of the copies are now saved in `asyncz_tasks` attribute of the function.
-
-If this behavior is unwanted, `scheduler.add_task` can be used in a partial.
-
-### Examples
-
-
-```python hl_lines="10-12 19-23 29-33"
+```python
 {!> ../../../docs_src/schedulers/add_task_decorator.py !}
 ```
 
-## Deleting tasks
+## Task management operations
 
-In the same way you can [add tasks](#add-tasks) you can also remove them with the same ease and there
-are also different ways of removing them.
+Asyncz also supports:
 
-* [delete_task](#delete-task)
-* [delete](#delete)
+- `pause()` / `resume()` for the whole scheduler
+- `pause_task()` / `resume_task()`
+- `update_task()`
+- `reschedule_task()`
+- `delete_task()` / `remove_all_tasks()`
 
-### Delete task
+Examples:
 
-This is probably the most common way of removing tasks from the scheduler using the task id and the
-store alias.
-
-```python hl_lines="27 34 40 41"
-{!> ../../../docs_src/schedulers/delete_task.py !}
-```
-
-## Delete
-
-The `delete` function is probably more convenient but it requires that you store the [Task](./tasks.md)
-somewhere ocne the instance is received and for tasks scheduled by the[task decorator](#add-tasks-as-decorator)
-this method does not work, instead only the [delete task](#delete-task) will work.
-
-```python hl_lines="23 29"
-{!> ../../../docs_src/schedulers/delete.py !}
-```
-
-## Pause and resume task
-
-As shown above, you can add and remove tasks but you can pause and resume tasks as well. When a task
-is paused, there is no next time to run since the action is no longer being validate. That can be
-again reactivated by resuming that same [Task](./tasks.md).
-
-Like the previous examples, there are also multiple ways of achieving that.
-
-* [pause_task](#pause-task)
-* [pause](#pause)
-* [resume_task](#resume-task)
-* [resume](#resume)
-
-### Pause task
-
-Like [delete_task](#delete-task), you can pause a task using the id.
-
-```python hl_lines="22 29 35-36"
-{!> ../../../docs_src/schedulers/pause_task.py !}
-```
-
-### Pause
-
-The same is applied to the simple pause where you can do it directly via task instance.
-
-```python hl_lines="23 29"
+```python
 {!> ../../../docs_src/schedulers/pause.py !}
 ```
 
-### Resume task
-
-Resuming a task is as simple as again, passing a task id.
-
-```python hl_lines="22 29 35-36"
-{!> ../../../docs_src/schedulers/resume_task.py !}
-```
-
-### Resume
-
-Same for the resume. You can resume a task directly from the instance.
-
-```python hl_lines="23 29"
+```python
 {!> ../../../docs_src/schedulers/resume.py !}
 ```
 
-!!! Check
-    [add_task](#add-tasks), [delete_task](#delete-task), [pause_task](#pause-task) and
-    [resume_task](#resume-task) expect a **mandatory task_id** parameter as well an optional
-    [store](./stores.md) name. Why the store name? Because you might want to store the tasks
-    in different places and this points it out the right place.
-
-## Update task
-
-As mentioned in the [tasks](./tasks.md#update-a-task) section, internally the scheduler updates the
-information given to the task and then executes it.
-
-You can update any [attribute of the task](./tasks.md#parameters) by calling:
-
-* [**asyncz.tasks.Task.update()**](./tasks.md#update-a-task) - The update method from a task instance.
-* **update_task** - The function from the scheduler.
-
-### From a task instance
-
-```python hl_lines="26-30"
-{!> ../../../docs_src/tasks/update_task.py !}
-```
-
-### From the scheduler
-
-```python hl_lines="38-39"
+```python
 {!> ../../../docs_src/schedulers/update_task.py !}
 ```
 
-### Important note
-
-All attributes can be updated **but the id** as this is immutable.
-
-## Reschedule tasks
-
-You can also reschedule a task if you want/need but by change what it means is changing
-**only the trigger** by using:
-
-* [**asyncz.tasks.Taskk.reschedule()**](./tasks.md#reschedule-a-task) - The reschedule task from the Task
-instance. The trigger must be the [alias of the trigger object](./triggers.md#alias).
-* **reschedule_task** - The function from the scheduler instance to reschedule the task.
-
-### Reschedule the task instance
-
-```python hl_lines="26-30"
-{!> ../../../docs_src/tasks/reschedule_task.py !}
-```
-
-### Reschedule from the scheduler
-
-```python hl_lines="38-39"
+```python
 {!> ../../../docs_src/schedulers/reschedule_task.py !}
 ```
 
-## Resume and pause the tasks
+## Multi-process locking
 
-Resuming and pausing task processing (all tasks) is also allowed with simple instructions.
+Schedulers support file-based inter-process coordination through `lock_path`.
 
-### Pausing all tasks
-
-```python hl_lines="35"
-{!> ../../../docs_src/schedulers/pausing_all_tasks.py !}
-```
-
-### Resuming all tasks
-
-```python hl_lines="38"
-{!> ../../../docs_src/schedulers/resuming_all_tasks.py !}
-```
-
-## Start the scheduler in the paused state
-
-Starting the scheduler without the paused state means without the first wakeup call.
-
-```python hl_lines="35"
-{!> ../../../docs_src/schedulers/start_with_paused.py !}
-```
-
-## BaseScheduler
-
-The base of all available schedulers provided by Asyncz and **it should be the base** of any
-[custom scheduler](#custom-scheduler).
-
-The [parameters](#parameters) are the same as the ones described before.
+Example:
 
 ```python
-from asyncz.schedulers.base import BaseScheduler
+{!> ../../../docs_src/schedulers/method_mp.py !}
 ```
 
-## AsyncIOScheduler
+Available placeholders:
 
-This scheduler has a mostly synchronous interface. It is handy for an synchronous environment and supports
-asynchronous functions. Because of the synchronous interface it has a slight delay when shutting down.
+- `{store}`: the store alias
+- `{ppid}`: the parent process id
+- `{pgrp}`: the process group id
 
-```python
-from asyncz.schedulers import AsyncIOScheduler
-```
+When `lock_path` is set, Asyncz also defaults `startup_delay` to `1` second so multiple workers do not immediately stampede the same persisted tasks on startup.
 
-This scheduler has besides the normal [parameters](#parameters) of the scheduler
-some additional ones.
+## ASGI integration and context managers
 
-* **event_loop** - An optional. async event_loop to be used. If nothing is provided, it will use
-the `asyncio.get_event_loop()` (global) if `isolated_event_loop` is `False`.
+Schedulers can be used as:
 
-    <sup>Default: `None`</sup>
+- ASGI wrappers via `scheduler.asgi(...)`
+- synchronous context managers
+- asynchronous context managers
 
-
-* **isolated_event_loop** - Instead of using an existing event_loop a new one is used.
-
-    <sup>Default: `False`</sup>
-
-* **timeout** - A timeout used for start and stop the scheduler.
-
-    <sup>Default: `None`</sup>
-
-
-## NativeAsyncIOScheduler
-
-This scheduler uses an async start/shutdown interface and is very handy for asynchronous environments
-because it hasn't a shutdown delay and has less sync/async changes.
-
-```python
-from asyncz.schedulers import AsyncIOScheduler
-```
-
-This scheduler has besides the normal [parameters](#parameters) of the scheduler
-some additional ones.
-
-* **isolated_event_loop** - Instead of using an existing event_loop a new one is used.
-
-    <sup>Default: `False`</sup>
-
-* **timeout** - A timeout used for start and stop the scheduler.
-
-    <sup>Default: `None`</sup>
-
-Note: in contrast to AsyncIOScheduler it is not possible to provide an event_loop (except via isolated_event_loop).
-
-## Custom Scheduler
-
-As mentioned before, Asyncz and the nature of its existence is to be more focused on ASGI and
-asyncio applications but it is not limited to it.
-
-You can create your own scheduler for any other use case, for example a blocking or background
-scheduler.
-
-Usually when creating a custom scheduler you must override at least 3 functions.
-
-* **start()** - Function used to start/wakeup the scheduler for the first time.
-* **shutdown()** - Function used to stop the scheduler and release the resources created up
-`start()`.
-* **wakeup()** - Manage the timer to notify the scheduler of the changes in the store.
-
-There are also some optional functionalities you can override if you want.
-
-* **create_default_executor** - Override this function if you want a different default executor.
-
-```python
-{!> ../../../docs_src/schedulers/custom_scheduler.py !}
-```
-
-## Limit the number of currently executing instances
-
-By default, only one instance of each [Task](./tasks.md) is allowed to run at the same time.
-To change that when creating a task you can set the `max_instances` to the number you desire and
-this will let the scheduler know how many should run concurrently.
-
-## Events
-
-It is also possible to attach event listeners to the schedule. The events are triggered on specific
-occasions and may carry some additional information with them regarding detauls of that specific
-event. Check the [events](./events.md) section to see the available events.
-
-```python hl_lines="18"
-{!> ../../../docs_src/schedulers/add_event.py !}
-```
-
-## Final thoughts
-
-Asyncz since it is a revamp, simplified and rewritten version of APScheduler, you will find very
-common ground and similarities to it and that is intentional as you shouldn't be unfamiliar with
-a lot of concepts if you are already familiar with APScheduler.
+See [ASGI and Context Managers](./asgi.md) for the full lifecycle patterns.

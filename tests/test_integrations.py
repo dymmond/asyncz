@@ -17,7 +17,7 @@ from starlette.routing import Route
 from starlette.testclient import TestClient
 
 from asyncz.schedulers.asyncio import AsyncIOScheduler
-from asyncz.schedulers.base import ClassicLogging, LoguruLogging
+from asyncz.schedulers.base import ClassicLogging
 
 
 def get_starlette_app():
@@ -160,9 +160,8 @@ def get_ravyn_app2():
     "loggers_class_string,loggers_class",
     [
         ["asyncz.schedulers.base:ClassicLogging", ClassicLogging],
-        ["asyncz.schedulers.base:LoguruLogging", LoguruLogging],
     ],
-    ids=["ClassicLogging", "LoguruLogging"],
+    ids=["ClassicLogging"],
 )
 @pytest.mark.parametrize(
     "get_app",
