@@ -29,5 +29,14 @@ class DashboardMixin:
     templates = templates
 
     async def get_context_data(self, request: Request, **kwargs: Any) -> dict:
+        """
+        Build the template context shared by dashboard controllers.
+
+        Controllers pass page-specific values through ``kwargs``; those values
+        must augment, not replace, the standard dashboard context such as the
+        active request, prefix, title, and flash messages.
+        """
+
         context = default_context(request)
+        context.update(kwargs)
         return context

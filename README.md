@@ -41,7 +41,8 @@ Documentation: [https://asyncz.dymmond.com](https://asyncz.dymmond.com)
 - Built-in stores for `memory`, `file`, `mongodb`, `redis`, and `sqlalchemy`.
 - Executors for in-event-loop work, thread pools, process pools, and direct debug execution.
 - CLI commands for starting schedulers and managing persisted tasks.
-- Optional dashboard UI for browsing tasks and captured logs.
+- Task inspection snapshots and filtered task queries for dashboards, CLIs, and admin tooling.
+- Optional dashboard UI for browsing tasks, filtering by schedule metadata, and viewing captured logs.
 - Standard-library logging throughout the project.
 
 ## Installation
@@ -136,7 +137,7 @@ Persistent stores support the `ASYNCZ_STORE_ENCRYPTION_KEY` environment variable
 Asyncz ships with:
 
 - a CLI for `start`, `add`, `list`, `run`, `pause`, `resume`, and `remove`
-- a Lilya-based dashboard with task controls and a log viewer
+- a Lilya-based dashboard with task controls, task filters, and a log viewer
 
 See the documentation for usage details:
 

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import contextlib
 import json
-from collections.abc import Callable, Sequence
-from datetime import datetime, timedelta
+from collections.abc import Callable
 from typing import Any
 
 from lilya.controllers import Controller
@@ -12,19 +12,15 @@ from lilya.templating.controllers import TemplateController
 
 from asyncz.cli.utils import import_callable
 from asyncz.contrib.dashboard.controllers._helpers import (
-    filter_items,
+    build_task_dashboard_context,
     parse_ids_from_request_form,
     parse_trigger,
     render_table,
-    safe_lookup_executor,
-    safe_lookup_store,
-    serialize,
 )
 from asyncz.contrib.dashboard.messages import add_message
 from asyncz.contrib.dashboard.mixins import DashboardMixin
-from asyncz.exceptions import TaskLookupError
+from asyncz.exceptions import MaximumInstancesError, TaskLookupError
 from asyncz.schedulers import AsyncIOScheduler
-from asyncz.tasks import Task as AsynczTask
 
 
 class TasklistController(DashboardMixin, TemplateController):
@@ -40,24 +36,16 @@ class TasklistController(DashboardMixin, TemplateController):
         self.scheduler: AsyncIOScheduler = scheduler
 
     async def get(self, request: Request) -> Any:
-        """Handles the GET request, retrieves tasks, and renders the full dashboard page."""
-        tasks: Sequence[AsynczTask] = self.scheduler.get_tasks()  # type: ignore
-        items: list[dict[str, Any]] = [serialize(t) for t in tasks]
-
-        # Simple server-side filter for the search box in the toolbar
-        q: str | None = request.query_params.get("q") if request.query_params else None
-        filtered: list[dict[str, Any]] = filter_items(items, q)
-
+        """Render the main task page using the scheduler-native task inspection API."""
         ctx: dict[str, Any] = await self.get_context_data(request)
         ctx.update(
             {
                 "title": "Tasks",
                 "page_header": "Tasks",
                 "active_page": "tasks",
-                "tasks": filtered,
-                "q": q or "",
             }
         )
+        ctx.update(build_task_dashboard_context(self.scheduler, request))
         return await self.render_template(request, context=ctx)
 
 
@@ -79,44 +67,12 @@ class TaskRunController(_BaseTaskAction):
     """Handles running a task immediately via a standard HTTP POST (non-HTMX)."""
 
     async def post(self, request: Request) -> Any:
-        """Triggers the specified task to run immediately and updates its schedule."""
+        """Trigger the specified task immediately through the scheduler API."""
         task_id: str = request.path_params["task_id"]
-
-        # Lookup task (raises TaskLookupError if not found)
-        task: AsynczTask
-        store_alias: str
-        task, store_alias = self.scheduler.lookup_task(task_id, None)  # type: ignore
-
-        # Calculate run times (forces run now if no schedule is active)
-        now: datetime = datetime.now(self.scheduler.timezone)
-        run_times: list[datetime] = task.get_run_times(self.scheduler.timezone, now)
-        if not run_times:
-            run_times = [now]
-
-        # Submit task to executor
-        executor = safe_lookup_executor(self.scheduler, getattr(task, "executor", None))
-        if executor is not None:
-            executor.send_task(task, run_times)
-
-        # Update schedule state
-        last_run: datetime = run_times[-1]
-        next_run: datetime | None = task.trigger.get_next_trigger_time(  # type: ignore
-            self.scheduler.timezone, last_run, now
-        )
-
-        if next_run:
-            # Update the task's next run time and persist the change
-            task.update_task(next_run_time=next_run)
-        else:
-            # No further runs: keep task but mark as paused (do NOT delete)
-            task.update_task(next_run_time=None)
-
         try:
-            store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
-            store_obj.update_task(task)
-        except KeyError:
-            message = "No stores are configured on the scheduler. Add one (e.g., MemoryStore) with alias 'default'."
-            add_message(request, "warning", message)
+            self.scheduler.run_task(task_id, remove_finished=False)
+        except MaximumInstancesError as exc:
+            add_message(request, "warning", str(exc))
         return await self._redirect()
 
 
@@ -124,25 +80,9 @@ class TaskPauseController(_BaseTaskAction):
     """Handles pausing a task via a standard HTTP POST (non-HTMX)."""
 
     async def post(self, request: Request) -> Any:
-        """Pauses the specified task by setting its next_run_time to None and persists the state."""
+        """Pause the specified task through the scheduler API."""
         task_id: str = request.path_params["task_id"]
-
-        # Lookup task
-        task: AsynczTask
-        store_alias: str
-        task, store_alias = self.scheduler.lookup_task(task_id, None)  # type: ignore
-
-        # Pause by setting next_run_time to None
-        task.update_task(next_run_time=None)
-
-        # Persist the state change directly to the store
-        try:
-            store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
-            store_obj.update_task(task)
-        except KeyError:
-            message = "No stores are configured on the scheduler. Add one (e.g., MemoryStore) with alias 'default'."
-            add_message(request, "warning", message)
-
+        self.scheduler.pause_task(task_id)
         return await self._redirect()
 
 
@@ -150,34 +90,9 @@ class TaskResumeController(_BaseTaskAction):
     """Handles resuming a paused task via a standard HTTP POST (non-HTMX)."""
 
     async def post(self, request: Request) -> Any:
-        """Resumes the specified task by recalculating its next run time and persisting the state."""
+        """Resume the specified task through the scheduler API."""
         task_id: str = request.path_params["task_id"]
-
-        # Lookup task
-        task: AsynczTask
-        store_alias: str
-        task, store_alias = self.scheduler.lookup_task(task_id, None)  # type: ignore
-
-        # Calculate next run time based on current time (None for last_run_time)
-        now: datetime = datetime.now(self.scheduler.timezone)
-        next_run: datetime | None = task.trigger.get_next_trigger_time(  # type: ignore
-            self.scheduler.timezone, None, now
-        )
-
-        if next_run:
-            # Update the task's next run time and persist the change
-            task.update_task(next_run_time=next_run)
-        else:
-            # No further runs: keep task but mark as paused
-            task.update_task(next_run_time=None)
-
-        try:
-            store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
-            store_obj.update_task(task)
-        except KeyError:
-            message = "No stores are configured on the scheduler. Add one (e.g., MemoryStore) with alias 'default'."
-            add_message(request, "warning", message)
-
+        self.scheduler.resume_task(task_id)
         return await self._redirect()
 
 
@@ -187,12 +102,7 @@ class TaskRemoveController(_BaseTaskAction):
     async def post(self, request: Request) -> Any:
         """Permanently removes the specified task from its store."""
         task_id: str = request.path_params["task_id"]
-
-        # Lookup to get store alias
-        _, store_alias = self.scheduler.lookup_task(task_id, None)
-
-        self.scheduler.delete_task(task_id, store_alias)
-
+        self.scheduler.delete_task(task_id)
         return await self._redirect()
 
 
@@ -203,13 +113,8 @@ class TaskTablePartialController(DashboardMixin, Controller):
         self.scheduler: AsyncIOScheduler = scheduler
 
     async def get(self, request: Request) -> HTMLResponse:
-        """Handles GET request and returns the rendered table partial (with search)."""
-        tasks: Sequence[AsynczTask] = self.scheduler.get_tasks()  # type: ignore
-        items: list[dict[str, Any]] = [serialize(t) for t in tasks]
-        q: str | None = request.query_params.get("q") if request.query_params else None
-        filtered: list[dict[str, Any]] = filter_items(items, q)
+        """Render the filtered HTMX task table fragment."""
         context = await self.get_context_data(request)
-        context.update({"tasks": filtered, "q": q or ""})
         return await render_table(self.scheduler, request, context)
 
 
@@ -276,21 +181,10 @@ class TaskBulkPauseController(DashboardMixin, Controller):
         ids: list[str] = parse_ids_from_request_form(form)
 
         for task_id in ids:
-            # Lookup task and store
-            task: AsynczTask
-            store_alias: str
-            task, store_alias = self.scheduler.lookup_task(task_id, None)  # type: ignore
-
-            # Pause by setting next_run_time to None
-            task.update_task(next_run_time=None)
-
-            # Persist state
             try:
-                store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
-                store_obj.update_task(task)
-            except KeyError:
-                message = "No stores are configured on the scheduler. Add one (e.g., MemoryStore) with alias 'default'."
-                add_message(request, "warning", message)
+                self.scheduler.pause_task(task_id)
+            except TaskLookupError:
+                continue
 
         context = await self.get_context_data(request)
         return await render_table(self.scheduler, request, context)
@@ -299,11 +193,6 @@ class TaskBulkPauseController(DashboardMixin, Controller):
 class TaskBulkRunController(DashboardMixin, Controller):
     """
     Handles triggering multiple scheduled tasks to run immediately (bulk run action).
-
-    Instead of fiddling with next_run_time (which can cause tight rescheduling loops
-    around "now"), we mirror the single-row run flow: compute due run times,
-    send to the executor, and then advance (or remove) the task based on the
-    trigger's next time. This makes the action deterministic and prevents loops.
     """
 
     def __init__(self, *, scheduler: AsyncIOScheduler) -> None:
@@ -313,47 +202,12 @@ class TaskBulkRunController(DashboardMixin, Controller):
         form: Any = await request.form()
         ids: list[str] = parse_ids_from_request_form(form)
 
-        now: datetime = datetime.now(self.scheduler.timezone)
-
         for task_id in ids:
             try:
-                # Lookup the task and its store
-                task: AsynczTask
-                store_alias: str
-                task, store_alias = self.scheduler.lookup_task(task_id, None)  # type: ignore
-
-                # Determine run times; force an immediate one-off run if not yet due
-                run_times: list[datetime] = task.get_run_times(self.scheduler.timezone, now)
-                if not run_times:
-                    run_times = [now]
-
-                # Submit to executor
-                executor = safe_lookup_executor(self.scheduler, getattr(task, "executor", None))
-                if executor is not None:
-                    executor.send_task(task, run_times)
-
-                # Advance schedule and persist (with anti-loop guard)
-                last_run: datetime = run_times[-1]
-                next_run: datetime | None = task.trigger.get_next_trigger_time(  # type: ignore
-                    self.scheduler.timezone, last_run, now
-                )
-                if next_run is not None and next_run <= now:
-                    next_run = now + timedelta(milliseconds=5)
-
-                if next_run:
-                    task.update_task(next_run_time=next_run)
-                else:
-                    # No further runs: mark paused instead of deleting
-                    task.update_task(next_run_time=None)
-
-                try:
-                    store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
-                    store_obj.update_task(task)
-                except KeyError:
-                    message = "No stores are configured on the scheduler. Add one (e.g., MemoryStore) with alias 'default'."
-                    add_message(request, "warning", message)
-            except Exception:
-                # Ignore bad IDs or transient store issues; table will reflect actual state
+                self.scheduler.run_task(task_id, remove_finished=False)
+            except MaximumInstancesError as exc:
+                add_message(request, "warning", str(exc))
+            except TaskLookupError:
                 continue
 
         # Return refreshed table fragment for HTMX swap
@@ -374,32 +228,12 @@ class TaskBulkResumeController(DashboardMixin, Controller):
         """
         form: Any = await request.form()
         ids: list[str] = parse_ids_from_request_form(form)
-        now: datetime = datetime.now(self.scheduler.timezone)
 
         for task_id in ids:
-            # Lookup task
-            task: AsynczTask
-            store_alias: str
-            task, store_alias = self.scheduler.lookup_task(task_id, None)  # type: ignore
-
-            # Calculate next run time based on current time (None for last_run_time)
-            next_run: datetime | None = task.trigger.get_next_trigger_time(  # type: ignore
-                self.scheduler.timezone, None, now
-            )
-
-            if next_run:
-                # Update task and persist state
-                task.update_task(next_run_time=next_run)
-            else:
-                # No further runs: mark paused
-                task.update_task(next_run_time=None)
-
             try:
-                store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
-                store_obj.update_task(task)
-            except KeyError:
-                message = "No stores are configured on the scheduler. Add one (e.g., MemoryStore) with alias 'default'."
-                add_message(request, "warning", message)
+                self.scheduler.resume_task(task_id)
+            except TaskLookupError:
+                continue
 
         context = await self.get_context_data(request)
         return await render_table(self.scheduler, request, context)
@@ -414,33 +248,11 @@ class TaskBulkRemoveController(DashboardMixin, Controller):
     async def post(self, request: Request) -> HTMLResponse:
         """Processes a list of task IDs, removes each one, and returns the updated task table."""
         form: Any = await request.form()
-        raw_ids = form.get("ids")
-
-        # Accept JSON-encoded list, a Python list from the form parser, or a comma-separated string.
-        ids: list[str]
-        if isinstance(raw_ids, list):
-            ids = [str(x) for x in raw_ids]
-        elif isinstance(raw_ids, str):
-            raw = raw_ids.strip()
-            try:
-                # Try JSON first (e.g. '["id1", "id2"]')
-                parsed = json.loads(raw)
-                ids = [str(x) for x in parsed] if isinstance(parsed, list) else [str(parsed)]
-            except Exception:  # noqa
-                # Fallback: comma/space separated string
-                ids = [s for s in (x.strip() for x in raw.split(",")) if s]
-        else:
-            ids = []
-
-        # De-duplicate while preserving order
-        seen = set()
-        ids = [x for x in ids if not (x in seen or seen.add(x))]  # type: ignore
+        ids: list[str] = parse_ids_from_request_form(form)
 
         for task_id in ids:
             try:
-                # Look up to get the correct store alias, then delete from that store.
-                _, store_alias = self.scheduler.lookup_task(task_id, None)
-                self.scheduler.delete_task(task_id, store_alias)
+                self.scheduler.delete_task(task_id)
             except TaskLookupError:
                 # Already removed or not found; keep operation idempotent.
                 continue
@@ -456,49 +268,14 @@ class TaskHXRunController(DashboardMixin, Controller):
         self.scheduler: AsyncIOScheduler = scheduler
 
     async def post(self, request: Request) -> HTMLResponse:
-        """Triggers the specified task to run immediately and returns the updated table partial."""
+        """Trigger the specified task immediately and return the refreshed table."""
         task_id: str = request.path_params["task_id"]
-
-        task: AsynczTask
-        store_alias: str
-        task, store_alias = self.scheduler.lookup_task(task_id, None)  # type: ignore
-
-        # Use a timezone-aware "now"
-        now: datetime = datetime.now(self.scheduler.timezone)
-
-        # Determine due run times; if nothing is due yet, force a one-off immediate run
-        run_times: list[datetime] = task.get_run_times(self.scheduler.timezone, now)
-        if not run_times:
-            run_times = [now]
-
-        # Submit task to the executor (one-shot run for the calculated times)
-        executor = safe_lookup_executor(self.scheduler, getattr(task, "executor", None))
-        if executor is not None:
-            executor.send_task(task, run_times)
-
-        # Advance the schedule deterministically to avoid tight reschedule loops
-        last_run: datetime = run_times[-1]
-        next_run: datetime | None = task.trigger.get_next_trigger_time(  # type: ignore
-            self.scheduler.timezone, last_run, now
-        )
-
-        # Guard: never persist a next_run_time that is <= now, otherwise the scheduler
-        # will wake immediately and can create a tight loop under test load.
-        if next_run is not None and next_run <= now:
-            next_run = now + timedelta(milliseconds=5)
-
-        if next_run:
-            task.update_task(next_run_time=next_run)
-        else:
-            # No further runs: keep task but mark as paused
-            task.update_task(next_run_time=None)
-
         try:
-            store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
-            store_obj.update_task(task)
-        except KeyError:
-            message = "No stores are configured on the scheduler. Add one (e.g., MemoryStore) with alias 'default'."
-            add_message(request, "warning", message)
+            self.scheduler.run_task(task_id, remove_finished=False)
+        except MaximumInstancesError as exc:
+            add_message(request, "warning", str(exc))
+        except TaskLookupError:
+            ...
 
         context = await self.get_context_data(request)
         return await render_table(self.scheduler, request, context)
@@ -511,21 +288,10 @@ class TaskHXPauseController(DashboardMixin, Controller):
         self.scheduler: AsyncIOScheduler = scheduler
 
     async def post(self, request: Request) -> HTMLResponse:
-        """Pauses the specified task by setting next_run_time to None and returns the updated table partial."""
+        """Pause the specified task and return the refreshed task table."""
         task_id: str = request.path_params["task_id"]
-
-        task: AsynczTask
-        store_alias: str
-        task, store_alias = self.scheduler.lookup_task(task_id, None)  # type: ignore
-
-        task.update_task(next_run_time=None)
-
-        try:
-            store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
-            store_obj.update_task(task)
-        except KeyError:
-            message = "No stores are configured on the scheduler. Add one (e.g., MemoryStore) with alias 'default'."
-            add_message(request, "warning", message)
+        with contextlib.suppress(TaskLookupError):
+            self.scheduler.pause_task(task_id)
 
         context = await self.get_context_data(request)
         return await render_table(self.scheduler, request, context)
@@ -538,30 +304,10 @@ class TaskHXResumeController(DashboardMixin, Controller):
         self.scheduler: AsyncIOScheduler = scheduler
 
     async def post(self, request: Request) -> HTMLResponse:
-        """Resumes the specified task by recalculating next_run_time and returns the updated table partial."""
+        """Resume the specified task and return the refreshed task table."""
         task_id: str = request.path_params["task_id"]
-
-        task: AsynczTask
-        store_alias: str
-        task, store_alias = self.scheduler.lookup_task(task_id, None)  # type: ignore
-
-        now: datetime = datetime.now(self.scheduler.timezone)
-        next_run: datetime | None = task.trigger.get_next_trigger_time(  # type: ignore
-            self.scheduler.timezone, None, now
-        )
-
-        if next_run:
-            task.update_task(next_run_time=next_run)
-        else:
-            # No further runs: mark paused
-            task.update_task(next_run_time=None)
-
-        try:
-            store_obj = safe_lookup_store(self.scheduler, store_alias, task.id)
-            store_obj.update_task(task)
-        except KeyError:
-            message = "No stores are configured on the scheduler. Add one (e.g., MemoryStore) with alias 'default'."
-            add_message(request, "warning", message)
+        with contextlib.suppress(TaskLookupError):
+            self.scheduler.resume_task(task_id)
 
         context = await self.get_context_data(request)
         return await render_table(self.scheduler, request, context)
@@ -577,13 +323,8 @@ class TaskHXRemoveController(DashboardMixin, Controller):
         """Permanently removes the specified task and returns the updated task table."""
         task_id: str = request.path_params["task_id"]
 
-        try:
-            # Resolve store alias first to ensure we remove from the correct store.
-            _, store_alias = self.scheduler.lookup_task(task_id, None)
-            self.scheduler.delete_task(task_id, store_alias)
-        except TaskLookupError:
-            # If it's already gone, just refresh the table.
-            ...
+        with contextlib.suppress(TaskLookupError):
+            self.scheduler.delete_task(task_id)
 
         context = await self.get_context_data(request)
         return await render_table(self.scheduler, request, context)

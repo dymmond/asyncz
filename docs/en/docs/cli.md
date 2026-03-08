@@ -92,7 +92,29 @@ asyncz add myapp.tasks:report \
 ```bash
 asyncz list --store durable=sqlite:///scheduler.db
 asyncz list --json --store durable=sqlite:///scheduler.db
+asyncz list --state paused --trigger interval --sort-by name
 ```
+
+The `list` command now uses the scheduler's task inspection API, so it can filter and sort without reimplementing task serialization itself.
+
+Useful filters:
+
+- `--state pending|paused|scheduled`
+- `--executor <alias>`
+- `--trigger <alias-or-class-name>`
+- `--query <text>`
+- `--sort-by id|name|next_run_time|schedule_state|executor|store|trigger`
+- `--desc`
+
+JSON output includes the original compatibility fields (`id`, `name`, `trigger`, `next_run_time`) plus richer inspection fields such as:
+
+- `trigger_alias`
+- `trigger_description`
+- `state`
+- `store`
+- `executor`
+- `callable_name`
+- `callable_reference`
 
 ### Run, pause, resume, and remove
 
@@ -102,6 +124,8 @@ asyncz pause <task_id> --store durable=sqlite:///scheduler.db
 asyncz resume <task_id> --store durable=sqlite:///scheduler.db
 asyncz remove <task_id> --store durable=sqlite:///scheduler.db
 ```
+
+These commands now delegate to the scheduler's own task-control APIs (`run_task()`, `pause_task()`, `resume_task()`, and `delete_task()`), which keeps CLI behavior aligned with the dashboard and programmatic callers.
 
 ## Bootstrap contract
 

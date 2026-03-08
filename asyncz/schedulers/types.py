@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from asyncz.events.base import SchedulerEvent
     from asyncz.executors.types import ExecutorType
     from asyncz.stores.types import StoreType
+    from asyncz.tasks.inspection import TaskInfo
     from asyncz.tasks.types import TaskType
     from asyncz.triggers.types import TriggerType
 
@@ -253,6 +254,24 @@ class SchedulerType(ABC):
         """
 
     @abstractmethod
+    def run_task(
+        self,
+        task_id: Union[TaskType, str],
+        store: Optional[str] = None,
+        *,
+        force: bool = True,
+        remove_finished: bool = True,
+    ) -> Union[TaskType, None]:
+        """
+        Submit a task to its configured executor immediately.
+
+        Implementations may force a one-off execution even when the trigger says
+        the task is not due yet. After submission, the scheduler must persist the
+        new ``next_run_time`` or remove/pause the task if the schedule has been
+        exhausted.
+        """
+
+    @abstractmethod
     def get_tasks(self, store: Optional[str] = None) -> list[TaskType]:
         """
         Returns a list of pending tasks (if the scheduler hasn't been started yet) and scheduled
@@ -273,6 +292,31 @@ class SchedulerType(ABC):
         Args:
             task_id: The identifier of the task.
             store: Alias of the task store that most likely contains the task.
+        """
+
+    @abstractmethod
+    def get_task_info(self, task_id: str, store: Optional[str] = None) -> Union[TaskInfo, None]:
+        """
+        Return an immutable task inspection snapshot for a single task.
+        """
+
+    @abstractmethod
+    def get_task_infos(
+        self,
+        store: Optional[str] = None,
+        *,
+        schedule_state: Any = None,
+        executor: str | None = None,
+        trigger: str | None = None,
+        q: str | None = None,
+        sort_by: str = "next_run_time",
+        descending: bool = False,
+    ) -> list[TaskInfo]:
+        """
+        Return task inspection snapshots with optional filtering and sorting.
+
+        This is the scheduler-native query surface used by the CLI, dashboard,
+        and any custom operational tooling built on top of Asyncz.
         """
 
     @abstractmethod

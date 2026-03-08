@@ -2,12 +2,21 @@
 
 ## 0.15.0
 
+### Added
+
+- Added scheduler-native task inspection APIs through `Task.schedule_state`, `Task.paused`, `Task.snapshot()`, `scheduler.get_task_info()`, and `scheduler.get_task_infos(...)`.
+- Added `scheduler.run_task(...)` as the canonical Asyncz-native "run now" operation for administrative and dashboard flows.
+- Added richer task filtering and sorting to the CLI `list` command, including task state, executor, trigger, and free-text query support.
+- Expanded the dashboard task view with state-aware filtering, richer task metadata, and overview summaries for scheduled, paused, and pending tasks.
+
 ### Changed
 
 - Replaced the `loguru` integration with Python's built-in `logging` module across the scheduler, dashboard, CLI examples, and documentation.
 - Migrated the documentation stack from `mkdocs-material` to `zensical` and aligned the docs build flow with the current project structure.
 - Expanded and corrected the documentation for schedulers, triggers, tasks, stores, executors, ASGI integration, settings, CLI usage, dashboard usage, and API reference material.
 - Standardized the development type-checking and linting workflow around Ruff and `ty`.
+- The CLI and dashboard now delegate task run, pause, resume, and removal behavior to scheduler-owned APIs instead of maintaining separate control logic.
+- Dashboard task rendering now uses immutable task inspection snapshots rather than ad hoc serialization of live task objects.
 
 ### Fixed
 
@@ -17,6 +26,11 @@
 - Coroutine execution events now populate the task store alias consistently.
 - MongoDB store aliases are now normalized consistently between CLI parsing and scheduler plugin defaults.
 - Removed a duplicate executor pool shutdown path.
+- Fixed a scheduler `update_task()` recursion path that could surface during pause/resume-style management operations.
+- Fixed the dashboard overview page so controller-supplied task summaries and recent-task data are actually rendered.
+- Fixed the dashboard overview template link generation.
+- Fixed dashboard task filters so they persist across HTMX refreshes and row or bulk actions.
+- Fixed manual dashboard runs of one-off tasks so they remain visible in the UI as paused instead of disappearing immediately.
 
 ### Removed
 

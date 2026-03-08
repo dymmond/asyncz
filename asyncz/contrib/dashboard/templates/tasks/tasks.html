@@ -12,18 +12,47 @@
       </div>
       <div>
         <h2 class="text-lg font-semibold leading-tight">Tasks</h2>
-        <p class="text-sm text-gray-500">{{ tasks|length }} total</p>
+        <p class="text-sm text-gray-500">{{ visible_tasks }} visible / {{ total_tasks }} total</p>
       </div>
     </div>
 
     <div class="flex gap-2 items-center">
-      <form action="" method="get" class="hidden md:flex">
-        <input name="q"
-               value="{{ request.query_params.get('q') if request and request.query_params else '' }}"
-               placeholder="Search by id, name, store…"
-               class="w-64 rounded-l-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#f06824]/40"
-               />
-        <button class="rounded-r-lg bg-[#f06824] px-3 py-2 text-sm font-medium text-white hover:bg-[#e35d1e]">Search</button>
+      <form action="" method="get" class="hidden xl:flex xl:flex-wrap xl:items-center xl:justify-end xl:gap-2">
+        <input
+          name="q"
+          value="{{ filters.q }}"
+          placeholder="Search id, name, callable, trigger…"
+          class="w-64 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#f06824]/40"
+        />
+        <select name="state" class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
+          <option value="">Any state</option>
+          <option value="scheduled" {% if filters.state == "scheduled" %}selected{% endif %}>Scheduled</option>
+          <option value="paused" {% if filters.state == "paused" %}selected{% endif %}>Paused</option>
+          <option value="pending" {% if filters.state == "pending" %}selected{% endif %}>Pending</option>
+        </select>
+        <select name="executor" class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
+          <option value="">Any executor</option>
+          {% for executor in available_executors %}
+            <option value="{{ executor }}" {% if filters.executor == executor %}selected{% endif %}>{{ executor }}</option>
+          {% endfor %}
+        </select>
+        <select name="trigger" class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
+          <option value="">Any trigger</option>
+          {% for trigger in available_triggers %}
+            <option value="{{ trigger }}" {% if filters.trigger == trigger %}selected{% endif %}>{{ trigger }}</option>
+          {% endfor %}
+        </select>
+        <select name="sort" class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
+          <option value="next_run_time" {% if filters.sort == "next_run_time" %}selected{% endif %}>Sort: next run</option>
+          <option value="name" {% if filters.sort == "name" %}selected{% endif %}>Sort: name</option>
+          <option value="schedule_state" {% if filters.sort == "schedule_state" %}selected{% endif %}>Sort: state</option>
+          <option value="trigger" {% if filters.sort == "trigger" %}selected{% endif %}>Sort: trigger</option>
+        </select>
+        <select name="direction" class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
+          <option value="asc" {% if filters.direction == "asc" %}selected{% endif %}>Ascending</option>
+          <option value="desc" {% if filters.direction == "desc" %}selected{% endif %}>Descending</option>
+        </select>
+        <button class="rounded-lg bg-[#f06824] px-3 py-2 text-sm font-medium text-white hover:bg-[#e35d1e]">Apply</button>
       </form>
 
       <button type="button"
@@ -45,17 +74,31 @@
     </div>
   </div>
 
+  <div class="px-5 py-3 border-b bg-white">
+    <div class="flex flex-wrap items-center gap-2 text-sm">
+      <span class="inline-flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-green-700">
+        <span class="h-2 w-2 rounded-full bg-green-500"></span> {{ scheduled_tasks }} scheduled
+      </span>
+      <span class="inline-flex items-center gap-2 rounded-full border border-yellow-200 bg-yellow-50 px-3 py-1 text-yellow-700">
+        <span class="h-2 w-2 rounded-full bg-yellow-500"></span> {{ paused_tasks }} paused
+      </span>
+      <span class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700">
+        <span class="h-2 w-2 rounded-full bg-blue-500"></span> {{ pending_tasks }} pending
+      </span>
+    </div>
+  </div>
+
   <!-- Bulk actions (acts on checked rows inside the table partial) -->
   <div class="px-5 py-3 border-b bg-gray-50">
     <form id="bulk-form" class="flex flex-wrap gap-2 items-center"
-          hx-post="hx/bulk/pause" hx-target="#tasks-table" hx-swap="innerHTML">
+          hx-post="hx/bulk/pause{{ query_suffix }}" hx-target="#tasks-table" hx-swap="innerHTML">
       <input type="hidden" name="ids" id="bulk-ids" value="" />
       <span class="text-sm text-gray-600 mr-2">With selected:</span>
 
       <button type="submit" class="inline-flex items-center gap-1 rounded-md border border-yellow-300 bg-yellow-50 px-3 py-1.5 text-sm font-medium text-yellow-800 hover:bg-yellow-100">Pause</button>
 
       <button type="button" class="inline-flex items-center gap-1 rounded-md border border-blue-300 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-800 hover:bg-blue-100"
-              onclick="submitBulk('hx/bulk/run')">
+              onclick="submitBulk('hx/bulk/run{{ query_suffix }}')">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <path stroke-linecap="round" stroke-linejoin="round" d="M8 5v14l11-7z" />
         </svg>
@@ -63,16 +106,16 @@
       </button>
 
       <button type="button" class="inline-flex items-center gap-1 rounded-md border border-green-300 bg-green-50 px-3 py-1.5 text-sm font-medium text-green-800 hover:bg-green-100"
-              onclick="submitBulk('hx/bulk/resume')">Resume</button>
+              onclick="submitBulk('hx/bulk/resume{{ query_suffix }}')">Resume</button>
 
       <button type="button" class="inline-flex items-center gap-1 rounded-md border border-red-300 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-800 hover:bg-red-100"
-              onclick="if(confirm('Remove selected tasks?')) submitBulk('hx/bulk/remove')">Remove</button>
+              onclick="if(confirm('Remove selected tasks?')) submitBulk('hx/bulk/remove{{ query_suffix }}')">Remove</button>
     </form>
   </div>
 
   <!-- HTMX table container: auto-load + auto-refresh + target for swaps -->
   <div id="tasks-table" class="overflow-x-auto"
-       hx-get="partials/table{% if q %}?q={{ q|urlencode }}{% endif %}"
+       hx-get="partials/table{{ query_suffix }}"
        hx-trigger="load once, every 60s"
        hx-request="queue:last"
        hx-swap="innerHTML">

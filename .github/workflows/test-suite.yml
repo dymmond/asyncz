@@ -17,7 +17,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     services:
       redis:
         image: redis
@@ -46,7 +46,7 @@ jobs:
           pip install hatch
       - name: "Run linting"
         run: "hatch fmt --check"
-      - name: "Run mypy"
+      - name: "Run ty"
         run: "hatch run test:check_types"
       - name: "Run tests"
         run: "hatch test"
