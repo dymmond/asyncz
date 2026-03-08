@@ -46,7 +46,7 @@ jobs:
           pip install hatch
       - name: "Run linting"
         run: "hatch fmt --check"
-      - name: "Run mypy"
+      - name: "Run ty"
         run: "hatch run test:check_types"
       - name: "Run tests"
         run: "hatch test"
