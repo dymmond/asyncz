@@ -1,5 +1,27 @@
 # Release Notes
 
+## 0.15.0
+
+### Changed
+
+- Replaced the `loguru` integration with Python's built-in `logging` module across the scheduler, dashboard, CLI examples, and documentation.
+- Migrated the documentation stack from `mkdocs-material` to `zensical` and aligned the docs build flow with the current project structure.
+- Expanded and corrected the documentation for schedulers, triggers, tasks, stores, executors, ASGI integration, settings, CLI usage, dashboard usage, and API reference material.
+- Standardized the development type-checking and linting workflow around Ruff and `ty`.
+
+### Fixed
+
+- Date trigger creation from the CLI and dashboard now uses the correct `run_at` parameter and handles encoded UTC offsets more reliably.
+- Dashboard log storage configuration is now shared correctly between log writers and readers when using a custom storage backend.
+- Dashboard log records now resolve task identifiers consistently from `task_id`, `job_id`, and `asyncz_task_id`.
+- Coroutine execution events now populate the task store alias consistently.
+- MongoDB store aliases are now normalized consistently between CLI parsing and scheduler plugin defaults.
+- Removed a duplicate executor pool shutdown path.
+
+### Removed
+
+- Removed the `loguru` dependency and the `loguru`-based logging backend.
+
 ## 0.14.3
 
 ### Fixed
