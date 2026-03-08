@@ -1,8 +1,3 @@
----
-hide:
-  - navigation
----
-
 # Asyncz Dashboard
 
 Asyncz includes an optional Lilya-based dashboard for inspecting tasks and running common management actions from a browser.

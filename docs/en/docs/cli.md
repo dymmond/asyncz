@@ -1,8 +1,3 @@
----
-hide:
-  - navigation
----
-
 # Asyncz CLI
 
 Asyncz ships with a CLI for managing schedulers and persisted tasks without writing application-specific management commands.
