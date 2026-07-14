@@ -30,7 +30,7 @@
 
 ---
 
-Asyncz is an async-first scheduler for Python applications and ASGI services. It keeps the familiar scheduler / trigger / store / executor model, but it is built around `asyncio`, explicit task objects, framework lifecycle integration, and predictable standard-library logging.
+Asyncz is an async-first production scheduler for Python applications and ASGI services. It keeps the familiar scheduler / trigger / store / executor model, but it is built around `asyncio`, explicit task objects, framework lifecycle integration, durable stores, predictable standard-library logging, and operator tooling that works from both the CLI and the dashboard.
 
 ## Why Asyncz
 
@@ -38,7 +38,9 @@ Asyncz is an async-first scheduler for Python applications and ASGI services. It
 - `NativeAsyncIOScheduler` for environments that already own the event loop.
 - Built-in triggers for one-off work, recurring intervals, cron expressions, combinations, and shutdown hooks.
 - Multiple persistence options for local development and production deployments.
-- CLI and dashboard tooling for operational workflows.
+- CLI tooling for add, list, inspect, preview, status, run, pause, resume, and remove workflows.
+- Dashboard tooling for task control, bulk actions, manual Run now, run history, and per-run log inspection.
+- Packaged dashboard assets for Tailwind CSS, Alpine.js, HTMX, Toastify, and the favicon.
 
 ## Install
 
@@ -73,6 +75,19 @@ scheduler.add_task(cleanup, "interval", minutes=5, id="cleanup-task")
 scheduler.start()
 ```
 
+## Operate a durable task
+
+```bash
+asyncz add myapp.tasks:cleanup \
+  --id cleanup-task \
+  --name cleanup \
+  --interval 5m \
+  --store durable=sqlite:///scheduler.db
+
+asyncz inspect cleanup-task --count 5 --store durable=sqlite:///scheduler.db
+asyncz run cleanup-task --store durable=sqlite:///scheduler.db
+```
+
 ## What to read next
 
 - [Schedulers](./schedulers.md) for configuration, lifecycle, and logging.
@@ -82,7 +97,7 @@ scheduler.start()
 - [Executors](./executors.md) for runtime execution strategy.
 - [ASGI and Context Managers](./asgi.md) for framework integration.
 - [CLI](./cli.md) for operational workflows.
-- [Dashboard](./dashboard/dashboard.md) for the optional admin UI.
+- [Dashboard](./dashboard/dashboard.md) for the optional admin UI, run history, and logs.
 
 ## Logging
 
@@ -93,6 +108,8 @@ Asyncz uses Python's built-in `logging` module. The default logger namespaces ar
 - `asyncz.stores.<alias>`
 
 If you need custom logger creation, pass a custom `loggers_class` when constructing the scheduler.
+
+The dashboard log viewer can additionally filter captured records by task id, run id, level, and message text.
 
 ## Persistence and encryption
 

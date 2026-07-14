@@ -68,10 +68,15 @@ asyncz start --store durable=sqlite:///scheduler.db --executor default=asyncio
 
 ```bash
 asyncz add myapp.tasks:cleanup \
+  --id nightly-cleanup \
   --name nightly-cleanup \
   --cron "0 2 * * *" \
   --store durable=sqlite:///scheduler.db
 ```
+
+Use `--id` when operators need a stable identifier for run, pause, resume,
+remove, inspect, dashboards, or external automation. If omitted, Asyncz
+generates the task id.
 
 ### Add a one-off task
 
@@ -110,6 +115,41 @@ JSON output includes the original compatibility fields (`id`, `name`, `trigger`,
 - `executor`
 - `callable_name`
 - `callable_reference`
+
+### Inspect one task
+
+```bash
+asyncz inspect <task-id> --store durable=sqlite:///scheduler.db
+asyncz inspect <task-id> --json --count 10 --store durable=sqlite:///scheduler.db
+```
+
+`inspect` is the single-task operator view. It returns the task snapshot and
+upcoming run times in one command, so you can check the current state before
+running, pausing, resuming, or removing a task.
+
+JSON output includes:
+
+- `task`
+- `requested_count`
+- `returned_count`
+- `exhausted`
+- `run_times`
+
+The nested `task` object includes:
+
+- `id`
+- `name`
+- `state`
+- `trigger`
+- `trigger_alias`
+- `trigger_description`
+- `next_run_time`
+- `store`
+- `executor`
+- `callable_name`
+- `callable_reference`
+- `pending`
+- `paused`
 
 ### Inspect scheduler status
 
@@ -165,6 +205,14 @@ asyncz remove <task_id> --store durable=sqlite:///scheduler.db
 ```
 
 These commands now delegate to the scheduler's own task-control APIs (`run_task()`, `pause_task()`, `resume_task()`, and `delete_task()`), which keeps CLI behavior aligned with the dashboard and programmatic callers.
+
+For a typical manual intervention:
+
+```bash
+asyncz inspect cleanup-task --store durable=sqlite:///scheduler.db
+asyncz run cleanup-task --store durable=sqlite:///scheduler.db
+asyncz inspect cleanup-task --store durable=sqlite:///scheduler.db
+```
 
 ## Bootstrap contract
 

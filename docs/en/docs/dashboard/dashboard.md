@@ -4,12 +4,14 @@ Asyncz includes an optional Lilya-based dashboard for inspecting tasks and runni
 
 ## What it provides
 
-- an overview page with scheduler and task-state summaries
-- a task list with search, state/executor/trigger filters, and sortable views
-- per-task actions for run, pause, resume, and remove
-- bulk task actions
+- an overview page with scheduler, task-state, and recent-run summaries
+- a task list with search, state/executor/trigger filters, sortable views, and last-run status
+- per-task actions for Run now, pause, resume, remove, and history inspection
+- bulk task actions for Run now, pause, resume, and remove
+- a run-history page backed by scheduler execution events
+- per-run detail pages with correlated log records
 - an optional login flow
-- a log viewer backed by the dashboard logging subsystem
+- a log viewer backed by the dashboard logging subsystem, including run-id filtering
 
 ## Install
 
@@ -83,6 +85,22 @@ admin = AsynczAdmin(
     backend=SimpleUsernamePasswordBackend(verify),
 )
 ```
+
+## Admin surfaces
+
+The dashboard is organized around operational tasks:
+
+| Area | Purpose |
+| --- | --- |
+| Overview | Scheduler state, task counts, recent tasks, and recent runs. |
+| Tasks | Filter tasks, trigger immediate runs, pause, resume, remove, and inspect last-run state. |
+| History | Inspect manual and scheduled task runs captured from scheduler events. |
+| Logs | Filter captured log records by task id, run id, level, and message text. |
+
+The dashboard uses packaged Alpine.js for transient browser state such as
+navigation, selection, and modal controls. Scheduler state remains server-owned:
+task rows, history records, and logs are rendered from scheduler APIs and the
+dashboard storage backends.
 
 ## Configuration
 
@@ -158,6 +176,61 @@ This is intentional:
 
 That behavior is useful for operators because a manually triggered one-off task can still be inspected, resumed, or removed explicitly after the forced run.
 
+Manual dashboard runs are recorded in run history with `source="manual"`.
+Scheduled executions are recorded with `source="scheduled"` when they are
+submitted through normal scheduler processing.
+
+## Run history
+
+When the dashboard is mounted, it installs a scheduler listener for task
+submission and execution events. The default run-history backend is
+process-local memory storage.
+
+Each run record captures:
+
+- run id
+- task id and task name
+- callable reference
+- store and executor alias
+- source (`manual`, `scheduled`, or `unknown`)
+- status (`running`, `succeeded`, `failed`, `missed`, or `max_instances`)
+- submitted and finished timestamps
+- duration
+- return value or exception details when available
+
+Run history handles synchronous debug executors as well as asynchronous
+executors. If a debug executor emits the execution event before the submission
+event, the record is still merged into one run and the later submission event
+fills in the source.
+
+## Per-run logs
+
+Run-history lifecycle events write structured log records with a `run_id`.
+The run detail page shows:
+
+- direct lifecycle logs for that run id
+- task-scoped logs emitted during the run window
+
+For application task logs, prefer task-scoped standard-library logging:
+
+```python
+from asyncz.contrib.dashboard.logs.handler import get_task_logger
+
+logger = get_task_logger("cleanup-task")
+logger.info("cleanup started")
+```
+
+Or pass task metadata directly:
+
+```python
+import logging
+
+logging.getLogger("asyncz.jobs").info(
+    "cleanup started",
+    extra={"task_id": "cleanup-task"},
+)
+```
+
 ## Overview page
 
 The overview page summarizes:
@@ -167,6 +240,7 @@ The overview page summarizes:
 - total task count
 - scheduled / paused / pending counts
 - recent tasks with their callable and trigger metadata
+- recent runs with status, source, duration, and log-inspection links
 
 ## Custom log storage
 
@@ -181,3 +255,22 @@ admin = AsynczAdmin(
     log_storage=MemoryLogStorage(maxlen=20_000),
 )
 ```
+
+## Custom run-history storage
+
+Pass `run_history_storage=` to `AsynczAdmin` to control the in-process run
+history backend. The built-in storage is `MemoryRunHistoryStorage`.
+
+```python
+from asyncz.contrib.dashboard.admin import AsynczAdmin
+from asyncz.contrib.dashboard.history import MemoryRunHistoryStorage
+
+admin = AsynczAdmin(
+    scheduler=scheduler,
+    run_history_storage=MemoryRunHistoryStorage(maxlen=10_000),
+)
+```
+
+The built-in backend is intentionally process-local. Use a custom backend if
+you need run history to survive process restarts or be shared across multiple
+worker processes.

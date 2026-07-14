@@ -9,6 +9,13 @@
 - Pinned the testing type checker dependency to `ty==0.0.59`.
 - Replaced dashboard runtime CDN dependencies with packaged Tailwind CSS,
   Alpine.js CSP, HTMX, Toastify, and favicon assets.
+- Rebuilt the dashboard as a modern admin surface with a fixed navigation shell,
+  responsive mobile navigation, denser operational tables, Alpine.js-backed
+  interaction state, and clearer task action buttons.
+- The dashboard task table now shows last-run status and links directly to run
+  history details.
+- The overview page now includes recent run history alongside scheduler and task
+  summaries.
 
 ### Added
 
@@ -18,6 +25,22 @@
   and the `asyncz status` CLI command.
 - Added scheduler-backed trigger previews through `scheduler.preview_task_runs()`
   and the `asyncz preview` CLI command.
+- Added the `asyncz inspect` CLI command for single-task inspection with
+  upcoming run previews and JSON output.
+- Added `asyncz add --id` for stable operator-owned task identifiers.
+- Added dashboard run history backed by scheduler submission and execution
+  events, including manual-vs-scheduled source tracking.
+- Added run-detail pages that correlate lifecycle logs and task-scoped logs for
+  a specific run id.
+- Added dashboard log filtering by `run_id` and structured log extras.
+
+### Fixed
+
+- Auth-enabled dashboards now allow prefixed static assets such as
+  `/dashboard/static/...` through the authentication gate so login pages can load
+  packaged CSS and JavaScript.
+- Replaced invalid HTMX request attributes in task refresh/action flows with
+  valid synchronization behavior.
 
 ## 0.15.0
 
