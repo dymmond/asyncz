@@ -101,6 +101,8 @@ def test_index_renders(client: TestClient):
     assert 'x-data="asynczShell"' in response.text
     assert "data-sidebar-toggle" in response.text
     assert 'class="az-workspace"' in response.text
+    assert "Operate" in response.text
+    assert "Review" in response.text
 
 
 def test_tasks_page_renders(client: TestClient):
@@ -108,6 +110,10 @@ def test_tasks_page_renders(client: TestClient):
     assert response.status_code == 200
     assert "Tasks" in response.text  # header
     assert 'x-data="asynczTasks"' in response.text
+    assert "az-task-toolbar" in response.text
+    assert "Table density" in response.text
+    assert 'x-on:click="toggleFilters"' in response.text
+    assert "az-table-wrap--resizable az-table-wrap--sticky-actions" in response.text
 
 
 def test_runtime_page_renders_scheduler_components(client: TestClient):

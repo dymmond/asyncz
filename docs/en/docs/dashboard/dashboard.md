@@ -9,6 +9,7 @@ Asyncz includes an optional Lilya-based dashboard for inspecting tasks and runni
 - an instances page with process-local scheduler identity and heartbeat freshness
 - a timeline page that previews upcoming run times across all tasks
 - an audit page for dashboard create/update/run/pause/resume/remove actions
+- grouped navigation for operational and review-oriented pages
 - a task list with search, state/executor/trigger filters, sortable views, and last-run status
 - per-task actions for Run now, edit, pause, resume, remove, and history inspection
 - bulk task actions for Run now, pause, resume, and remove
@@ -106,9 +107,9 @@ The dashboard is organized around operational tasks:
 | Logs | Filter captured log records by task id, run id, level, and message text. |
 
 The dashboard uses packaged Alpine.js for transient browser state such as
-navigation, selection, and modal controls. Scheduler state remains server-owned:
-task rows, history records, and logs are rendered from scheduler APIs and the
-dashboard storage backends.
+navigation, table density, filter visibility, selection, and modal controls.
+Scheduler state remains server-owned: task rows, history records, and logs are
+rendered from scheduler APIs and the dashboard storage backends.
 
 ## Configuration
 
@@ -210,6 +211,8 @@ The task table supports:
 - trigger filtering
 - sorting by name, trigger, state, or next run time
 - row-level edit links for supported scheduler-owned task fields
+- comfortable and compact density modes
+- a resizable table region with sticky row actions on wide viewports
 
 Active filters are preserved across:
 

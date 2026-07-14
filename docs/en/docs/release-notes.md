@@ -12,6 +12,9 @@
 - Rebuilt the dashboard as a modern admin surface with a fixed navigation shell,
   responsive mobile navigation, denser operational tables, Alpine.js-backed
   interaction state, and clearer task action buttons.
+- Refined dashboard navigation and task ergonomics with grouped menu sections,
+  persisted table density controls, collapsible filters, sticky row actions,
+  and a resizable task table region.
 - The dashboard task table now shows last-run status and links directly to run
   history details.
 - The overview page now includes recent run history alongside scheduler and task

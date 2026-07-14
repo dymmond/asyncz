@@ -120,8 +120,22 @@ html {
 
 .az-nav {
   display: grid;
-  gap: 6px;
+  gap: 10px;
   padding: 18px 0;
+}
+
+.az-nav-section {
+  display: grid;
+  gap: 6px;
+}
+
+.az-nav-heading {
+  padding: 0 12px;
+  color: rgba(238, 243, 251, .46);
+  font-size: .66rem;
+  font-weight: 780;
+  letter-spacing: .1em;
+  text-transform: uppercase;
 }
 
 .az-nav-link,
@@ -442,11 +456,31 @@ html {
   overflow: auto;
 }
 
+.az-table-wrap--resizable {
+  min-height: 340px;
+  max-height: min(68vh, 760px);
+  resize: vertical;
+}
+
 .az-table {
   width: 100%;
   min-width: 1040px;
   border-collapse: separate;
   border-spacing: 0;
+}
+
+.az-table-wrap--sticky-actions .az-table th:last-child,
+.az-table-wrap--sticky-actions .az-table td:last-child {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  background: var(--az-surface);
+  box-shadow: -10px 0 18px rgba(23, 32, 51, .06);
+}
+
+.az-table-wrap--sticky-actions .az-table th:last-child {
+  z-index: 3;
+  background: var(--az-surface-muted);
 }
 
 .az-table--compact {
@@ -474,6 +508,10 @@ html {
 }
 
 .az-table tbody tr:hover {
+  background: #fbfcff;
+}
+
+.az-table-wrap--sticky-actions .az-table tbody tr:hover td:last-child {
   background: #fbfcff;
 }
 
@@ -552,6 +590,66 @@ html {
   gap: 6px;
 }
 
+.az-task-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.az-segmented {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 3px;
+  background: var(--az-surface-muted);
+  border: 1px solid var(--az-border);
+  border-radius: var(--az-radius);
+}
+
+.az-segment-button {
+  min-height: 30px;
+  padding: 6px 10px;
+  color: var(--az-muted);
+  font-size: .78rem;
+  font-weight: 760;
+  line-height: 1;
+  background: transparent;
+  border: 0;
+  border-radius: calc(var(--az-radius) - 2px);
+  cursor: pointer;
+}
+
+.az-segment-button[aria-pressed="true"] {
+  color: var(--az-ink);
+  background: var(--az-surface);
+  box-shadow: 0 1px 4px rgba(23, 32, 51, .12);
+}
+
+.az-segment-button:hover,
+.az-segment-button:focus-visible {
+  color: var(--az-ink);
+  outline: none;
+}
+
+.az-bulk-bar {
+  justify-content: space-between;
+}
+
+.az-bulk-selection {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 5px 9px;
+  color: var(--az-ink-soft);
+  font-size: .8rem;
+  font-weight: 760;
+  background: var(--az-surface);
+  border: 1px solid var(--az-border);
+  border-radius: var(--az-radius);
+}
+
 .az-button,
 .az-icon-button {
   display: inline-flex;
@@ -576,6 +674,44 @@ html {
   height: 34px;
   min-height: 34px;
   padding: 0;
+}
+
+.az-action-button {
+  width: auto;
+  min-width: 34px;
+  padding: 0 9px;
+  white-space: nowrap;
+}
+
+.az-action-button span {
+  font-size: .78rem;
+  font-weight: 760;
+}
+
+.az-density-compact .az-table th {
+  padding: 8px 10px;
+}
+
+.az-density-compact .az-table td {
+  padding: 8px 10px;
+  font-size: .82rem;
+}
+
+.az-density-compact .az-action-button {
+  width: 34px;
+  padding: 0;
+}
+
+.az-density-compact .az-action-button span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .az-button:hover,
@@ -1007,6 +1143,42 @@ html {
 
   .az-mobile-nav {
     display: block;
+  }
+
+  .az-panel-header,
+  .az-table-toolbar,
+  .az-task-toolbar,
+  .az-bulk-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .az-task-toolbar,
+  .az-actions,
+  .az-segmented {
+    justify-content: flex-start;
+  }
+
+  .az-table-wrap--resizable {
+    max-height: none;
+    resize: none;
+  }
+
+  .az-action-button {
+    width: 34px;
+    padding: 0;
+  }
+
+  .az-action-button span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
   }
 
   .az-topbar {

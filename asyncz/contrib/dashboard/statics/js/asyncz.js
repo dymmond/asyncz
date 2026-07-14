@@ -83,8 +83,21 @@ document.addEventListener("alpine:init", function () {
   });
 
   Alpine.data("asynczTasks", function () {
+    const densityKey = "asyncz.dashboard.tasksDensity";
+    const filtersKey = "asyncz.dashboard.tasksFiltersOpen";
+
     return {
       selected: [],
+      density: "comfortable",
+      filtersOpen: true,
+
+      get comfortableDensity() {
+        return this.density === "comfortable";
+      },
+
+      get compactDensity() {
+        return this.density === "compact";
+      },
 
       get selectedCount() {
         return this.selected.length;
@@ -105,12 +118,54 @@ document.addEventListener("alpine:init", function () {
       },
 
       init() {
+        try {
+          const storedDensity = window.localStorage.getItem(densityKey);
+          this.density = storedDensity === "compact" ? "compact" : "comfortable";
+          const storedFilters = window.localStorage.getItem(filtersKey);
+          this.filtersOpen = storedFilters === null ? true : storedFilters === "true";
+        } catch (_error) {
+          this.density = "comfortable";
+          this.filtersOpen = true;
+        }
+
+        this.applyDensity();
         this.refreshSelection();
         document.body.addEventListener("htmx:afterSwap", (event) => {
           if (event.target && event.target.id === "tasks-table") {
             this.$nextTick(() => this.refreshSelection());
           }
         });
+      },
+
+      applyDensity() {
+        this.$root.classList.toggle("az-density-compact", this.compactDensity);
+      },
+
+      setDensity(value) {
+        this.density = value === "compact" ? "compact" : "comfortable";
+        this.applyDensity();
+        try {
+          window.localStorage.setItem(densityKey, this.density);
+        } catch (_error) {
+          // Storage can be disabled in private browsing or strict test contexts.
+        }
+      },
+
+      setDensityComfortable() {
+        this.setDensity("comfortable");
+      },
+
+      setDensityCompact() {
+        this.setDensity("compact");
+      },
+
+      toggleFilters() {
+        this.filtersOpen = !this.filtersOpen;
+        try {
+          window.localStorage.setItem(filtersKey, String(this.filtersOpen));
+        } catch (_error) {
+          // Storage can be disabled in private browsing or strict test contexts.
+        }
       },
 
       rowCheckboxes() {

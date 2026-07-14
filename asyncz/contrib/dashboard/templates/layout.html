@@ -33,14 +33,20 @@
       </a>
 
       <nav class="az-nav" aria-label="Dashboard">
-        {{ nav_link(home_url, "Overview", current_page == "dashboard", "dashboard") }}
-        {{ nav_link(url_for('dashboard:tasks:index'), "Tasks", current_page == "tasks", "tasks") }}
-        {{ nav_link(url_for('dashboard:runtime:index'), "Runtime", current_page == "runtime", "runtime") }}
-        {{ nav_link(url_for('dashboard:instances:index'), "Instances", current_page == "instances", "instances") }}
-        {{ nav_link(url_for('dashboard:timeline:index'), "Timeline", current_page == "timeline", "timeline") }}
-        {{ nav_link(url_for('dashboard:history:index'), "History", current_page == "history", "history") }}
-        {{ nav_link(url_for('dashboard:audit:index'), "Audit", current_page == "audit", "audit") }}
-        {{ nav_link(url_for('dashboard:logs:index'), "Logs", current_page == "logs", "logs") }}
+        <div class="az-nav-heading az-sidebar-label">Operate</div>
+        <div class="az-nav-section">
+          {{ nav_link(home_url, "Overview", current_page == "dashboard", "dashboard") }}
+          {{ nav_link(url_for('dashboard:tasks:index'), "Tasks", current_page == "tasks", "tasks") }}
+          {{ nav_link(url_for('dashboard:runtime:index'), "Runtime", current_page == "runtime", "runtime") }}
+          {{ nav_link(url_for('dashboard:instances:index'), "Instances", current_page == "instances", "instances") }}
+          {{ nav_link(url_for('dashboard:timeline:index'), "Timeline", current_page == "timeline", "timeline") }}
+        </div>
+        <div class="az-nav-heading az-sidebar-label">Review</div>
+        <div class="az-nav-section">
+          {{ nav_link(url_for('dashboard:history:index'), "History", current_page == "history", "history") }}
+          {{ nav_link(url_for('dashboard:audit:index'), "Audit", current_page == "audit", "audit") }}
+          {{ nav_link(url_for('dashboard:logs:index'), "Logs", current_page == "logs", "logs") }}
+        </div>
       </nav>
 
       <div class="az-sidebar-footer">

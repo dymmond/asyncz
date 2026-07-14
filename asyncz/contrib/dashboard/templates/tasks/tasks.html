@@ -1,6 +1,6 @@
 {% extends "layout.html" %}
 {% block content %}
-<div class="az-page" x-data="asynczTasks">
+<div class="az-page az-task-page" x-data="asynczTasks">
   <section class="az-stat-grid">
     <article class="az-stat-card az-stat-card--accent">
       <div class="az-stat-label">Visible</div>
@@ -30,15 +30,22 @@
         <h2 class="az-panel-title">Tasks</h2>
         <div class="az-panel-meta">Inspect, filter, pause, resume, remove, or run a task immediately.</div>
       </div>
-      <div class="az-actions">
-        <a href="{{ url_for('dashboard:tasks:index') }}" class="az-button">Reset</a>
-        <button type="button" class="az-button az-button--primary" x-on:click="openAddTask">
-          Add Task
-        </button>
+      <div class="az-task-toolbar">
+        <div class="az-segmented" role="group" aria-label="Table density">
+          <button type="button" class="az-segment-button" x-bind:aria-pressed="comfortableDensity" x-on:click="setDensityComfortable">Comfort</button>
+          <button type="button" class="az-segment-button" x-bind:aria-pressed="compactDensity" x-on:click="setDensityCompact">Compact</button>
+        </div>
+        <div class="az-actions">
+          <button type="button" class="az-button" x-on:click="toggleFilters" x-bind:aria-expanded="filtersOpen">Filters</button>
+          <a href="{{ url_for('dashboard:tasks:index') }}" class="az-button">Reset</a>
+          <button type="button" class="az-button az-button--primary" x-on:click="openAddTask">
+            Add Task
+          </button>
+        </div>
       </div>
     </div>
 
-    <form action="" method="get" class="az-filter-bar">
+    <form action="" method="get" class="az-filter-bar" x-show="filtersOpen">
       <label class="az-field az-field--search">
         <span>Search</span>
         <input
@@ -94,10 +101,10 @@
       <button class="az-button az-button--primary">Apply</button>
     </form>
 
-    <div class="az-filter-bar">
+    <div class="az-filter-bar az-bulk-bar">
       <div id="bulk-form" class="az-actions">
         <input type="hidden" name="ids" id="bulk-ids" x-bind:value="selectedPayload" />
-        <span class="az-panel-meta" x-text="selectedLabel">0 selected</span>
+        <span class="az-bulk-selection" x-text="selectedLabel">0 selected</span>
         <button type="button" class="az-button az-button--primary"
                 hx-post="hx/bulk/run{{ query_suffix }}" hx-target="#tasks-table" hx-swap="innerHTML"
                 hx-include="#bulk-ids" x-on:click="refreshSelection" x-bind:disabled="noSelection">Run now</button>
@@ -114,7 +121,7 @@
       </div>
     </div>
 
-    <div id="tasks-table" class="az-table-wrap"
+    <div id="tasks-table" class="az-table-wrap az-table-wrap--resizable az-table-wrap--sticky-actions"
          hx-get="partials/table{{ query_suffix }}"
          hx-trigger="load once, every 60s"
          hx-sync="this:replace"
