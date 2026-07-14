@@ -63,6 +63,22 @@ def _status_json(client: SayerTestClient, store: str):
     return json.loads(m.group(1))
 
 
+def _doctor_json(client: SayerTestClient, store: str):
+    r = client.invoke(["doctor", "--json", "--store", store])
+    assert r.exit_code == 0, r.stderr
+
+    if isinstance(r.return_value, dict):
+        return r.return_value
+
+    out = (r.stdout or "").strip() or (r.stderr or "").strip()
+    if out.startswith("ℹ"):
+        out = out.lstrip("ℹ️ ").lstrip()
+
+    m = re.search(r"(\{.*\})", out, re.S)
+    assert m, f"Expected JSON in output, got: {out!r}"
+    return json.loads(m.group(1))
+
+
 def _preview_json(client: SayerTestClient, job_id: str, store: str, count: int = 3):
     r = client.invoke(["preview", job_id, "--json", "--count", str(count), "--store", store])
     assert r.exit_code == 0, r.stderr
@@ -203,6 +219,46 @@ def test_status_json_reports_scheduler_snapshot(client: SayerTestClient, sqlite_
     assert payload["pending_task_count"] == 0
     assert payload["stores"] == ["default", "durable"]
     assert payload["executors"] == ["default"]
+
+
+def test_doctor_json_reports_scheduler_diagnostics(client: SayerTestClient, sqlite_url: str):
+    r = client.invoke(
+        [
+            "add",
+            "tests.fixtures:noop",
+            "--name",
+            "doctor-noop",
+            "--interval",
+            "5s",
+            "--store",
+            f"durable={sqlite_url}",
+        ]
+    )
+    assert r.exit_code == 0, r.stderr
+
+    payload = _doctor_json(client, f"durable={sqlite_url}")
+
+    assert payload["health"] == "ok"
+    assert payload["ready"] is True
+    assert payload["scheduler"]["task_count"] == 1
+    assert payload["scheduler"]["stores"] == ["default", "durable"]
+    assert payload["scheduler"]["executors"] == ["default"]
+    assert {check["name"] for check in payload["checks"]} == {
+        "scheduler_running",
+        "stores_registered",
+        "executors_registered",
+        "task_inventory",
+        "lifecycle_clock",
+    }
+    assert all(check["status"] == "ok" for check in payload["checks"])
+
+
+def test_doctor_human_output_reports_health(client: SayerTestClient):
+    result = client.invoke(["doctor"])
+
+    assert result.exit_code == 0, result.stderr
+    assert "health=ok" in result.stdout
+    assert "scheduler_running" in result.stdout
 
 
 def test_preview_json_reports_upcoming_run_times(client: SayerTestClient, sqlite_url: str):

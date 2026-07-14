@@ -192,6 +192,31 @@ JSON output includes:
 - `store_retry_interval`
 - `startup_delay`
 
+### Run scheduler diagnostics
+
+```bash
+asyncz doctor --store durable=sqlite:///scheduler.db
+asyncz doctor --json --store durable=sqlite:///scheduler.db
+asyncz doctor --strict --bootstrap myapp.schedulers:AsynczSpec
+```
+
+The `doctor` command runs readiness checks on top of the scheduler inspection
+API. Without `--bootstrap`, it starts a temporary scheduler with the configured
+stores, verifies that the scheduler is running, confirms stores and executors are
+registered, inspects task inventory, and validates lifecycle timing metadata.
+With `--bootstrap`, it reports the scheduler returned by your application
+without starting it.
+
+JSON output includes:
+
+- `health`
+- `ready`
+- `scheduler`
+- `checks`
+
+Use `--strict` when automation should fail if any diagnostic check reports
+`warning` or `failed` health.
+
 ### Preview upcoming run times
 
 ```bash
