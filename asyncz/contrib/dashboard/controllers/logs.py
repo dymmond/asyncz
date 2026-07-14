@@ -63,7 +63,12 @@ class LogsPageController(DashboardMixin, TemplateController):
         Returns:
             Response: The rendered HTML response for the log index page.
         """
-        context: dict[str, Any] = await self.get_context_data(request=request)
+        context: dict[str, Any] = await self.get_context_data(
+            request=request,
+            title="Logs",
+            page_header="Logs",
+            active_page="logs",
+        )
         return await self.render_template(request, context=context)
 
 

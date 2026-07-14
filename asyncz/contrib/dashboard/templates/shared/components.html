@@ -1,0 +1,44 @@
+{% macro icon(name, class_name="az-icon") -%}
+  <svg class="{{ class_name }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    {% if name == "dashboard" %}
+      <path d="M4 5.5h6.5v6.5H4z"/>
+      <path d="M13.5 5.5H20V12h-6.5z"/>
+      <path d="M4 15h6.5v3.5H4z"/>
+      <path d="M13.5 15H20v3.5h-6.5z"/>
+    {% elif name == "tasks" %}
+      <path d="M4 6.5h16"/>
+      <path d="M4 12h16"/>
+      <path d="M4 17.5h10"/>
+      <path d="M17 16l2 2 3-4"/>
+    {% elif name == "logs" %}
+      <path d="M5 4.5h14v15H5z"/>
+      <path d="M8 8h8"/>
+      <path d="M8 12h8"/>
+      <path d="M8 16h5"/>
+    {% elif name == "logout" %}
+      <path d="M10 5H5v14h5"/>
+      <path d="M14 8l4 4-4 4"/>
+      <path d="M18 12H8"/>
+    {% elif name == "menu" %}
+      <path d="M4 7h16"/>
+      <path d="M4 12h16"/>
+      <path d="M4 17h16"/>
+    {% elif name == "collapse" %}
+      <path d="M15 6l-6 6 6 6"/>
+      <path d="M20 4v16"/>
+    {% elif name == "clock" %}
+      <circle cx="12" cy="12" r="8"/>
+      <path d="M12 8v4l3 2"/>
+    {% else %}
+      <circle cx="12" cy="12" r="8"/>
+      <path d="M12 8v4l3 2"/>
+    {% endif %}
+  </svg>
+{%- endmacro %}
+
+{% macro nav_link(href, label, active=False, icon_name="dashboard") -%}
+  <a href="{{ href }}" class="az-nav-link{% if active %} is-active{% endif %}" {% if active %}aria-current="page"{% endif %} title="{{ label }}">
+    {{ icon(icon_name) }}
+    <span class="az-sidebar-label">{{ label }}</span>
+  </a>
+{%- endmacro %}

@@ -147,3 +147,22 @@ def test_bundled_login_template_uses_local_assets(client_login: TestClient) -> N
     assert "cdn.tailwindcss.com" not in response.text
     assert "unpkg.com" not in response.text
     assert "tailwind.config" not in response.text
+
+
+def test_login_static_assets_bypass_auth_gate(client_login: TestClient) -> None:
+    expected_assets: dict[str, bytes | str] = {
+        f"{DASH_PREFIX}/static/favicon.ico": b"\x00\x00\x01\x00",
+        f"{DASH_PREFIX}/static/css/asyncz.css": ".az-shell",
+        f"{DASH_PREFIX}/static/js/asyncz.js": 'Alpine.data("asynczShell"',
+        f"{DASH_PREFIX}/static/vendor/alpinejs/alpine-csp-3.15.12.min.js": 'version:"3.15.12"',
+    }
+
+    for path, marker in expected_assets.items():
+        response = client_login.get(path, follow_redirects=False)
+
+        assert response.status_code == 200
+        if isinstance(marker, bytes):
+            assert response.content.startswith(marker)
+        else:
+            assert marker in response.text
+        assert "<!DOCTYPE html>" not in response.text[:80]

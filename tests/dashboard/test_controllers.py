@@ -96,12 +96,17 @@ def test_index_renders(client: TestClient):
     assert response.status_code == 200
     assert "Scheduler" in response.text
     assert "Total Tasks" in response.text
+    assert 'class="az-shell"' in response.text
+    assert 'x-data="asynczShell"' in response.text
+    assert "data-sidebar-toggle" in response.text
+    assert 'class="az-workspace"' in response.text
 
 
 def test_tasks_page_renders(client: TestClient):
     response = client.get(f"{DASH_PREFIX}/tasks/")
     assert response.status_code == 200
     assert "Tasks" in response.text  # header
+    assert 'x-data="asynczTasks"' in response.text
 
 
 def test_tasks_partial_table_initial(client: TestClient):

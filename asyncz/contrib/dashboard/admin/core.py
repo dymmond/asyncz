@@ -177,11 +177,20 @@ class AsynczAdmin:
         Returns:
             DefineMiddleware: The fully configured authentication gate middleware definition.
         """
+        allowlist = self.allowlist
+        prefix = self.url_prefix.rstrip("/")
+        if prefix and prefix != "/":
+            allowlist = (
+                *allowlist,
+                f"{prefix}/static",
+                f"{prefix}/assets",
+            )
+
         return DefineMiddleware(
             AuthGateMiddleware,
             authenticate=self.backend.authenticate,
             login_path=self.login_path,
-            allowlist=self.allowlist,
+            allowlist=allowlist,
         )
 
     def assemble_dashboard_router(self) -> Router:
