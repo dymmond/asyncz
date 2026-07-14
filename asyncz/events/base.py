@@ -28,10 +28,12 @@ class TaskEvent(SchedulerEvent):
     Args:
         task_id: The identifier given to a task.
         store: The alias given to a store.
+        scheduler_identity: The scheduler identity assigned before listener dispatch.
     """
 
     task_id: str
     store: Optional[str] = None
+    scheduler_identity: Optional[str] = None
 
 
 class TaskSubmissionEvent(TaskEvent):

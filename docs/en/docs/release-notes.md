@@ -52,6 +52,7 @@
   events, including source tracking for manual and scheduled runs.
 - Added scheduler identity to run history records, run detail pages, and
   lifecycle log metadata.
+- Task events now include the scheduler identity seen by event listeners.
 - Added run detail pages that correlate lifecycle logs and task logs for
   a specific run id.
 - Added dashboard log filtering by `run_id` and structured log extras.

@@ -1350,6 +1350,9 @@ class BaseScheduler(SchedulerType):
         Args:
             event: The SchedulerEvent to be sent.
         """
+        if isinstance(event, TaskEvent) and event.scheduler_identity is None:
+            event.scheduler_identity = self.identity or None
+
         with self.listeners_lock:
             listeners = tuple(self.listeners)
 

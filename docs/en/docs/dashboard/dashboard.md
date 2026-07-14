@@ -268,7 +268,7 @@ Each run record captures:
 - task id and task name
 - callable reference
 - store and executor alias
-- scheduler identity for the process that recorded the run
+- scheduler identity from the task event that recorded the run
 - source (`manual`, `scheduled`, or `unknown`)
 - status (`running`, `succeeded`, `failed`, `missed`, or `max_instances`)
 - submitted and finished timestamps

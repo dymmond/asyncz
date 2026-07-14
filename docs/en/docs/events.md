@@ -17,6 +17,7 @@ Extends `SchedulerEvent` with task-specific data:
 
 - `task_id`
 - `store`
+- `scheduler_identity`: set by the scheduler before listeners receive the event
 
 ### `TaskSubmissionEvent`
 

@@ -167,6 +167,7 @@ class MemoryRunHistoryStorage:
                 store=event.store,
                 scheduled_run_time=scheduled_run_time,
                 scheduler=scheduler,
+                scheduler_identity=event.scheduler_identity,
                 now=now,
             )
             was_terminal = record.status in TERMINAL_STATUSES
@@ -210,6 +211,7 @@ class MemoryRunHistoryStorage:
             store=event.store,
             scheduled_run_time=event.scheduled_run_time,
             scheduler=scheduler,
+            scheduler_identity=event.scheduler_identity,
             now=now,
         )
         record.finished_at = now
@@ -254,12 +256,13 @@ class MemoryRunHistoryStorage:
         store: str | None,
         scheduled_run_time: Any,
         scheduler: Any,
+        scheduler_identity: str | None,
         now: datetime,
     ) -> RunRecord:
         normalized_run_time = _normalize_run_time(scheduled_run_time)
         key = _run_key(task_id, store, normalized_run_time)
         metadata = _task_metadata(scheduler, task_id, store)
-        scheduler_identity = _scheduler_identity(scheduler)
+        run_scheduler_identity = scheduler_identity or _scheduler_identity(scheduler)
 
         with self._lock:
             run_id = self._key_index.get(key)
@@ -271,7 +274,7 @@ class MemoryRunHistoryStorage:
                     task_id=task_id,
                     store=store,
                     scheduled_run_time=normalized_run_time,
-                    scheduler_identity=scheduler_identity,
+                    scheduler_identity=run_scheduler_identity,
                     created_at=now,
                     updated_at=now,
                     **metadata,
@@ -284,8 +287,8 @@ class MemoryRunHistoryStorage:
                 for field, value in metadata.items():
                     if value and not getattr(record, field):
                         setattr(record, field, value)
-                if scheduler_identity and not record.scheduler_identity:
-                    record.scheduler_identity = scheduler_identity
+                if run_scheduler_identity and not record.scheduler_identity:
+                    record.scheduler_identity = run_scheduler_identity
             return record
 
     def _trim(self) -> None:

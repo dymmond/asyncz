@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from asyncz.enums import SchedulerState, TaskScheduleState
-from asyncz.events.base import SchedulerEvent
+from asyncz.events.base import SchedulerEvent, TaskEvent
 from asyncz.events.constants import (
     ALL_EVENTS,
     ALL_TASKS_REMOVED,
@@ -1034,6 +1034,16 @@ class TestBaseScheduler:
 
         assert not scheduler.listeners[0][0].called
         scheduler.listeners[1][0].assert_called_once_with(event)
+
+    def test_dispatch_task_event_adds_scheduler_identity(self, scheduler):
+        event = TaskEvent(code=TASK_SUBMITTED, task_id="task-a")
+        listener = MagicMock()
+        scheduler.listeners = [(listener, TASK_SUBMITTED)]
+
+        scheduler.dispatch_event(event)
+
+        assert event.scheduler_identity == scheduler.identity
+        listener.assert_called_once_with(event)
 
     @pytest.mark.parametrize("load_plugin", [True, False], ids=["load plugin", "plugin loaded"])
     @patch("asyncz.schedulers.base.BaseScheduler.resolve_load_plugin")
