@@ -757,6 +757,33 @@ class TestBaseScheduler:
         with pytest.raises(ValueError):
             scheduler.get_task_infos(sort_by="unsupported")
 
+    def test_get_scheduler_info_summarizes_runtime_state(self, freeze_time):
+        scheduler = DummyScheduler(executors={"io": DebugExecutor()})
+        scheduler.start(paused=True)
+        scheduler.add_task(
+            lambda: None,
+            "date",
+            id="scheduled",
+            name="Scheduled",
+            run_at=freeze_time.current + timedelta(minutes=1),
+        )
+        scheduler.add_task(lambda: None, "interval", seconds=30, id="paused", name="Paused")
+        scheduler.pause_task("paused")
+
+        snapshot = scheduler.get_scheduler_info()
+
+        assert snapshot.state is SchedulerState.STATE_PAUSED
+        assert snapshot.state_label == "paused"
+        assert snapshot.running is True
+        assert snapshot.timezone == str(scheduler.timezone)
+        assert snapshot.executor_aliases == ("default", "io")
+        assert snapshot.store_aliases == ("default",)
+        assert snapshot.task_count == 2
+        assert snapshot.scheduled_task_count == 1
+        assert snapshot.paused_task_count == 1
+        assert snapshot.pending_task_count == 0
+        assert snapshot.submitted_task_count == 2
+
     @pytest.mark.parametrize("scheduler_started", [True, False], ids=["running", "stopped"])
     @pytest.mark.parametrize("store", [None, "other"], ids=["all stores", "specific store"])
     def test_get_tasks(self, scheduler, scheduler_started, store):

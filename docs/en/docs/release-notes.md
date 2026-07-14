@@ -14,6 +14,8 @@
 
 - Added dashboard static-asset tests that verify local serving, rendered
   template references, and recorded checksum integrity.
+- Added scheduler-level status inspection through `scheduler.get_scheduler_info()`
+  and the `asyncz status` CLI command.
 
 ## 0.15.0
 

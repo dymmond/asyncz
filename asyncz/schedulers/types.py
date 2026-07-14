@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
     from asyncz.events.base import SchedulerEvent
     from asyncz.executors.types import ExecutorType
+    from asyncz.schedulers.inspection import SchedulerInfo
     from asyncz.stores.types import StoreType
     from asyncz.tasks.inspection import TaskInfo
     from asyncz.tasks.types import TaskType
@@ -317,6 +318,12 @@ class SchedulerType(ABC):
 
         This is the scheduler-native query surface used by the CLI, dashboard,
         and any custom operational tooling built on top of Asyncz.
+        """
+
+    @abstractmethod
+    def get_scheduler_info(self) -> SchedulerInfo:
+        """
+        Return an immutable scheduler-level inspection snapshot.
         """
 
     @abstractmethod

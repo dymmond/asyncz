@@ -46,6 +46,22 @@ def _list_json(client: SayerTestClient, store: str):
     return json.loads(m.group(1))
 
 
+def _status_json(client: SayerTestClient, store: str):
+    r = client.invoke(["status", "--json", "--store", store])
+    assert r.exit_code == 0, r.stderr
+
+    if isinstance(r.return_value, dict):
+        return r.return_value
+
+    out = (r.stdout or "").strip() or (r.stderr or "").strip()
+    if out.startswith("ℹ"):
+        out = out.lstrip("ℹ️ ").lstrip()
+
+    m = re.search(r"(\{.*\})", out, re.S)
+    assert m, f"Expected JSON in output, got: {out!r}"
+    return json.loads(m.group(1))
+
+
 def test_add_and_list_with_sqlite_store(client: SayerTestClient, sqlite_url: str):
     # add a job with an interval trigger
     r = client.invoke(
@@ -78,6 +94,33 @@ def test_add_and_list_with_sqlite_store(client: SayerTestClient, sqlite_url: str
 
     assert "test-noop" in out
     assert "IntervalTrigger" in out
+
+
+def test_status_json_reports_scheduler_snapshot(client: SayerTestClient, sqlite_url: str):
+    r = client.invoke(
+        [
+            "add",
+            "tests.fixtures:noop",
+            "--name",
+            "status-noop",
+            "--interval",
+            "5s",
+            "--store",
+            f"durable={sqlite_url}",
+        ]
+    )
+    assert r.exit_code == 0, r.stderr
+
+    payload = _status_json(client, f"durable={sqlite_url}")
+
+    assert payload["state"] == "running"
+    assert payload["running"] is True
+    assert payload["task_count"] == 1
+    assert payload["scheduled_task_count"] == 1
+    assert payload["paused_task_count"] == 0
+    assert payload["pending_task_count"] == 0
+    assert payload["stores"] == ["default", "durable"]
+    assert payload["executors"] == ["default"]
 
 
 def test_add_run_pause_resume_remove_flow(client: SayerTestClient, sqlite_url: str):
@@ -163,6 +206,7 @@ def test_add_uses_explicit_store_alias(client: SayerTestClient, sqlite_url: str)
     jobs = _list_json(client, f"durable={sqlite_url}")
 
     assert any(j["name"] == "aliased" for j in jobs)
+    assert all(j["store"] == "durable" for j in jobs if j["name"] == "aliased")
 
 
 def test_add_with_args_kwargs_and_json_list(client: SayerTestClient, sqlite_url: str):

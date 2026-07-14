@@ -9,6 +9,7 @@ from asyncz.cli.commands.remove import remove
 from asyncz.cli.commands.resume import resume
 from asyncz.cli.commands.run import run
 from asyncz.cli.commands.start import start
+from asyncz.cli.commands.status import status
 
 asyncz_cli = Sayer(name="asyncz", help="Asyncz scheduler CLI")
 
@@ -20,6 +21,7 @@ asyncz_cli.add_command(pause)
 asyncz_cli.add_command(resume)
 asyncz_cli.add_command(start)
 asyncz_cli.add_command(list_jobs)
+asyncz_cli.add_command(status)
 
 
 def main() -> None:

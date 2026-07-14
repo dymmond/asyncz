@@ -111,6 +111,29 @@ JSON output includes the original compatibility fields (`id`, `name`, `trigger`,
 - `callable_name`
 - `callable_reference`
 
+### Inspect scheduler status
+
+```bash
+asyncz status --store durable=sqlite:///scheduler.db
+asyncz status --json --store durable=sqlite:///scheduler.db
+```
+
+The `status` command uses the scheduler inspection API for lifecycle state,
+timezone, configured stores and executors, and task counts.
+
+JSON output includes:
+
+- `state`
+- `state_code`
+- `running`
+- `timezone`
+- `stores`
+- `executors`
+- `task_count`
+- `scheduled_task_count`
+- `paused_task_count`
+- `pending_task_count`
+
 ### Run, pause, resume, and remove
 
 ```bash

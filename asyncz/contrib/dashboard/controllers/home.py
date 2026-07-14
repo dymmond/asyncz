@@ -25,30 +25,24 @@ class DashboardController(DashboardMixin, TemplateController):
         self.scheduler = scheduler
 
     async def get(self, request: Request) -> Any:
-        running = getattr(self.scheduler, "running", False)
-        tz = getattr(self.scheduler, "timezone", None)
+        scheduler_info = self.scheduler.get_scheduler_info()
         task_infos = self.scheduler.get_task_infos()
-        total_tasks = len(task_infos)
-        scheduled_tasks = sum(1 for info in task_infos if info.schedule_state.value == "scheduled")
-        paused_tasks = sum(1 for info in task_infos if info.schedule_state.value == "paused")
-        pending_tasks = sum(1 for info in task_infos if info.schedule_state.value == "pending")
         recent_tasks = [serialize(task_info) for task_info in task_infos[:10]]
-        stores = sorted({info.store_alias or "default" for info in task_infos if info.store_alias})
-        executors = sorted({info.executor or "default" for info in task_infos if info.executor})
 
         context = await self.get_context_data(
             request,
             title="Overview",
             page_header="Dashboard",
             active_page="dashboard",
-            scheduler_running=running,
-            timezone=str(tz),
-            total_tasks=total_tasks,
-            scheduled_tasks=scheduled_tasks,
-            paused_tasks=paused_tasks,
-            pending_tasks=pending_tasks,
-            store_count=len(stores),
-            executor_count=len(executors),
+            scheduler_running=scheduler_info.running,
+            scheduler_state=scheduler_info.state_label,
+            timezone=scheduler_info.timezone,
+            total_tasks=scheduler_info.task_count,
+            scheduled_tasks=scheduler_info.scheduled_task_count,
+            paused_tasks=scheduler_info.paused_task_count,
+            pending_tasks=scheduler_info.pending_task_count,
+            store_count=len(scheduler_info.store_aliases),
+            executor_count=len(scheduler_info.executor_aliases),
             tasks=recent_tasks,
         )
         return await self.render_template(request, context=context)

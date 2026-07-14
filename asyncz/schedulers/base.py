@@ -48,6 +48,7 @@ from asyncz.executors.types import ExecutorType
 from asyncz.locks import RLockProtected
 from asyncz.schedulers import defaults
 from asyncz.schedulers.datastructures import TaskDefaultStruct
+from asyncz.schedulers.inspection import SchedulerInfo
 from asyncz.schedulers.types import LoggersType, SchedulerType
 from asyncz.stores.memory import MemoryStore
 from asyncz.stores.types import StoreType
@@ -974,6 +975,46 @@ class BaseScheduler(SchedulerType):
             ) from exc
 
         return sorted(infos, key=key, reverse=descending)
+
+    def get_scheduler_info(self) -> SchedulerInfo:
+        """
+        Return an immutable scheduler-level inspection snapshot.
+
+        The snapshot combines lifecycle state owned by the scheduler with task
+        counts derived from the scheduler-native task inspection API. Consumers
+        should prefer this over reading ``state``, ``stores``, or ``executors``
+        directly.
+        """
+
+        state = SchedulerState(self.state)
+        task_infos = self.get_task_infos()
+
+        with self.executor_lock:
+            executor_aliases = tuple(sorted(self.executors))
+        with self.store_lock:
+            store_aliases = tuple(sorted(self.stores))
+
+        return SchedulerInfo(
+            state=state,
+            state_label=state.name.removeprefix("STATE_").lower(),
+            running=self.running,
+            timezone=str(self.timezone),
+            executor_aliases=executor_aliases,
+            store_aliases=store_aliases,
+            task_count=len(task_infos),
+            scheduled_task_count=sum(
+                1 for info in task_infos if info.schedule_state is TaskScheduleState.SCHEDULED
+            ),
+            paused_task_count=sum(
+                1 for info in task_infos if info.schedule_state is TaskScheduleState.PAUSED
+            ),
+            pending_task_count=sum(
+                1 for info in task_infos if info.schedule_state is TaskScheduleState.PENDING
+            ),
+            submitted_task_count=sum(1 for info in task_infos if info.submitted),
+            store_retry_interval=float(self.store_retry_interval),
+            startup_delay=float(self.startup_delay),
+        )
 
     def delete_task(
         self, task_id: Union[TaskType, str, None], store: Optional[str] = None
