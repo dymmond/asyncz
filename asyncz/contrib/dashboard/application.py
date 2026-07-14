@@ -25,6 +25,7 @@ from asyncz.contrib.dashboard.controllers.tasks import (
     TaskBulkResumeController,
     TaskBulkRunController,
     TaskCreateController,
+    TaskDetailController,
     TaskEditController,
     TaskHXPauseController,
     TaskHXRemoveController,
@@ -148,6 +149,11 @@ def create_dashboard_app(
                         "/{task_id:str}/edit",
                         TaskEditController.with_init(scheduler=scheduler),
                         name="edit",
+                    ),
+                    RoutePath(
+                        "/{task_id:str}",
+                        TaskDetailController.with_init(scheduler=scheduler),
+                        name="detail",
                     ),
                     RoutePath(
                         "/hx/bulk/pause",

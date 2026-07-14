@@ -15,7 +15,7 @@
         <th>Next Run</th>
         <th>Last Run</th>
         <th>Store / Executor</th>
-        <th style="width: 430px; text-align: right">Actions</th>
+        <th style="width: 520px; text-align: right">Actions</th>
       </tr>
     </thead>
 
@@ -82,6 +82,18 @@
                     <span>Run</span>
                   </button>
                 </form>
+
+                <a href="{{ url_prefix }}/tasks/{{ t.id }}"
+                   class="az-icon-button az-action-button"
+                   aria-label="Open details for {{ t.name or t.id }}"
+                   title="Details">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9"/>
+                    <path d="M12 10v6"/>
+                    <path d="M12 7h.01"/>
+                  </svg>
+                  <span>Details</span>
+                </a>
 
                 {% if t.state == "scheduled" %}
                   <form hx-post="{{ t.id }}/pause{{ query_suffix }}" hx-target="#tasks-table" hx-swap="innerHTML">

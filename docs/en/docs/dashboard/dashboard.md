@@ -11,6 +11,7 @@ Asyncz includes an optional Lilya dashboard for inspecting tasks and running com
 - an audit page for dashboard create/update/run/pause/resume/remove actions
 - grouped navigation for operation and review pages
 - a task list with search, state/executor/trigger filters, sortable views, and last run status
+- task detail pages with scheduler metadata, upcoming run preview, recent runs, and recent logs
 - actions on each task row for Run now, Logs, Edit, pause, resume, remove, and history inspection
 - bulk task actions for Run now, pause, resume, and remove
 - a run history page backed by scheduler execution events
@@ -98,7 +99,7 @@ The dashboard is organized around operational tasks:
 | Area | Purpose |
 | --- | --- |
 | Overview | Scheduler state, task counts, recent tasks, and recent runs. |
-| Tasks | Filter tasks, trigger immediate runs, open logs for a task, edit supported metadata, pause, resume, remove, and inspect last run state. |
+| Tasks | Filter tasks, inspect task detail, trigger immediate runs, open logs for a task, edit supported metadata, pause, resume, remove, and inspect last run state. |
 | Runtime | Inspect scheduler timing, timezone, state code, stores, executors, and task distribution. |
 | Instances | Inspect scheduler identity, active/stale status, and heartbeat freshness for the current process. |
 | Timeline | Preview upcoming run times across tasks without mutating scheduler state. |

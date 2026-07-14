@@ -251,10 +251,39 @@ def test_task_table_links_to_edit_page(client: TestClient):
     response = client.get(f"{DASH_PREFIX}/tasks/partials/table")
 
     assert response.status_code == 200
+    assert f'href="{DASH_PREFIX}/tasks/{job_id}"' in response.text
     assert f'href="{DASH_PREFIX}/tasks/{job_id}/edit"' in response.text
     assert f'href="{DASH_PREFIX}/logs?task_id={job_id}"' in response.text
+    assert 'title="Details"' in response.text
     assert 'title="Edit"' in response.text
     assert 'title="Logs"' in response.text
+
+
+def test_task_detail_page_renders_task_context(client: TestClient):
+    job_id = _create_task(client, "detail-row")
+
+    run_response = client.post(f"{DASH_PREFIX}/tasks/{job_id}/run")
+    assert run_response.status_code == 200
+
+    response = client.get(f"{DASH_PREFIX}/tasks/{job_id}")
+
+    assert response.status_code == 200
+    assert "Task Detail" in response.text
+    assert "detail-row" in response.text
+    assert job_id in response.text
+    assert "Upcoming Runs" in response.text
+    assert "Recent Runs" in response.text
+    assert "Recent Logs" in response.text
+    assert "Task run succeeded" in response.text
+    assert f'href="{DASH_PREFIX}/history?task_id={job_id}"' in response.text
+    assert f'href="{DASH_PREFIX}/logs?task_id={job_id}"' in response.text
+
+
+def test_task_detail_page_handles_missing_task(client: TestClient):
+    response = client.get(f"{DASH_PREFIX}/tasks/missing-task")
+
+    assert response.status_code == 404
+    assert "Task not found" in response.text
 
 
 def test_task_edit_previews_and_applies_update(client: TestClient, scheduler: AsyncIOScheduler):

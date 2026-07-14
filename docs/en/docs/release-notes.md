@@ -14,6 +14,8 @@
   and a resizable task table region.
 - Added a Logs action to each task row so operators can open logs filtered by
   task id.
+- Added task detail pages with scheduler metadata, upcoming run preview, recent
+  runs, and recent logs for one task.
 - The dashboard task table now shows last run status and links directly to run
   history details.
 - The overview page now includes recent run history alongside scheduler and task

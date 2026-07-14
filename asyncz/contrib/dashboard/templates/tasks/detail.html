@@ -1,0 +1,222 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="az-page" id="task-detail-page">
+  {% if task is none %}
+    <section class="az-panel">
+      <div class="az-panel-header">
+        <div>
+          <h2 class="az-panel-title">Task not found</h2>
+          <div class="az-panel-meta">The scheduler does not have a task with that identifier.</div>
+        </div>
+        <a href="{{ url_for('dashboard:tasks:index') }}" class="az-button">Back</a>
+      </div>
+    </section>
+  {% else %}
+    <section class="az-panel">
+      <div class="az-panel-header">
+        <div>
+          <h2 class="az-panel-title">{{ task.name or task.id }}</h2>
+          <div class="az-panel-meta az-mono">{{ task.id }}</div>
+        </div>
+        <div class="az-actions">
+          <a href="{{ url_prefix }}/tasks/{{ task.id }}/edit" class="az-button">Edit</a>
+          <a href="{{ url_prefix }}/history?task_id={{ task.id }}" class="az-button">History</a>
+          <a href="{{ url_prefix }}/logs?task_id={{ task.id }}" class="az-button az-button--primary">Logs</a>
+          <a href="{{ url_for('dashboard:tasks:index') }}" class="az-button">Back</a>
+        </div>
+      </div>
+
+      <div class="az-panel-body">
+        <div class="az-kv-grid">
+          <div class="az-kv">
+            <span>State</span>
+            <strong>{{ task_info.schedule_state.value if task_info else "-" }}</strong>
+          </div>
+          <div class="az-kv">
+            <span>Next Run</span>
+            <strong>{% if task.next_run_time %}{{ task.next_run_time }}{% else %}-{% endif %}</strong>
+          </div>
+          <div class="az-kv">
+            <span>Store / Executor</span>
+            <strong>{{ store_alias or task.store_alias or "default" }} / {{ task.executor or "default" }}</strong>
+          </div>
+          <div class="az-kv">
+            <span>Trigger</span>
+            <strong>{{ task_info.trigger_description if task_info else task.trigger }}</strong>
+          </div>
+          <div class="az-kv">
+            <span>Coalesce</span>
+            <strong>{{ "True" if task.coalesce else "False" }}</strong>
+          </div>
+          <div class="az-kv">
+            <span>Max Instances</span>
+            <strong>{{ task.max_instances }}</strong>
+          </div>
+          <div class="az-kv">
+            <span>Misfire Grace</span>
+            <strong>{% if task.mistrigger_grace_time is none %}-{% else %}{{ task.mistrigger_grace_time }}s{% endif %}</strong>
+          </div>
+          <div class="az-kv">
+            <span>Callable</span>
+            <strong class="az-mono">{{ task.fn_reference or task_info.callable_reference or task_info.callable_name or "-" }}</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="az-panel">
+      <div class="az-panel-header">
+        <div>
+          <h2 class="az-panel-title">Arguments</h2>
+          <div class="az-panel-meta">Stored callable arguments for this task.</div>
+        </div>
+      </div>
+      <div class="az-panel-body">
+        <div class="az-form-grid">
+          <div class="az-code-block">
+            <div class="az-section-meta">Args</div>
+            <pre>{{ args_json }}</pre>
+          </div>
+          <div class="az-code-block">
+            <div class="az-section-meta">Kwargs</div>
+            <pre>{{ kwargs_json }}</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="az-panel">
+      <div class="az-panel-header">
+        <div>
+          <h2 class="az-panel-title">Upcoming Runs</h2>
+          <div class="az-panel-meta">Preview from the scheduler trigger without advancing task state.</div>
+        </div>
+      </div>
+      <div class="az-table-wrap">
+        <table class="az-table">
+          <thead>
+            <tr>
+              <th style="width: 88px">#</th>
+              <th>Run Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if not preview or not preview.run_times %}
+              <tr>
+                <td colspan="2"><div class="az-empty"><strong>No upcoming runs are available.</strong></div></td>
+              </tr>
+            {% else %}
+              {% for run_time in preview.run_times %}
+                <tr>
+                  <td class="az-mono">{{ loop.index }}</td>
+                  <td class="az-mono">{{ run_time }}</td>
+                </tr>
+              {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="az-panel">
+      <div class="az-panel-header">
+        <div>
+          <h2 class="az-panel-title">Recent Runs</h2>
+          <div class="az-panel-meta">Latest run records for this task.</div>
+        </div>
+        <a href="{{ url_prefix }}/history?task_id={{ task.id }}" class="az-button">Open History</a>
+      </div>
+      <div class="az-table-wrap">
+        <table class="az-table">
+          <thead>
+            <tr>
+              <th style="width: 160px">Submitted</th>
+              <th style="width: 132px">Status</th>
+              <th style="width: 120px">Source</th>
+              <th style="width: 120px">Duration</th>
+              <th style="width: 140px; text-align: right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if not recent_runs %}
+              <tr>
+                <td colspan="5"><div class="az-empty"><strong>No run history yet.</strong></div></td>
+              </tr>
+            {% else %}
+              {% for run in recent_runs %}
+                <tr>
+                  <td class="az-mono">{% if run.submitted_at %}{{ run.submitted_at.strftime("%Y-%m-%d %H:%M:%S") }} UTC{% else %}-{% endif %}</td>
+                  <td>
+                    {% if run.status == "succeeded" %}
+                      <span class="az-badge az-badge--success">{{ run.status_label }}</span>
+                    {% elif run.status == "running" %}
+                      <span class="az-badge az-badge--info">{{ run.status_label }}</span>
+                    {% elif run.status == "missed" or run.status == "max_instances" %}
+                      <span class="az-badge az-badge--warning">{{ run.status_label }}</span>
+                    {% else %}
+                      <span class="az-badge az-badge--danger">{{ run.status_label }}</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ run.source_label }}</td>
+                  <td>{% if run.duration_ms is not none %}{{ run.duration_ms }} ms{% else %}-{% endif %}</td>
+                  <td style="text-align: right">
+                    <a href="{{ url_prefix }}/history/{{ run.run_id }}" class="az-button">Inspect</a>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="az-panel">
+      <div class="az-panel-header">
+        <div>
+          <h2 class="az-panel-title">Recent Logs</h2>
+          <div class="az-panel-meta">Latest captured log records for this task id.</div>
+        </div>
+        <a href="{{ url_prefix }}/logs?task_id={{ task.id }}" class="az-button">Open Logs</a>
+      </div>
+      <div class="az-table-wrap">
+        <table class="az-table">
+          <thead>
+            <tr>
+              <th style="width: 160px">Time</th>
+              <th style="width: 92px">Level</th>
+              <th style="width: 180px">Logger</th>
+              <th>Message</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if not recent_logs %}
+              <tr>
+                <td colspan="4"><div class="az-empty"><strong>No logs captured for this task.</strong></div></td>
+              </tr>
+            {% else %}
+              {% for log in recent_logs %}
+                <tr>
+                  <td class="az-mono">{{ log.ts.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+                  <td>
+                    {% if log.level in ["ERROR", "CRITICAL"] %}
+                      <span class="az-badge az-badge--danger">{{ log.level }}</span>
+                    {% elif log.level == "WARNING" %}
+                      <span class="az-badge az-badge--warning">{{ log.level }}</span>
+                    {% elif log.level == "INFO" %}
+                      <span class="az-badge az-badge--info">{{ log.level }}</span>
+                    {% else %}
+                      <span class="az-badge az-badge--neutral">{{ log.level }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="az-mono">{{ log.logger }}</td>
+                  <td>{{ log.message }}</td>
+                </tr>
+              {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import json
 from collections.abc import Callable
 from typing import Any
@@ -17,7 +18,9 @@ from asyncz.contrib.dashboard.controllers._helpers import (
     parse_trigger,
     render_table,
 )
+from asyncz.contrib.dashboard.controllers.logs import get_log_storage
 from asyncz.contrib.dashboard.engine import templates
+from asyncz.contrib.dashboard.history import get_run_history_storage
 from asyncz.contrib.dashboard.messages import add_message
 from asyncz.contrib.dashboard.mixins import DashboardMixin
 from asyncz.exceptions import MaximumInstancesError, TaskLookupError
@@ -322,6 +325,68 @@ class TaskTablePartialController(DashboardMixin, Controller):
         """Render the filtered HTMX task table fragment."""
         context = await self.get_context_data(request)
         return await render_table(self.scheduler, request, context)
+
+
+class TaskDetailController(DashboardMixin, Controller):
+    """Render one task with related scheduler history and logs."""
+
+    template_name: str = "tasks/detail.html"
+
+    def __init__(self, *, scheduler: AsyncIOScheduler) -> None:
+        self.scheduler: AsyncIOScheduler = scheduler
+
+    async def _render(
+        self,
+        request: Request,
+        *,
+        task: TaskType | None,
+        store_alias: str | None = None,
+        status_code: int = 200,
+    ) -> HTMLResponse:
+        context = await self.get_context_data(
+            request,
+            title="Task Detail",
+            page_header="Task Detail",
+            active_page="tasks",
+        )
+        task_id = request.path_params["task_id"]
+        preview = None
+        recent_runs = []
+        recent_logs = []
+        info = None
+        if task is not None:
+            info = task.snapshot()
+            with contextlib.suppress(Exception):
+                preview = self.scheduler.preview_task_runs(task_id, count=5)
+            recent_runs = get_run_history_storage().query(task_id=task_id, limit=6)
+            recent_logs = list(get_log_storage().query(task_id=task_id, limit=6))
+
+        context.update(
+            {
+                "task": task,
+                "task_info": info,
+                "store_alias": store_alias,
+                "preview": preview,
+                "recent_runs": recent_runs,
+                "recent_logs": recent_logs,
+                "args_json": _json_text(list(task.args)) if task else "[]",
+                "kwargs_json": _json_text(dict(task.kwargs)) if task else "{}",
+            }
+        )
+        return templates.get_template_response(
+            request,
+            self.template_name,
+            context=context,
+            status_code=status_code,
+        )
+
+    async def get(self, request: Request) -> HTMLResponse:
+        task_id: str = request.path_params["task_id"]
+        try:
+            task, store_alias = self.scheduler.lookup_task(task_id, None)
+        except TaskLookupError:
+            return await self._render(request, task=None, status_code=404)
+        return await self._render(request, task=task, store_alias=store_alias)
 
 
 class TaskCreateController(DashboardMixin, Controller):
