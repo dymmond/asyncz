@@ -79,6 +79,22 @@ def _doctor_json(client: SayerTestClient, store: str):
     return json.loads(m.group(1))
 
 
+def _instances_json(client: SayerTestClient, store: str):
+    r = client.invoke(["instances", "--json", "--store", store])
+    assert r.exit_code == 0, r.stderr
+
+    if isinstance(r.return_value, dict):
+        return r.return_value
+
+    out = (r.stdout or "").strip() or (r.stderr or "").strip()
+    if out.startswith("ℹ"):
+        out = out.lstrip("ℹ️ ").lstrip()
+
+    m = re.search(r"(\{.*\})", out, re.S)
+    assert m, f"Expected JSON in output, got: {out!r}"
+    return json.loads(m.group(1))
+
+
 def _preview_json(client: SayerTestClient, job_id: str, store: str, count: int = 3):
     r = client.invoke(["preview", job_id, "--json", "--count", str(count), "--store", store])
     assert r.exit_code == 0, r.stderr
@@ -259,6 +275,46 @@ def test_doctor_human_output_reports_health(client: SayerTestClient):
     assert result.exit_code == 0, result.stderr
     assert "health=ok" in result.stdout
     assert "scheduler_running" in result.stdout
+
+
+def test_instances_json_reports_process_local_scheduler(client: SayerTestClient, sqlite_url: str):
+    r = client.invoke(
+        [
+            "add",
+            "tests.fixtures:noop",
+            "--name",
+            "instances-noop",
+            "--interval",
+            "5s",
+            "--store",
+            f"durable={sqlite_url}",
+        ]
+    )
+    assert r.exit_code == 0, r.stderr
+
+    payload = _instances_json(client, f"durable={sqlite_url}")
+
+    assert payload["scope"] == "process-local"
+    assert payload["count"] == 1
+    instance = payload["instances"][0]
+    assert instance["identity"].startswith("AsyncIOScheduler-")
+    assert instance["scope"] == "process-local"
+    assert instance["state"] == "running"
+    assert instance["active"] is True
+    assert instance["stale"] is False
+    assert instance["last_seen_at"]
+    assert instance["heartbeat_age_seconds"] == 0
+    assert instance["task_count"] == 1
+    assert instance["stores"] == ["default", "durable"]
+    assert instance["executors"] == ["default"]
+
+
+def test_instances_human_output_reports_scope(client: SayerTestClient):
+    result = client.invoke(["instances"])
+
+    assert result.exit_code == 0, result.stderr
+    assert "scope=process-local" in result.stdout
+    assert "active=True" in result.stdout
 
 
 def test_preview_json_reports_upcoming_run_times(client: SayerTestClient, sqlite_url: str):

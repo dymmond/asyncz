@@ -789,10 +789,28 @@ class TestBaseScheduler:
         assert snapshot.pending_task_count == 0
         assert snapshot.submitted_task_count == 2
 
+        instance_snapshots = scheduler.get_scheduler_instance_infos()
+        assert len(instance_snapshots) == 1
+        instance = instance_snapshots[0]
+        assert instance.identity == "worker-a"
+        assert instance.scope == "process-local"
+        assert instance.state is SchedulerState.STATE_PAUSED
+        assert instance.active is True
+        assert instance.stale is False
+        assert instance.started_at == started_at
+        assert instance.last_seen_at == freeze_time.current
+        assert instance.uptime_seconds == 42
+        assert instance.heartbeat_age_seconds == 0
+        assert instance.stale_after_seconds == 30
+        assert instance.task_count == 2
+
         scheduler.shutdown()
         stopped_snapshot = scheduler.get_scheduler_info()
         assert stopped_snapshot.started_at is None
         assert stopped_snapshot.uptime_seconds is None
+        stopped_instance = scheduler.get_scheduler_instance_infos()[0]
+        assert stopped_instance.active is False
+        assert stopped_instance.stale is True
 
     def test_preview_task_runs_does_not_mutate_task(self, freeze_time):
         scheduler = DummyScheduler(executors={"default": DebugExecutor()})

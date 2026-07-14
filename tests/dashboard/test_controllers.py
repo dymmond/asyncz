@@ -130,6 +130,21 @@ def test_runtime_page_renders_scheduler_components(client: TestClient):
     assert 'aria-current="page"' in response.text
 
 
+def test_instances_page_renders_process_local_scheduler(client: TestClient):
+    _create_task(client, "instance-visible")
+
+    response = client.get(f"{DASH_PREFIX}/instances/")
+
+    assert response.status_code == 200
+    assert "Scheduler Instances" in response.text
+    assert "process-local" in response.text
+    assert "Active" in response.text
+    assert "instance-visible" not in response.text
+    assert "MemoryStore" not in response.text
+    assert 'title="Instances"' in response.text
+    assert 'aria-current="page"' in response.text
+
+
 def test_timeline_page_renders_upcoming_runs(client: TestClient):
     _create_task(client, "timeline-interval", trigger_type="interval", trigger_value="5s")
     _create_task(

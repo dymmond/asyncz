@@ -40,9 +40,9 @@ Documentation: [https://asyncz.dymmond.com](https://asyncz.dymmond.com)
 - Built-in triggers for `date`, `interval`, `cron`, `and`, `or`, and `shutdown`.
 - Built-in stores for `memory`, `file`, `mongodb`, `redis`, and `sqlalchemy`.
 - Executors for in-event-loop work, thread pools, process pools, and direct debug execution.
-- CLI commands for showing the installed version, diagnostics, starting schedulers, adding tasks, inspecting one task, previewing upcoming timelines, triggering runs, and managing persisted tasks.
-- Scheduler-native inspection snapshots with process identity, lifecycle timing, task counts, stores, and executors for dashboards, CLIs, and admin tooling.
-- Optional dashboard UI with a modern admin shell, task filters, row/bulk actions, manual Run now, runtime and timeline views, audit trail, run history, and per-run log inspection.
+- CLI commands for showing the installed version, diagnostics, scheduler instances, adding tasks, inspecting one task, previewing upcoming timelines, triggering runs, and managing persisted tasks.
+- Scheduler-native inspection snapshots with process identity, process-local instance visibility, lifecycle timing, task counts, stores, and executors for dashboards, CLIs, and admin tooling.
+- Optional dashboard UI with a modern admin shell, task filters, row/bulk actions, manual Run now, runtime, instances, timeline, audit trail, run history, and per-run log inspection.
 - Packaged dashboard browser assets: no runtime dependency on public Tailwind, Alpine.js, HTMX, Toastify, or favicon CDNs.
 - Standard-library logging throughout the project.
 
@@ -165,8 +165,8 @@ Persistent stores support the `ASYNCZ_STORE_ENCRYPTION_KEY` environment variable
 
 Asyncz ships with:
 
-- a CLI for `version`, `doctor`, `start`, `add`, `list`, `inspect`, `preview`, `timeline`, `status`, `run`, `pause`, `resume`, and `remove`
-- a Lilya-based dashboard with a scheduler overview, task controls, bulk operations, runtime identity/timeline views, audit trail, run history, and log inspection
+- a CLI for `version`, `doctor`, `instances`, `start`, `add`, `list`, `inspect`, `preview`, `timeline`, `status`, `run`, `pause`, `resume`, and `remove`
+- a Lilya-based dashboard with a scheduler overview, task controls, bulk operations, runtime identity/instance/timeline views, audit trail, run history, and log inspection
 
 See the documentation for usage details:
 

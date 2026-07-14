@@ -228,7 +228,26 @@ scheduler = AsyncIOScheduler(identity="billing-worker-a")
 ```
 
 The identity is reported by `scheduler.get_scheduler_info()`, `asyncz status`,
-and the dashboard runtime page together with `started_at` and `uptime_seconds`.
+`asyncz instances`, and the dashboard runtime and instances pages together with
+`started_at` and `uptime_seconds`.
+
+## Scheduler instance inspection
+
+Use `scheduler.get_scheduler_instance_infos()` to inspect scheduler instances
+visible to the current runtime:
+
+```python
+instances = scheduler.get_scheduler_instance_infos()
+for instance in instances:
+    print(instance.identity, instance.active, instance.last_seen_at)
+```
+
+In `0.16.0`, this contract is process-local. It reports the scheduler object
+that the current process can reach, including identity, active/stale state,
+last-seen time, heartbeat age, store aliases, executor aliases, and task counts.
+The local inspection call refreshes `last_seen_at` for the reachable scheduler;
+`stale` marks a stopped local runtime. It does not reconstruct distributed
+scheduler membership from task stores.
 
 ## ASGI integration and context managers
 

@@ -6,6 +6,7 @@ Asyncz includes an optional Lilya-based dashboard for inspecting tasks and runni
 
 - an overview page with scheduler, task-state, and recent-run summaries
 - a runtime page with scheduler state, timing, store, and executor metadata
+- an instances page with process-local scheduler identity and heartbeat freshness
 - a timeline page that previews upcoming run times across all tasks
 - an audit page for dashboard create/run/pause/resume/remove actions
 - a task list with search, state/executor/trigger filters, sortable views, and last-run status
@@ -98,6 +99,7 @@ The dashboard is organized around operational tasks:
 | Overview | Scheduler state, task counts, recent tasks, and recent runs. |
 | Tasks | Filter tasks, trigger immediate runs, pause, resume, remove, and inspect last-run state. |
 | Runtime | Inspect scheduler timing, timezone, state code, stores, executors, and task distribution. |
+| Instances | Inspect process-local scheduler identity, active/stale status, and heartbeat freshness. |
 | Timeline | Preview upcoming run times across tasks without mutating scheduler state. |
 | History | Inspect manual and scheduled task runs captured from scheduler events. |
 | Audit | Inspect dashboard management actions separately from execution history. |
@@ -290,6 +292,21 @@ The runtime page shows the active scheduler's read-only operational metadata:
 
 Use this page when you need to confirm which persistence and execution backends
 the running process is actually using.
+
+## Instances page
+
+The instances page renders `scheduler.get_scheduler_instance_infos()` and shows:
+
+- scheduler identity and process-local scope
+- active/stale state
+- last-seen timestamp and heartbeat age
+- start time and uptime
+- configured store and executor aliases
+- task inventory totals
+
+In `0.16.0`, this page reports the scheduler instance reachable through the
+current runtime object. It does not invent distributed scheduler membership from
+task stores.
 
 ## Timeline page
 

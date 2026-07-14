@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
     from asyncz.events.base import SchedulerEvent
     from asyncz.executors.types import ExecutorType
-    from asyncz.schedulers.inspection import SchedulerInfo
+    from asyncz.schedulers.inspection import SchedulerInfo, SchedulerInstanceInfo
     from asyncz.stores.types import StoreType
     from asyncz.tasks.inspection import TaskInfo, TaskRunPreview
     from asyncz.tasks.types import TaskType
@@ -339,6 +339,12 @@ class SchedulerType(ABC):
     def get_scheduler_info(self) -> SchedulerInfo:
         """
         Return an immutable scheduler-level inspection snapshot.
+        """
+
+    @abstractmethod
+    def get_scheduler_instance_infos(self) -> tuple[SchedulerInstanceInfo, ...]:
+        """
+        Return immutable process-local scheduler instance snapshots.
         """
 
     @abstractmethod

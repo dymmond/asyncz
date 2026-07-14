@@ -49,7 +49,7 @@ from asyncz.executors.types import ExecutorType
 from asyncz.locks import RLockProtected
 from asyncz.schedulers import defaults
 from asyncz.schedulers.datastructures import TaskDefaultStruct
-from asyncz.schedulers.inspection import SchedulerInfo
+from asyncz.schedulers.inspection import SchedulerInfo, SchedulerInstanceInfo
 from asyncz.schedulers.types import LoggersType, SchedulerType
 from asyncz.stores.memory import MemoryStore
 from asyncz.stores.types import StoreType
@@ -113,6 +113,8 @@ class BaseScheduler(SchedulerType):
         self.state: Union[SchedulerState, Any] = SchedulerState.STATE_STOPPED
         self.identity = ""
         self.started_at: datetime | None = None
+        self.last_seen_at: datetime | None = None
+        self.heartbeat_stale_after: float = 30.0
 
         self.ref_counter: int = 0
         self.ref_lock: Lock = Lock()
@@ -223,6 +225,7 @@ class BaseScheduler(SchedulerType):
 
         self.state = SchedulerState.STATE_PAUSED if paused else SchedulerState.STATE_RUNNING
         self.started_at = datetime.now(self.timezone)
+        self.last_seen_at = self.started_at
         self.loggers[self.logger_name].info("Scheduler started.")
         self.dispatch_event(SchedulerEvent(code=SCHEDULER_START))
 
@@ -271,6 +274,7 @@ class BaseScheduler(SchedulerType):
             raise SchedulerNotRunningError()
 
         self.state = SchedulerState.STATE_STOPPED
+        self.last_seen_at = datetime.now(self.timezone)
         self.started_at = None
 
         with self.executor_lock, self.store_lock:
@@ -1091,6 +1095,47 @@ class BaseScheduler(SchedulerType):
             startup_delay=float(self.startup_delay),
         )
 
+    def get_scheduler_instance_infos(self) -> tuple[SchedulerInstanceInfo, ...]:
+        """
+        Return process-local scheduler instance inspection snapshots.
+
+        Asyncz does not yet persist distributed scheduler heartbeats in stores, so
+        this method reports the scheduler instance represented by this runtime
+        object. The tuple return shape is intentionally list-friendly for future
+        store-backed instance registries.
+        """
+
+        now = datetime.now(self.timezone)
+        self.last_seen_at = now
+        snapshot = self.get_scheduler_info()
+        last_seen_at = now
+        heartbeat_age_seconds = max(0.0, (now - last_seen_at).total_seconds())
+        stale = not snapshot.running
+
+        return (
+            SchedulerInstanceInfo(
+                identity=snapshot.identity,
+                scope="process-local",
+                state=snapshot.state,
+                state_label=snapshot.state_label,
+                active=snapshot.running and not stale,
+                stale=stale,
+                started_at=snapshot.started_at,
+                last_seen_at=last_seen_at,
+                uptime_seconds=snapshot.uptime_seconds,
+                heartbeat_age_seconds=heartbeat_age_seconds,
+                stale_after_seconds=float(self.heartbeat_stale_after),
+                timezone=snapshot.timezone,
+                executor_aliases=snapshot.executor_aliases,
+                store_aliases=snapshot.store_aliases,
+                task_count=snapshot.task_count,
+                scheduled_task_count=snapshot.scheduled_task_count,
+                paused_task_count=snapshot.paused_task_count,
+                pending_task_count=snapshot.pending_task_count,
+                submitted_task_count=snapshot.submitted_task_count,
+            ),
+        )
+
     def delete_task(
         self, task_id: Union[TaskType, str, None], store: Optional[str] = None
     ) -> None:
@@ -1170,6 +1215,8 @@ class BaseScheduler(SchedulerType):
             or f"{self.__class__.__name__}-{uuid.uuid4().hex[:12]}"
         )
         self.started_at = None
+        self.last_seen_at = None
+        self.heartbeat_stale_after = float(config.pop("heartbeat_stale_after", 30))
         self.timezone = to_timezone_with_fallback(config.pop("timezone", None))
         self.lock_path = str(config.pop("lock_path", "") or "")
         self.store_retry_interval = float(config.pop("store_retry_interval", 10))

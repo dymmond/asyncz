@@ -12,6 +12,7 @@ from asyncz.contrib.dashboard.controllers.history import (
     HistoryPageController,
     HistoryTablePartialController,
 )
+from asyncz.contrib.dashboard.controllers.instances import InstancesPageController
 from asyncz.contrib.dashboard.controllers.logs import (
     LogsPageController,
     LogsTablePartialController,
@@ -84,6 +85,17 @@ def create_dashboard_app(
                     ),
                 ],
                 name="runtime",
+            ),
+            Include(
+                path="/instances",
+                routes=[
+                    RoutePath(
+                        "/",
+                        InstancesPageController.with_init(scheduler=scheduler),
+                        name="index",
+                    ),
+                ],
+                name="instances",
             ),
             Include(
                 path="/timeline",

@@ -1,0 +1,102 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="az-page">
+  <section class="az-stat-grid">
+    <article class="az-stat-card az-stat-card--accent">
+      <div class="az-stat-label">Visible Instances</div>
+      <div class="az-stat-value">{{ instance_count }}</div>
+      <div class="az-stat-detail">{{ scope }}</div>
+    </article>
+
+    <article class="az-stat-card az-stat-card--success">
+      <div class="az-stat-label">Active</div>
+      <div class="az-stat-value">{{ active_count }}</div>
+      <div class="az-stat-detail">Fresh process-local heartbeat</div>
+    </article>
+
+    <article class="az-stat-card {% if stale_count %}az-stat-card--danger{% else %}az-stat-card--info{% endif %}">
+      <div class="az-stat-label">Stale</div>
+      <div class="az-stat-value">{{ stale_count }}</div>
+      <div class="az-stat-detail">Stopped or unreachable runtime</div>
+    </article>
+
+    <article class="az-stat-card az-stat-card--warning">
+      <div class="az-stat-label">Snapshot</div>
+      <div class="az-stat-value">{{ generated_at[-8:] }}</div>
+      <div class="az-stat-detail">{{ generated_at }}</div>
+    </article>
+  </section>
+
+  <section class="az-panel">
+    <div class="az-panel-header">
+      <div>
+        <h2 class="az-panel-title">Scheduler Instances</h2>
+        <div class="az-panel-meta">Process-local runtime inspection</div>
+      </div>
+      <span class="az-badge az-badge--neutral">{{ instance_count }} total</span>
+    </div>
+
+    <div class="az-table-wrap">
+      <table class="az-table az-table--compact">
+        <thead>
+          <tr>
+            <th>Identity</th>
+            <th>State</th>
+            <th>Heartbeat</th>
+            <th>Lifecycle</th>
+            <th>Resources</th>
+            <th>Tasks</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if not instances %}
+            <tr>
+              <td colspan="6"><div class="az-table-empty">No scheduler instances are visible.</div></td>
+            </tr>
+          {% else %}
+            {% for instance in instances %}
+              <tr>
+                <td>
+                  <strong class="az-mono">{{ instance.identity }}</strong>
+                  <div class="az-muted">{{ instance.scope }}</div>
+                </td>
+                <td>
+                  {% if instance.active %}
+                    <span class="az-badge az-badge--success">Active</span>
+                  {% elif instance.stale %}
+                    <span class="az-badge az-badge--danger">Stale</span>
+                  {% else %}
+                    <span class="az-badge az-badge--neutral">{{ instance.state|title }}</span>
+                  {% endif %}
+                  <div class="az-muted">State: {{ instance.state }}</div>
+                </td>
+                <td>
+                  <strong>{{ instance.heartbeat_age }}</strong>
+                  <div class="az-muted">Last seen {{ instance.last_seen_at }}</div>
+                  <div class="az-muted">Stale after {{ instance.stale_after }}</div>
+                </td>
+                <td>
+                  <strong>{{ instance.uptime }}</strong>
+                  <div class="az-muted">Started {{ instance.started_at }}</div>
+                  <div class="az-muted">{{ instance.timezone }}</div>
+                </td>
+                <td>
+                  <strong>Stores</strong>
+                  <div class="az-muted az-mono">{{ instance.stores }}</div>
+                  <strong>Executors</strong>
+                  <div class="az-muted az-mono">{{ instance.executors }}</div>
+                </td>
+                <td>
+                  <strong>{{ instance.task_count }}</strong>
+                  <div class="az-muted">{{ instance.scheduled_task_count }} scheduled</div>
+                  <div class="az-muted">{{ instance.paused_task_count }} paused · {{ instance.pending_task_count }} pending</div>
+                </td>
+              </tr>
+            {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

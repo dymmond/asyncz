@@ -5,6 +5,7 @@ from sayer import Sayer
 from asyncz.cli.commands.add import add
 from asyncz.cli.commands.doctor import doctor
 from asyncz.cli.commands.inspect import inspect_task
+from asyncz.cli.commands.instances import instances
 from asyncz.cli.commands.list import list_jobs
 from asyncz.cli.commands.pause import pause
 from asyncz.cli.commands.preview import preview
@@ -28,6 +29,7 @@ asyncz_cli.add_command(start)
 asyncz_cli.add_command(list_jobs)
 asyncz_cli.add_command(status)
 asyncz_cli.add_command(doctor)
+asyncz_cli.add_command(instances)
 asyncz_cli.add_command(preview)
 asyncz_cli.add_command(inspect_task)
 asyncz_cli.add_command(version)

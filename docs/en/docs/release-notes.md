@@ -25,6 +25,9 @@
   and the `asyncz status` CLI command.
 - Added scheduler identity, start-time, and uptime metadata to runtime
   inspection snapshots, the dashboard runtime page, and `asyncz status --json`.
+- Added process-local scheduler instance inspection through
+  `scheduler.get_scheduler_instance_infos()`, `asyncz instances`, and the
+  dashboard instances page.
 - Added the `asyncz doctor` CLI command for scheduler diagnostics, readiness
   checks, and strict automation-friendly health validation.
 - Added scheduler-backed trigger previews through `scheduler.preview_task_runs()`

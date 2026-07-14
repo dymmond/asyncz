@@ -192,6 +192,46 @@ JSON output includes:
 - `store_retry_interval`
 - `startup_delay`
 
+### List scheduler instances
+
+```bash
+asyncz instances --store durable=sqlite:///scheduler.db
+asyncz instances --json --store durable=sqlite:///scheduler.db
+```
+
+The `instances` command lists scheduler instances visible through the current
+runtime inspection contract. In `0.16.0`, this is process-local visibility: the
+command reports the scheduler object it can reach and does not fabricate
+distributed membership from task stores.
+
+JSON output includes:
+
+- `scope`
+- `count`
+- `instances`
+
+Each instance object includes:
+
+- `identity`
+- `scope`
+- `state`
+- `state_code`
+- `active`
+- `stale`
+- `started_at`
+- `last_seen_at`
+- `uptime_seconds`
+- `heartbeat_age_seconds`
+- `stale_after_seconds`
+- `timezone`
+- `stores`
+- `executors`
+- `task_count`
+- `scheduled_task_count`
+- `paused_task_count`
+- `pending_task_count`
+- `submitted_task_count`
+
 ### Run scheduler diagnostics
 
 ```bash

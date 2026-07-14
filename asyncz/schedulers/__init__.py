@@ -1,4 +1,9 @@
 from .asyncio import AsyncIOScheduler, NativeAsyncIOScheduler
-from .inspection import SchedulerInfo
+from .inspection import SchedulerInfo, SchedulerInstanceInfo
 
-__all__ = ["AsyncIOScheduler", "NativeAsyncIOScheduler", "SchedulerInfo"]
+__all__ = [
+    "AsyncIOScheduler",
+    "NativeAsyncIOScheduler",
+    "SchedulerInfo",
+    "SchedulerInstanceInfo",
+]
