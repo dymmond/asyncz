@@ -214,6 +214,22 @@ Available placeholders:
 
 When `lock_path` is set, Asyncz also defaults `startup_delay` to `1` second so multiple workers do not immediately stampede the same persisted tasks on startup.
 
+## Scheduler identity
+
+Every scheduler has an `identity` used by runtime inspection, the CLI, and the
+dashboard to distinguish the active process. Asyncz generates one automatically
+from the scheduler class and a short random suffix, or you can set a stable value
+when constructing the scheduler:
+
+```python
+from asyncz.schedulers import AsyncIOScheduler
+
+scheduler = AsyncIOScheduler(identity="billing-worker-a")
+```
+
+The identity is reported by `scheduler.get_scheduler_info()`, `asyncz status`,
+and the dashboard runtime page together with `started_at` and `uptime_seconds`.
+
 ## ASGI integration and context managers
 
 Schedulers can be used as:

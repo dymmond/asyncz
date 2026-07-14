@@ -23,6 +23,8 @@
   template references, and recorded checksum integrity.
 - Added scheduler-level status inspection through `scheduler.get_scheduler_info()`
   and the `asyncz status` CLI command.
+- Added scheduler identity, start-time, and uptime metadata to runtime
+  inspection snapshots, the dashboard runtime page, and `asyncz status --json`.
 - Added scheduler-backed trigger previews through `scheduler.preview_task_runs()`
   and the `asyncz preview` CLI command.
 - Added the `asyncz version` CLI command with JSON output for release and

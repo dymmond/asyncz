@@ -13,9 +13,12 @@ from asyncz.schedulers.inspection import SchedulerInfo
 
 def _serialize_scheduler_info(snapshot: SchedulerInfo) -> dict[str, Any]:
     return {
+        "identity": snapshot.identity,
         "state": snapshot.state_label,
         "state_code": int(snapshot.state),
         "running": snapshot.running,
+        "started_at": snapshot.started_at,
+        "uptime_seconds": snapshot.uptime_seconds,
         "timezone": snapshot.timezone,
         "executors": list(snapshot.executor_aliases),
         "stores": list(snapshot.store_aliases),
@@ -72,8 +75,13 @@ def status(
                 return payload
 
             info(
+                f"identity={payload['identity']} "
                 f"state={payload['state']} running={payload['running']} "
                 f"timezone={payload['timezone']}"
+            )
+            info(
+                f"started_at={payload['started_at'] or '-'} "
+                f"uptime={payload['uptime_seconds'] or 0:.3f}s"
             )
             info(
                 f"tasks={payload['task_count']} scheduled={payload['scheduled_task_count']} "

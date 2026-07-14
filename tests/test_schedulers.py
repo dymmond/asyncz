@@ -758,8 +758,10 @@ class TestBaseScheduler:
             scheduler.get_task_infos(sort_by="unsupported")
 
     def test_get_scheduler_info_summarizes_runtime_state(self, freeze_time):
-        scheduler = DummyScheduler(executors={"io": DebugExecutor()})
+        scheduler = DummyScheduler(identity="worker-a", executors={"io": DebugExecutor()})
         scheduler.start(paused=True)
+        started_at = freeze_time.current
+        freeze_time.set(started_at + timedelta(seconds=42))
         scheduler.add_task(
             lambda: None,
             "date",
@@ -772,9 +774,12 @@ class TestBaseScheduler:
 
         snapshot = scheduler.get_scheduler_info()
 
+        assert snapshot.identity == "worker-a"
         assert snapshot.state is SchedulerState.STATE_PAUSED
         assert snapshot.state_label == "paused"
         assert snapshot.running is True
+        assert snapshot.started_at == started_at
+        assert snapshot.uptime_seconds == 42
         assert snapshot.timezone == str(scheduler.timezone)
         assert snapshot.executor_aliases == ("default", "io")
         assert snapshot.store_aliases == ("default",)
@@ -783,6 +788,11 @@ class TestBaseScheduler:
         assert snapshot.paused_task_count == 1
         assert snapshot.pending_task_count == 0
         assert snapshot.submitted_task_count == 2
+
+        scheduler.shutdown()
+        stopped_snapshot = scheduler.get_scheduler_info()
+        assert stopped_snapshot.started_at is None
+        assert stopped_snapshot.uptime_seconds is None
 
     def test_preview_task_runs_does_not_mutate_task(self, freeze_time):
         scheduler = DummyScheduler(executors={"default": DebugExecutor()})

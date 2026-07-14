@@ -253,6 +253,7 @@ The overview page summarizes:
 The runtime page shows the active scheduler's read-only operational metadata:
 
 - running/stopped state and scheduler state code
+- scheduler identity, start time, and uptime for the active process
 - task inventory totals, including tasks accepted into the scheduler lifecycle
 - configured timezone, store retry interval, and startup delay
 - registered stores with alias, implementation class, logger namespace, and task count

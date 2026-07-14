@@ -118,6 +118,9 @@ def test_runtime_page_renders_scheduler_components(client: TestClient):
     assert response.status_code == 200
     assert "Scheduler Runtime" in response.text
     assert "Runtime Profile" in response.text
+    assert "Scheduler ID" in response.text
+    assert "Started At" in response.text
+    assert "Uptime" in response.text
     assert "MemoryStore" in response.text
     assert "AsyncIOExecutor" in response.text
     assert "runtime-visible" not in response.text

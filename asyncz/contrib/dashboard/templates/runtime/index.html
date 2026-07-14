@@ -40,6 +40,18 @@
     <div class="az-panel-body">
       <div class="az-kv-grid">
         <div class="az-kv">
+          <span>Scheduler ID</span>
+          <strong class="az-mono">{{ scheduler_identity }}</strong>
+        </div>
+        <div class="az-kv">
+          <span>Started At</span>
+          <strong>{{ started_at }}</strong>
+        </div>
+        <div class="az-kv">
+          <span>Uptime</span>
+          <strong>{{ uptime_seconds }}{% if uptime_seconds != "-" %}s{% endif %}</strong>
+        </div>
+        <div class="az-kv">
           <span>Timezone</span>
           <strong>{{ timezone }}</strong>
         </div>

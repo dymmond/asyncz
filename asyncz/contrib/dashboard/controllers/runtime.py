@@ -54,6 +54,13 @@ def build_runtime_context(scheduler: AsyncIOScheduler) -> dict[str, Any]:
         "scheduler_running": scheduler_info.running,
         "scheduler_state": scheduler_info.state_label,
         "scheduler_state_code": int(scheduler_info.state),
+        "scheduler_identity": scheduler_info.identity,
+        "started_at": scheduler_info.started_at.isoformat(timespec="seconds")
+        if scheduler_info.started_at
+        else "-",
+        "uptime_seconds": f"{scheduler_info.uptime_seconds:.3f}"
+        if scheduler_info.uptime_seconds is not None
+        else "-",
         "timezone": scheduler_info.timezone,
         "total_tasks": scheduler_info.task_count,
         "scheduled_tasks": scheduler_info.scheduled_task_count,

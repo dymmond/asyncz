@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict
 
 from asyncz.enums import SchedulerState
@@ -16,9 +18,12 @@ class SchedulerInfo(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
+    identity: str
     state: SchedulerState
     state_label: str
     running: bool
+    started_at: datetime | None = None
+    uptime_seconds: float | None = None
     timezone: str
     executor_aliases: tuple[str, ...]
     store_aliases: tuple[str, ...]

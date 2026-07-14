@@ -39,6 +39,8 @@ class LoggersType(ABC):
 
 class SchedulerType(ABC):
     event_loop: Any = None
+    identity: str
+    started_at: datetime | None
     loggers: LoggersType
     instances: dict[str, int]
 

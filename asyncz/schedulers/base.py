@@ -5,6 +5,7 @@ import contextlib
 import inspect
 import logging
 import sys
+import uuid
 import warnings
 from abc import abstractmethod
 from collections import defaultdict
@@ -77,6 +78,7 @@ class BaseScheduler(SchedulerType):
     Takes the following keyword arguments:
 
     Args:
+        identity: Stable identifier for this scheduler process. Generated when omitted.
         logger_name: suffix added to the scheduler logger namespace.
         timezone: The default time zone (defaults to the local timezone).
         store_retry_interval: The minimum number of seconds to wait between
@@ -109,6 +111,8 @@ class BaseScheduler(SchedulerType):
         self.listeners_lock: RLock = self.create_lock()
         self.pending_tasks: list[tuple[TaskType, bool, bool]] = []
         self.state: Union[SchedulerState, Any] = SchedulerState.STATE_STOPPED
+        self.identity = ""
+        self.started_at: datetime | None = None
 
         self.ref_counter: int = 0
         self.ref_lock: Lock = Lock()
@@ -218,6 +222,7 @@ class BaseScheduler(SchedulerType):
             del self.pending_tasks[:]
 
         self.state = SchedulerState.STATE_PAUSED if paused else SchedulerState.STATE_RUNNING
+        self.started_at = datetime.now(self.timezone)
         self.loggers[self.logger_name].info("Scheduler started.")
         self.dispatch_event(SchedulerEvent(code=SCHEDULER_START))
 
@@ -266,6 +271,7 @@ class BaseScheduler(SchedulerType):
             raise SchedulerNotRunningError()
 
         self.state = SchedulerState.STATE_STOPPED
+        self.started_at = None
 
         with self.executor_lock, self.store_lock:
             for executor in self.executors.values():
@@ -1048,6 +1054,12 @@ class BaseScheduler(SchedulerType):
 
         state = SchedulerState(self.state)
         task_infos = self.get_task_infos()
+        started_at = self.started_at if state != SchedulerState.STATE_STOPPED else None
+        uptime_seconds = (
+            max(0.0, (datetime.now(self.timezone) - started_at).total_seconds())
+            if started_at is not None
+            else None
+        )
 
         with self.executor_lock:
             executor_aliases = tuple(sorted(self.executors))
@@ -1055,9 +1067,12 @@ class BaseScheduler(SchedulerType):
             store_aliases = tuple(sorted(self.stores))
 
         return SchedulerInfo(
+            identity=self.identity,
             state=state,
             state_label=state.name.removeprefix("STATE_").lower(),
             running=self.running,
+            started_at=started_at,
+            uptime_seconds=uptime_seconds,
             timezone=str(self.timezone),
             executor_aliases=executor_aliases,
             store_aliases=store_aliases,
@@ -1149,6 +1164,12 @@ class BaseScheduler(SchedulerType):
         """
         Applies initial configurations called by the Base constructor.
         """
+        self.identity = str(
+            config.pop("identity", None)
+            or self.identity
+            or f"{self.__class__.__name__}-{uuid.uuid4().hex[:12]}"
+        )
+        self.started_at = None
         self.timezone = to_timezone_with_fallback(config.pop("timezone", None))
         self.lock_path = str(config.pop("lock_path", "") or "")
         self.store_retry_interval = float(config.pop("store_retry_interval", 10))

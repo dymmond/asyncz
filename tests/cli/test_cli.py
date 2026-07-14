@@ -192,8 +192,11 @@ def test_status_json_reports_scheduler_snapshot(client: SayerTestClient, sqlite_
 
     payload = _status_json(client, f"durable={sqlite_url}")
 
+    assert payload["identity"].startswith("AsyncIOScheduler-")
     assert payload["state"] == "running"
     assert payload["running"] is True
+    assert payload["started_at"]
+    assert payload["uptime_seconds"] >= 0
     assert payload["task_count"] == 1
     assert payload["scheduled_task_count"] == 1
     assert payload["paused_task_count"] == 0

@@ -169,14 +169,18 @@ asyncz status --store durable=sqlite:///scheduler.db
 asyncz status --json --store durable=sqlite:///scheduler.db
 ```
 
-The `status` command uses the scheduler inspection API for lifecycle state,
-timezone, configured stores and executors, and task counts.
+The `status` command uses the scheduler inspection API for process identity,
+lifecycle state, start time, uptime, timezone, configured stores and executors,
+and task counts.
 
 JSON output includes:
 
 - `state`
 - `state_code`
 - `running`
+- `identity`
+- `started_at`
+- `uptime_seconds`
 - `timezone`
 - `stores`
 - `executors`
@@ -184,6 +188,9 @@ JSON output includes:
 - `scheduled_task_count`
 - `paused_task_count`
 - `pending_task_count`
+- `submitted_task_count`
+- `store_retry_interval`
+- `startup_delay`
 
 ### Preview upcoming run times
 
