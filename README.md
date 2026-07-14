@@ -44,7 +44,7 @@ Documentation: [https://asyncz.dymmond.com](https://asyncz.dymmond.com)
 - Executor choices: asyncio event loop execution, thread pools, process pools, and direct debug execution.
 - Safe task control for operators: stable task ids, manual Run now, pause, resume, remove, inspect, preview, and update workflows.
 - Scheduler inspection APIs: process identity, lifecycle timing, task counts, stores, executors, instances visible in the current process, and upcoming run previews.
-- Modern dashboard: task filters, task detail pages, row and bulk actions, links to logs for each task, task edit previews, runtime and instance pages, timeline, audit trail, run history, and log inspection for each run.
+- Modern dashboard: task filters, task detail pages, row and bulk actions, links to logs for each task, task edit previews, runtime and instance pages, timeline, scheduler events, audit trail, run history, and log inspection for each run.
 - Packaged dashboard assets: no runtime dependency on public Tailwind, Alpine.js, HTMX, Toastify, or favicon CDNs.
 - Python standard logging throughout the project.
 
@@ -245,7 +245,7 @@ Persistent stores support the `ASYNCZ_STORE_ENCRYPTION_KEY` environment variable
 Asyncz ships with:
 
 - a CLI for `version`, `doctor`, `instances`, `start`, `add`, `update`, `list`, `inspect`, `preview`, `timeline`, `status`, `run`, `pause`, `resume`, and `remove`
-- a Lilya dashboard with a scheduler overview, task controls, task detail pages, edit previews, bulk operations, runtime, instances, timeline, audit trail, run history, and log inspection
+- a Lilya dashboard with a scheduler overview, task controls, task detail pages, edit previews, bulk operations, runtime, instances, timeline, scheduler events, audit trail, run history, and log inspection
 
 See the documentation for usage details:
 

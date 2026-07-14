@@ -7,6 +7,7 @@ from lilya.staticfiles import StaticFiles
 from asyncz.contrib.dashboard.audit import MemoryAuditTrailStorage, get_audit_storage
 from asyncz.contrib.dashboard.controllers import home
 from asyncz.contrib.dashboard.controllers.audit import AuditPageController
+from asyncz.contrib.dashboard.controllers.events import EventsPageController
 from asyncz.contrib.dashboard.controllers.history import (
     HistoryDetailController,
     HistoryPageController,
@@ -35,6 +36,7 @@ from asyncz.contrib.dashboard.controllers.tasks import (
     TaskTablePartialController,
 )
 from asyncz.contrib.dashboard.controllers.timeline import TimelinePageController
+from asyncz.contrib.dashboard.events import install_scheduler_event_listener
 from asyncz.contrib.dashboard.history import (
     MemoryRunHistoryStorage,
     install_run_history_listener,
@@ -61,6 +63,7 @@ def create_dashboard_app(
         storage=run_history_storage,
         log_storage=resolved_log_storage,
     )
+    install_scheduler_event_listener(scheduler)
 
     # Ensure stdlib logs on the namespaced logger bubble up to our handler.
     # Our TaskLogHandler is installed by install_task_log_handler() on a parent logger.
@@ -118,6 +121,13 @@ def create_dashboard_app(
                     RoutePath("/{run_id:str}", HistoryDetailController, name="detail"),
                 ],
                 name="history",
+            ),
+            Include(
+                path="/events",
+                routes=[
+                    RoutePath("/", EventsPageController, name="index"),
+                ],
+                name="events",
             ),
             Include(
                 path="/logs",

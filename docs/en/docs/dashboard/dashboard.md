@@ -8,6 +8,7 @@ Asyncz includes an optional Lilya dashboard for inspecting tasks and running com
 - a runtime page with scheduler state, timing, store, and executor metadata
 - an instances page with scheduler identity and heartbeat freshness for the current process
 - a timeline page that previews upcoming run times across all tasks
+- an events page for scheduler and task events observed by the dashboard process
 - an audit page for dashboard create/update/run/pause/resume/remove actions
 - grouped navigation for operation and review pages
 - a task list with search, state/executor/trigger filters, sortable views, and last run status
@@ -103,6 +104,7 @@ The dashboard is organized around operational tasks:
 | Runtime | Inspect scheduler timing, timezone, state code, stores, executors, and task distribution. |
 | Instances | Inspect scheduler identity, active/stale status, and heartbeat freshness for the current process. |
 | Timeline | Preview upcoming run times across tasks without mutating scheduler state. |
+| Events | Inspect scheduler and task events observed by the dashboard process. |
 | History | Inspect manual and scheduled task runs captured from scheduler events. |
 | Audit | Inspect dashboard management actions separately from execution history. |
 | Logs | Filter captured log records by task id, run id, level, and message text. |
@@ -362,6 +364,22 @@ triggers, update `next_run_time`, or submit work to executors.
 Use the controls to choose how many run times to preview per task and the total
 number of rows to show. The result is sorted by due time so operators can quickly
 see what is expected to run next.
+
+## Events page
+
+The events page installs a scheduler listener when the dashboard is mounted and
+records events observed in the current process. It can filter by category, event
+name, task id, search text, and limit.
+
+This page is intentionally process local. It does not claim distributed event
+membership across machines or processes.
+
+Captured task event details include:
+
+- scheduler identity when present on the event
+- submitted run times and coalesced run count for submission events
+- scheduled run time, return value, exception type, and exception message for
+  execution events
 
 ## Audit page
 

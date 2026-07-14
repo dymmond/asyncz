@@ -41,7 +41,7 @@ Asyncz is designed for scheduled work that operators need to understand and cont
 - Built-in triggers for one time work, recurring intervals, cron expressions, combinations, and shutdown hooks.
 - Multiple persistence options for local development and production deployments.
 - CLI tooling for version checks, diagnostics, instances visible in the current process, add, update, list, inspect, preview, timeline, status, run, pause, resume, and remove workflows.
-- Dashboard tooling for task control, task detail pages, links to logs for each task, edit previews, bulk actions, manual Run now, runtime identity, instances visible in the current process, timeline previews, audit trail, run history, and log inspection for each run.
+- Dashboard tooling for task control, task detail pages, links to logs for each task, edit previews, bulk actions, manual Run now, runtime identity, instances visible in the current process, timeline previews, scheduler events, audit trail, run history, and log inspection for each run.
 - Packaged dashboard assets for Tailwind CSS, Alpine.js, HTMX, Toastify, and the favicon.
 
 ## Install

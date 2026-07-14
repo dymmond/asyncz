@@ -1,0 +1,135 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="az-page">
+  <section class="az-stat-grid">
+    <article class="az-stat-card az-stat-card--accent">
+      <div class="az-stat-label">Observed Events</div>
+      <div class="az-stat-value">{{ summary.total }}</div>
+      <div class="az-stat-detail">Scheduler events captured in this process</div>
+    </article>
+    <article class="az-stat-card az-stat-card--info">
+      <div class="az-stat-label">Task Events</div>
+      <div class="az-stat-value">{{ summary.task }}</div>
+      <div class="az-stat-detail">Task lifecycle and execution events</div>
+    </article>
+    <article class="az-stat-card az-stat-card--success">
+      <div class="az-stat-label">Scheduler Events</div>
+      <div class="az-stat-value">{{ summary.scheduler }}</div>
+      <div class="az-stat-detail">Scheduler state changes</div>
+    </article>
+    <article class="az-stat-card az-stat-card--warning">
+      <div class="az-stat-label">Terminal Events</div>
+      <div class="az-stat-value">{{ summary.terminal }}</div>
+      <div class="az-stat-detail">Finished, missed, skipped, or shutdown events</div>
+    </article>
+  </section>
+
+  <section class="az-panel">
+    <div class="az-panel-header">
+      <div>
+        <h2 class="az-panel-title">Event Filters</h2>
+        <div class="az-panel-meta">Events observed after this dashboard process installed its listener.</div>
+      </div>
+      <a href="{{ url_for('dashboard:events:index') }}" class="az-button">Reset</a>
+    </div>
+
+    <form class="az-filter-bar" method="get" action="{{ url_for('dashboard:events:index') }}">
+      <label class="az-field az-field--search">
+        <span>Task ID</span>
+        <input name="task_id" value="{{ filters.task_id }}" placeholder="task id" class="az-input" />
+      </label>
+      <label class="az-field">
+        <span>Category</span>
+        <select name="category" class="az-select">
+          <option value="">Any category</option>
+          {% for category in categories %}
+            <option value="{{ category }}" {% if filters.category == category %}selected{% endif %}>{{ category|title }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="az-field">
+        <span>Event</span>
+        <select name="name" class="az-select">
+          <option value="">Any event</option>
+          {% for event_name in event_names %}
+            <option value="{{ event_name }}" {% if filters.name == event_name %}selected{% endif %}>{{ event_name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="az-field az-field--search">
+        <span>Search</span>
+        <input name="q" value="{{ filters.q }}" placeholder="event id, scheduler id, metadata..." class="az-input" />
+      </label>
+      <label class="az-field">
+        <span>Limit</span>
+        <input name="limit" value="{{ filters.limit }}" class="az-input az-input--compact" />
+      </label>
+      <button class="az-button az-button--primary">Filter</button>
+    </form>
+  </section>
+
+  <section class="az-panel">
+    <div class="az-panel-header">
+      <div>
+        <h2 class="az-panel-title">Events</h2>
+        <div class="az-panel-meta">Newest observed events first</div>
+      </div>
+    </div>
+    <div class="az-table-wrap">
+      <table class="az-table">
+        <thead>
+          <tr>
+            <th style="width: 160px">Observed</th>
+            <th style="width: 170px">Event</th>
+            <th style="width: 120px">Category</th>
+            <th>Target</th>
+            <th>Scheduler ID</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if not rows %}
+            <tr>
+              <td colspan="6">
+                <div class="az-empty">
+                  <strong>No scheduler events match the current filters.</strong>
+                </div>
+              </td>
+            </tr>
+          {% else %}
+            {% for row in rows %}
+              <tr>
+                <td>
+                  <div class="az-mono">{{ row.observed_at_label }}</div>
+                  <div class="az-muted">UTC</div>
+                </td>
+                <td>
+                  <span class="az-badge az-badge--neutral">{{ row.name_label }}</span>
+                  <div class="az-muted az-mono">{{ row.event_id }}</div>
+                </td>
+                <td>{{ row.category_label }}</td>
+                <td>
+                  <div class="az-mono">{{ row.task_id or row.alias or "-" }}</div>
+                  <div class="az-muted">{{ row.store or "-" }}</div>
+                </td>
+                <td class="az-mono">{{ row.scheduler_identity or "-" }}</td>
+                <td>
+                  {% if row.details %}
+                    {% for key, value in row.details.items() %}
+                      {% if value is not none %}
+                        <div><span class="az-muted">{{ key }}</span>: <span class="az-mono">{{ value }}</span></div>
+                      {% endif %}
+                    {% endfor %}
+                  {% else %}
+                    <span class="az-muted">-</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

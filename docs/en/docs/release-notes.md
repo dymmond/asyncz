@@ -16,6 +16,7 @@
   task id.
 - Added task detail pages with scheduler metadata, upcoming run preview, recent
   runs, and recent logs for one task.
+- Added a scheduler events page for process-local scheduler and task events.
 - The dashboard task table now shows last run status and links directly to run
   history details.
 - The overview page now includes recent run history alongside scheduler and task

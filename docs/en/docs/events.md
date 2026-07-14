@@ -56,3 +56,11 @@ Typical codes include:
 ```python
 {!> ../../../docs_src/schedulers/add_event.py !}
 ```
+
+## Dashboard event history
+
+When the optional dashboard is mounted, it records scheduler events observed in
+that process. The Events page can filter by event category, event name, task id,
+search text, and limit.
+
+This is process-local history. It does not replace a distributed event broker.

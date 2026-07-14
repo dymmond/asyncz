@@ -43,6 +43,7 @@
         </div>
         <div class="az-nav-heading az-sidebar-label">Review</div>
         <div class="az-nav-section">
+          {{ nav_link(url_for('dashboard:events:index'), "Events", current_page == "events", "events") }}
           {{ nav_link(url_for('dashboard:history:index'), "History", current_page == "history", "history") }}
           {{ nav_link(url_for('dashboard:audit:index'), "Audit", current_page == "audit", "audit") }}
           {{ nav_link(url_for('dashboard:logs:index'), "Logs", current_page == "logs", "logs") }}
@@ -101,6 +102,7 @@
             {{ nav_link(url_for('dashboard:runtime:index'), "Runtime", current_page == "runtime", "runtime") }}
             {{ nav_link(url_for('dashboard:instances:index'), "Instances", current_page == "instances", "instances") }}
             {{ nav_link(url_for('dashboard:timeline:index'), "Timeline", current_page == "timeline", "timeline") }}
+            {{ nav_link(url_for('dashboard:events:index'), "Events", current_page == "events", "events") }}
             {{ nav_link(url_for('dashboard:history:index'), "History", current_page == "history", "history") }}
             {{ nav_link(url_for('dashboard:audit:index'), "Audit", current_page == "audit", "audit") }}
             {{ nav_link(url_for('dashboard:logs:index'), "Logs", current_page == "logs", "logs") }}

@@ -14,6 +14,7 @@ from asyncz.contrib.dashboard.admin import (
     User,
 )
 from asyncz.contrib.dashboard.audit import get_audit_storage
+from asyncz.contrib.dashboard.events import get_scheduler_event_storage
 from asyncz.schedulers.asyncio import AsyncIOScheduler
 
 DASH_PREFIX = "/dashboard"
@@ -103,6 +104,7 @@ def test_index_renders(client: TestClient):
     assert 'class="az-workspace"' in response.text
     assert "Operate" in response.text
     assert "Review" in response.text
+    assert "Events" in response.text
 
 
 def test_tasks_page_renders(client: TestClient):
@@ -193,6 +195,37 @@ def test_audit_page_tracks_task_management_actions(client: TestClient):
     filtered = client.get(f"{DASH_PREFIX}/audit/?action=task.run")
     assert filtered.status_code == 200
     assert "Task Run" in filtered.text
+
+
+def test_events_page_tracks_scheduler_events(client: TestClient):
+    get_scheduler_event_storage().clear()
+    job_id = _create_task(client, "event-visible")
+
+    response = client.get(f"{DASH_PREFIX}/events/?task_id={job_id}")
+
+    assert response.status_code == 200
+    assert "Scheduler Events" in response.text
+    assert "Task Added" in response.text
+    assert job_id in response.text
+    assert "Observed Events" in response.text
+
+    filtered = client.get(f"{DASH_PREFIX}/events/?name=task.added&task_id={job_id}")
+    assert filtered.status_code == 200
+    assert "Task Added" in filtered.text
+
+
+def test_events_page_tracks_task_submission_metadata(client: TestClient):
+    get_scheduler_event_storage().clear()
+    job_id = _create_task(client, "event-run")
+
+    response = client.post(f"{DASH_PREFIX}/tasks/{job_id}/run")
+    assert response.status_code == 200
+
+    events = client.get(f"{DASH_PREFIX}/events/?task_id={job_id}")
+
+    assert events.status_code == 200
+    assert "Task Submitted" in events.text
+    assert "scheduled_run_times" in events.text
 
 
 def test_tasks_partial_table_initial(client: TestClient):
