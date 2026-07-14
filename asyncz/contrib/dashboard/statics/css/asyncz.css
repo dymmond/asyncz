@@ -408,7 +408,8 @@ html {
 }
 
 .az-input,
-.az-select {
+.az-select,
+.az-textarea {
   width: 100%;
   min-height: 38px;
   padding: 8px 10px;
@@ -419,12 +420,19 @@ html {
   border-radius: var(--az-radius);
 }
 
+.az-textarea {
+  min-height: 9rem;
+  line-height: 1.45;
+  resize: vertical;
+}
+
 .az-input--compact {
   width: 7rem;
 }
 
 .az-input:focus,
-.az-select:focus {
+.az-select:focus,
+.az-textarea:focus {
   border-color: rgba(240, 104, 36, .76);
   outline: none;
   box-shadow: 0 0 0 3px rgba(240, 104, 36, .18);
@@ -750,8 +758,29 @@ html {
   gap: 12px;
 }
 
+.az-field--wide {
+  grid-column: 1 / -1;
+}
+
 .az-form-grid--spaced {
   margin-top: 12px;
+}
+
+.az-check-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 38px;
+  padding-top: 20px;
+  color: var(--az-ink-soft);
+  font-size: .88rem;
+  font-weight: 680;
+}
+
+.az-check-field input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--az-accent);
 }
 
 .az-form-actions {
@@ -781,6 +810,43 @@ html {
   font-size: .82rem;
   line-height: 1.5;
   white-space: pre-wrap;
+}
+
+.az-inline-code {
+  max-width: 32rem;
+  margin: 0;
+  overflow: auto;
+  color: var(--az-ink-soft);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: .78rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.az-table--diff {
+  min-width: 760px;
+}
+
+.az-feedback {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  color: var(--az-ink-soft);
+  font-size: .9rem;
+  border: 1px solid var(--az-border);
+  border-radius: var(--az-radius);
+}
+
+.az-feedback--success {
+  color: #166534;
+  background: #ecfdf3;
+  border-color: #bde7c5;
+}
+
+.az-feedback--error {
+  color: #991b1b;
+  background: #fff1f1;
+  border-color: #f4b8b1;
 }
 
 .az-mobile-nav {

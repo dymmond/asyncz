@@ -239,6 +239,67 @@ def test_create_date_task_and_list(client: TestClient):
     assert "cli-dash-date" in response.text
 
 
+def test_task_table_links_to_edit_page(client: TestClient):
+    job_id = _create_task(client, "editable-row")
+
+    response = client.get(f"{DASH_PREFIX}/tasks/partials/table")
+
+    assert response.status_code == 200
+    assert f'href="{DASH_PREFIX}/tasks/{job_id}/edit"' in response.text
+    assert 'title="Edit"' in response.text
+
+
+def test_task_edit_previews_and_applies_update(client: TestClient, scheduler: AsyncIOScheduler):
+    get_audit_storage().clear()
+    job_id = _create_task(client, "edit-before")
+
+    response = client.get(f"{DASH_PREFIX}/tasks/{job_id}/edit")
+
+    assert response.status_code == 200
+    assert "Edit Task" in response.text
+    assert "edit-before" in response.text
+    assert "Task Metadata" in response.text
+
+    payload = {
+        "name": "edit-after",
+        "callable_path": "tests.fixtures:noop",
+        "executor": "default",
+        "coalesce": "false",
+        "max_instances": "4",
+        "mistrigger_grace_time": "",
+        "clear_mistrigger_grace_time": "1",
+        "args": "[]",
+        "kwargs": "{}",
+        "intent": "preview",
+    }
+    preview = client.post(f"{DASH_PREFIX}/tasks/{job_id}/edit", data=payload)
+
+    assert preview.status_code == 200
+    assert "Proposed Changes" in preview.text
+    assert "edit-after" in preview.text
+    task = scheduler.get_task(job_id)
+    assert task is not None
+    assert task.name == "edit-before"
+
+    payload["intent"] = "apply"
+    applied = client.post(f"{DASH_PREFIX}/tasks/{job_id}/edit", data=payload)
+
+    assert applied.status_code == 200
+    assert "Task update applied." in applied.text
+    assert "Applied Changes" in applied.text
+    task = scheduler.get_task(job_id)
+    assert task is not None
+    assert task.name == "edit-after"
+    assert task.coalesce is False
+    assert task.max_instances == 4
+    assert task.mistrigger_grace_time is None
+
+    audit = client.get(f"{DASH_PREFIX}/audit/?action=task.update")
+    assert audit.status_code == 200
+    assert "Task Update" in audit.text
+    assert job_id in audit.text
+
+
 def test_dashboard_index_shows_recent_task_metadata(client: TestClient):
     _create_task(client, "overview-task")
 

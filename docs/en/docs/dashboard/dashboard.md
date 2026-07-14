@@ -8,9 +8,9 @@ Asyncz includes an optional Lilya-based dashboard for inspecting tasks and runni
 - a runtime page with scheduler state, timing, store, and executor metadata
 - an instances page with process-local scheduler identity and heartbeat freshness
 - a timeline page that previews upcoming run times across all tasks
-- an audit page for dashboard create/run/pause/resume/remove actions
+- an audit page for dashboard create/update/run/pause/resume/remove actions
 - a task list with search, state/executor/trigger filters, sortable views, and last-run status
-- per-task actions for Run now, pause, resume, remove, and history inspection
+- per-task actions for Run now, edit, pause, resume, remove, and history inspection
 - bulk task actions for Run now, pause, resume, and remove
 - a run-history page backed by scheduler execution events
 - per-run detail pages with correlated log records
@@ -97,7 +97,7 @@ The dashboard is organized around operational tasks:
 | Area | Purpose |
 | --- | --- |
 | Overview | Scheduler state, task counts, recent tasks, and recent runs. |
-| Tasks | Filter tasks, trigger immediate runs, pause, resume, remove, and inspect last-run state. |
+| Tasks | Filter tasks, trigger immediate runs, edit supported metadata, pause, resume, remove, and inspect last-run state. |
 | Runtime | Inspect scheduler timing, timezone, state code, stores, executors, and task distribution. |
 | Instances | Inspect process-local scheduler identity, active/stale status, and heartbeat freshness. |
 | Timeline | Preview upcoming run times across tasks without mutating scheduler state. |
@@ -209,12 +209,33 @@ The task table supports:
 - executor filtering
 - trigger filtering
 - sorting by name, trigger, state, or next run time
+- row-level edit links for supported scheduler-owned task fields
 
 Active filters are preserved across:
 
 - HTMX auto-refreshes
 - row actions
 - bulk actions
+
+## Task edits
+
+The task edit page delegates validation and persistence to
+`scheduler.update_task(...)`. It supports the same operational metadata exposed
+by the `asyncz update` command:
+
+- task name
+- callable reference
+- positional arguments as JSON
+- keyword arguments as JSON
+- executor alias
+- coalesce behavior
+- maximum concurrent instances
+- misfire grace time, including clearing the value
+
+Posting the edit form with `intent=preview` validates the proposed update and
+renders a before/after diff without mutating the task. Posting with
+`intent=apply` applies the update through the scheduler and records a
+`task.update` audit event with the changed fields.
 
 ## Dashboard "run now" semantics
 
@@ -335,7 +356,7 @@ see what is expected to run next.
 ## Audit page
 
 The audit page records dashboard management actions separately from run history.
-It captures task create, run, pause, resume, and remove attempts with:
+It captures task create, update, run, pause, resume, and remove attempts with:
 
 - action name
 - target task id

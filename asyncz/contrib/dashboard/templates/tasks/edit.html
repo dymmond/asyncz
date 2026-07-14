@@ -1,0 +1,165 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="az-page" x-data="asynczTaskEditor">
+  {% if task is none %}
+    <section class="az-panel">
+      <div class="az-panel-header">
+        <div>
+          <h2 class="az-panel-title">Task not found</h2>
+          <div class="az-panel-meta">The scheduler does not have a task with that identifier.</div>
+        </div>
+        <a href="{{ url_for('dashboard:tasks:index') }}" class="az-button">Back</a>
+      </div>
+    </section>
+  {% else %}
+    <section class="az-panel">
+      <div class="az-panel-header">
+        <div>
+          <h2 class="az-panel-title">{{ task.name or task.id }}</h2>
+          <div class="az-panel-meta az-mono">{{ task.id }}</div>
+        </div>
+        <div class="az-actions">
+          <a href="{{ url_prefix }}/history?task_id={{ task.id }}" class="az-button">History</a>
+          <a href="{{ url_for('dashboard:tasks:index') }}" class="az-button">Back</a>
+        </div>
+      </div>
+      <div class="az-panel-body">
+        <div class="az-kv-grid">
+          <div class="az-kv">
+            <span>Store</span>
+            <strong>{{ store_alias or task.store_alias or "default" }}</strong>
+          </div>
+          <div class="az-kv">
+            <span>Executor</span>
+            <strong>{{ task.executor or "default" }}</strong>
+          </div>
+          <div class="az-kv">
+            <span>Trigger</span>
+            <strong>{{ task.trigger }}</strong>
+          </div>
+          <div class="az-kv">
+            <span>Next Run</span>
+            <strong>{% if task.next_run_time %}{{ task.next_run_time }}{% else %}-{% endif %}</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {% if applied %}
+      <div class="az-feedback az-feedback--success">Task update applied.</div>
+    {% endif %}
+
+    {% if errors %}
+      <div class="az-feedback az-feedback--error">
+        <strong>Validation failed.</strong>
+        {% for error in errors %}
+          <span>{{ error }}</span>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('dashboard:tasks:edit', task_id=task.id) }}" class="az-panel" data-no-loading>
+      <div class="az-panel-header">
+        <div>
+          <h2 class="az-panel-title">Task Metadata</h2>
+          <div class="az-panel-meta">Scheduler-owned fields for {{ task.id }}</div>
+        </div>
+        <div class="az-actions">
+          <button type="button" class="az-button" x-on:click="formatJsonFields">Format JSON</button>
+          <button type="submit" name="intent" value="preview" class="az-button">Preview</button>
+          <button type="submit" name="intent" value="apply" class="az-button az-button--primary">Apply</button>
+        </div>
+      </div>
+
+      <div class="az-panel-body">
+        <div class="az-form-grid">
+          <label class="az-field">
+            <span>Name</span>
+            <input name="name" value="{{ form.name }}" class="az-input" />
+          </label>
+
+          <label class="az-field">
+            <span>Executor</span>
+            <input name="executor" value="{{ form.executor }}" class="az-input" />
+          </label>
+
+          <label class="az-field az-field--wide">
+            <span>Callable</span>
+            <input name="callable_path" value="{{ form.callable_path }}" class="az-input az-mono" />
+          </label>
+
+          <label class="az-field">
+            <span>Coalesce</span>
+            <select name="coalesce" class="az-select">
+              <option value="true" {% if form.coalesce == "true" %}selected{% endif %}>True</option>
+              <option value="false" {% if form.coalesce == "false" %}selected{% endif %}>False</option>
+            </select>
+          </label>
+
+          <label class="az-field">
+            <span>Max Instances</span>
+            <input name="max_instances" type="number" min="1" step="1" value="{{ form.max_instances }}" class="az-input" />
+          </label>
+
+          <label class="az-field">
+            <span>Misfire Grace</span>
+            <input name="mistrigger_grace_time" type="number" min="0" step="any" value="{{ form.mistrigger_grace_time }}" class="az-input" />
+          </label>
+
+          <label class="az-check-field">
+            <input type="checkbox" name="clear_mistrigger_grace_time" value="1" {% if form.clear_mistrigger_grace_time %}checked{% endif %} />
+            <span>Clear misfire grace</span>
+          </label>
+
+          <label class="az-field az-field--wide">
+            <span>*args JSON</span>
+            <textarea name="args" rows="6" class="az-textarea az-mono" x-ref="argsField">{{ form.args }}</textarea>
+          </label>
+
+          <label class="az-field az-field--wide">
+            <span>**kwargs JSON</span>
+            <textarea name="kwargs" rows="6" class="az-textarea az-mono" x-ref="kwargsField">{{ form.kwargs }}</textarea>
+          </label>
+        </div>
+      </div>
+    </form>
+
+    <section class="az-panel">
+      <div class="az-panel-header">
+        <div>
+          <h2 class="az-panel-title">{% if applied %}Applied Changes{% else %}Proposed Changes{% endif %}</h2>
+          <div class="az-panel-meta">{{ diff_rows|length }} field{% if diff_rows|length != 1 %}s{% endif %} changed</div>
+        </div>
+      </div>
+      <div class="az-table-wrap">
+        <table class="az-table az-table--compact az-table--diff">
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Current</th>
+              <th>Next</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if not diff_rows %}
+              <tr>
+                <td colspan="3">
+                  <div class="az-table-empty">No changes.</div>
+                </td>
+              </tr>
+            {% else %}
+              {% for row in diff_rows %}
+                <tr>
+                  <td><strong>{{ row.field }}</strong></td>
+                  <td><pre class="az-inline-code">{{ row.before }}</pre></td>
+                  <td><pre class="az-inline-code">{{ row.after }}</pre></td>
+                </tr>
+              {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}

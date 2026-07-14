@@ -65,6 +65,23 @@ document.addEventListener("alpine:init", function () {
     };
   });
 
+  Alpine.data("asynczTaskEditor", function () {
+    return {
+      formatJsonFields() {
+        [this.$refs.argsField, this.$refs.kwargsField].forEach((field) => {
+          if (!field || !field.value.trim()) return;
+          try {
+            field.value = JSON.stringify(JSON.parse(field.value), null, 2);
+          } catch (_error) {
+            if (typeof showToast === "function") {
+              showToast("Invalid JSON", "#991b1b", 1800);
+            }
+          }
+        });
+      },
+    };
+  });
+
   Alpine.data("asynczTasks", function () {
     return {
       selected: [],

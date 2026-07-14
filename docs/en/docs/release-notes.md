@@ -44,6 +44,8 @@
   before/after diffs, dry runs, and `--yes` automation.
 - Expanded `asyncz inspect --json` task payloads with coalesce, max-instances,
   and misfire grace metadata.
+- Added a dashboard task edit workflow with preview/apply diffs, scheduler
+  validation, and `task.update` audit events.
 - Added `asyncz add --id` for stable operator-owned task identifiers.
 - Added dashboard run history backed by scheduler submission and execution
   events, including manual-vs-scheduled source tracking.
