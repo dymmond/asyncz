@@ -83,7 +83,7 @@ class FileStore(BaseStore):
         return task
 
     def rebuild_task(self, state: Any) -> TaskType:
-        state = pickle.loads(self.conditional_decrypt(state))
+        state = self.deserialize_task_state(pickle.loads(self.conditional_decrypt(state)))
         task = Task.__new__(Task)
         task.__setstate__(state)
         task.scheduler = cast("SchedulerType", self.scheduler)
@@ -142,7 +142,7 @@ class FileStore(BaseStore):
             with task_path.open("xb") as write_ob, with_lock(write_ob, LOCK_EX):
                 write_ob.write(
                     self.conditional_encrypt(
-                        pickle.dumps(task.__getstate__(), self.pickle_protocol)
+                        pickle.dumps(self.serialize_task_state(task), self.pickle_protocol)
                     )
                 )
         except FileExistsError:
@@ -156,7 +156,7 @@ class FileStore(BaseStore):
                 write_ob.truncate()
                 write_ob.write(
                     self.conditional_encrypt(
-                        pickle.dumps(task.__getstate__(), self.pickle_protocol)
+                        pickle.dumps(self.serialize_task_state(task), self.pickle_protocol)
                     )
                 )
         except FileNotFoundError:

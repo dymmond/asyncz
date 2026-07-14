@@ -20,12 +20,26 @@ from asyncz.shapes import (
 
 @dataclass
 class DataclassDefaults:
+    """
+    Test-only dataclass that mirrors scheduler task default configuration.
+
+    It proves the scheduler can accept a non-Pydantic configuration object
+    through the same Shape resolution path used by production code.
+    """
+
     mistrigger_grace_time: float = 7
     coalesce: bool = False
     max_instances: int = 3
 
 
 def test_top_level_asyncz_alias_uses_default_pydantic_shape():
+    """
+    Confirm the top-level `Asyncz` alias keeps the default Pydantic experience.
+
+    The ordinary constructor should require no Shape configuration and should
+    still expose task defaults through the compatibility `model_dump()` surface.
+    """
+
     scheduler = Asyncz()
 
     assert isinstance(scheduler, AsyncIOScheduler)
@@ -38,6 +52,13 @@ def test_top_level_asyncz_alias_uses_default_pydantic_shape():
 
 
 def test_scheduler_accepts_registered_shape_name_for_configuration():
+    """
+    Verify scheduler configuration can select a registered Shape by name.
+
+    The dataclass defaults object exercises a non-Pydantic representation while
+    still normalizing into Asyncz-owned task defaults.
+    """
+
     scheduler = AsyncIOScheduler(shape="dataclass", task_defaults=DataclassDefaults())
 
     assert isinstance(scheduler.shape, DataclassShape)
@@ -49,6 +70,13 @@ def test_scheduler_accepts_registered_shape_name_for_configuration():
 
 
 def test_scheduler_accepts_shape_instance():
+    """
+    Verify scheduler configuration accepts an already-instantiated Shape.
+
+    This covers applications that want to configure Shape instances explicitly
+    instead of relying on global registry lookup.
+    """
+
     shape = AnyShape()
     scheduler = AsyncIOScheduler(shape=shape, task_defaults={"max_instances": "4"})
 
@@ -61,7 +89,21 @@ def test_scheduler_accepts_shape_instance():
 
 
 def test_shape_registry_is_deterministic_and_rejects_duplicates():
+    """
+    Prove registry lookup is deterministic and duplicate names fail clearly.
+
+    A custom test Shape is registered temporarily to ensure the public registry
+    path works without relying on internal imports.
+    """
+
     class CompanyShape(AnyShape):
+        """
+        Test-only custom Shape used to exercise public registry behavior.
+
+        It inherits permissive behavior because this test is about registry
+        ownership rather than validation semantics.
+        """
+
         name = "company"
 
     ShapeRegistry.register("company-test", CompanyShape)
@@ -75,11 +117,25 @@ def test_shape_registry_is_deterministic_and_rejects_duplicates():
 
 
 def test_shape_registry_reports_unknown_shapes():
+    """
+    Verify unknown Shape names fail instead of falling back silently.
+
+    This protects scheduler configuration and persisted records from changing
+    validator behavior because of missing registrations.
+    """
+
     with pytest.raises(ShapeNotFoundError):
         ShapeRegistry.get("does-not-exist")
 
 
 def test_dataclass_shape_contract_round_trip():
+    """
+    Exercise the dataclass Shape contract directly.
+
+    The test covers construction, dumping, and field inspection so dataclasses
+    prove the first non-Pydantic contract path without scheduler branching.
+    """
+
     shape = DataclassShape()
     context = ShapeContext(entity="task_defaults", operation="round_trip")
     defaults = shape.construct(

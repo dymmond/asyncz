@@ -1,4 +1,5 @@
 import os
+import pickle
 import tempfile
 import time
 from datetime import datetime
@@ -8,8 +9,14 @@ from sqlalchemy.pool import StaticPool
 
 from asyncz.exceptions import ConflictIdError, TaskLookupError
 from asyncz.schedulers import AsyncIOScheduler
+from asyncz.shapes import ShapeMigrationError, ShapeNotFoundError
 from asyncz.stores.file import FileStore
 from asyncz.stores.memory import MemoryStore
+from asyncz.stores.persistence import (
+    TASK_STATE_ENTITY,
+    TASK_STATE_ENVELOPE_VERSION,
+    TaskStateEnvelope,
+)
 from asyncz.tasks import Task
 
 
@@ -136,6 +143,90 @@ def test_add_callable_instance_method_task(store, create_add_task):
     initial_task = create_add_task(store, instance.dummy_method, kwargs={"a": 1, "b": 2})
     task = store.lookup_task(initial_task.id)
     assert task.fn(*task.args, **task.kwargs) == 3
+
+
+def test_persistent_store_writes_shape_envelope(filestore, create_add_task):
+    """
+    Verify durable stores write explicit Shape metadata for new task records.
+
+    The file store is used as the concrete persistent backend because its bytes
+    are easy to inspect without involving an external service.
+    """
+
+    task = create_add_task(filestore)
+    task_path = filestore.directory / f"{task.id}{filestore.suffix}"
+
+    envelope = pickle.loads(filestore.conditional_decrypt(task_path.read_bytes()))
+
+    assert isinstance(envelope, TaskStateEnvelope)
+    assert envelope.entity == TASK_STATE_ENTITY
+    assert envelope.version == TASK_STATE_ENVELOPE_VERSION
+    assert envelope.shape == "pydantic"
+    assert envelope.payload.id == task.id
+
+
+def test_persistent_store_restores_legacy_task_state(filestore, create_add_task):
+    """
+    Verify old raw `TaskState` pickles still restore correctly.
+
+    This is the compatibility path for records written before Asyncz introduced
+    versioned Shape persistence envelopes.
+    """
+
+    task = create_add_task(None)
+    task_path = filestore.directory / f"{task.id}{filestore.suffix}"
+    task_path.write_bytes(
+        filestore.conditional_encrypt(pickle.dumps(task.__getstate__(), filestore.pickle_protocol))
+    )
+
+    restored = filestore.lookup_task(task.id)
+
+    assert restored == task
+    assert restored.fn is dummy_task
+
+
+def test_persistent_store_rejects_unknown_shape(filestore, create_add_task):
+    """
+    Verify persisted records with unknown Shape identifiers fail clearly.
+
+    Stores must not fall back to another Shape when a record names a missing
+    validator representation.
+    """
+
+    task = create_add_task(None)
+    envelope = TaskStateEnvelope(
+        entity=TASK_STATE_ENTITY,
+        version=TASK_STATE_ENVELOPE_VERSION,
+        shape="missing-shape",
+        payload=task.__getstate__(),
+    )
+
+    with pytest.raises(ShapeNotFoundError):
+        filestore.rebuild_task(
+            filestore.conditional_encrypt(pickle.dumps(envelope, filestore.pickle_protocol))
+        )
+
+
+def test_persistent_store_rejects_unknown_version(filestore, create_add_task):
+    """
+    Verify future task-state envelope versions are rejected explicitly.
+
+    This keeps migration behavior deliberate instead of attempting to interpret
+    records from an unknown persistence contract.
+    """
+
+    task = create_add_task(None)
+    envelope = TaskStateEnvelope(
+        entity=TASK_STATE_ENTITY,
+        version=TASK_STATE_ENVELOPE_VERSION + 1,
+        shape="pydantic",
+        payload=task.__getstate__(),
+    )
+
+    with pytest.raises(ShapeMigrationError):
+        filestore.rebuild_task(
+            filestore.conditional_encrypt(pickle.dumps(envelope, filestore.pickle_protocol))
+        )
 
 
 def test_add_callable_class_method_task(store, create_add_task):
