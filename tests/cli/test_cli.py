@@ -78,6 +78,22 @@ def _preview_json(client: SayerTestClient, job_id: str, store: str, count: int =
     return json.loads(m.group(1))
 
 
+def _inspect_json(client: SayerTestClient, job_id: str, store: str, count: int = 3):
+    r = client.invoke(["inspect", job_id, "--json", "--count", str(count), "--store", store])
+    assert r.exit_code == 0, r.stderr
+
+    if isinstance(r.return_value, dict):
+        return r.return_value
+
+    out = (r.stdout or "").strip() or (r.stderr or "").strip()
+    if out.startswith("ℹ"):
+        out = out.lstrip("ℹ️ ").lstrip()
+
+    m = re.search(r"(\{.*\})", out, re.S)
+    assert m, f"Expected JSON in output, got: {out!r}"
+    return json.loads(m.group(1))
+
+
 def _as_datetime(value):
     return value if isinstance(value, datetime) else datetime.fromisoformat(str(value))
 
@@ -171,6 +187,37 @@ def test_preview_json_reports_upcoming_run_times(client: SayerTestClient, sqlite
     assert len(run_times) == 3
     assert run_times[1] - run_times[0] == timedelta(seconds=5)
     assert run_times[2] - run_times[1] == timedelta(seconds=5)
+
+
+def test_inspect_json_reports_task_state_and_upcoming_runs(
+    client: SayerTestClient, sqlite_url: str
+):
+    job_id = "inspect-noop"
+    r = client.invoke(
+        [
+            "add",
+            "tests.fixtures:noop",
+            "--id",
+            job_id,
+            "--name",
+            "inspectable",
+            "--interval",
+            "7s",
+            "--store",
+            f"durable={sqlite_url}",
+        ]
+    )
+    assert r.exit_code == 0, r.stderr
+
+    payload = _inspect_json(client, job_id, f"durable={sqlite_url}", count=2)
+    run_times = [_as_datetime(value) for value in payload["run_times"]]
+
+    assert payload["task"]["id"] == job_id
+    assert payload["task"]["name"] == "inspectable"
+    assert payload["task"]["state"] == "scheduled"
+    assert payload["task"]["store"] == "durable"
+    assert payload["returned_count"] == 2
+    assert run_times[1] - run_times[0] == timedelta(seconds=7)
 
 
 def test_add_run_pause_resume_remove_flow(client: SayerTestClient, sqlite_url: str):

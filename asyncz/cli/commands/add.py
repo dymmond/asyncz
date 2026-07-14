@@ -18,6 +18,7 @@ from asyncz.triggers.base import BaseTrigger
 @command
 def add(
     callable_path: Annotated[str, Argument(help="Python path to callable, e.g. pkg.mod:func")],
+    job_id: Annotated[str | None, Option(None, "--id", help="Explicit job ID")],
     name: Annotated[str | None, Option(None, help="Job name")],
     cron: Annotated[str | None, Option(None, help="Cron like '*/5 * * * *'")],
     interval: Annotated[str | None, Option(None, help="Interval '10s'|'5m'|'2h'")],
@@ -42,7 +43,7 @@ def add(
     Examples:
 
         asyncz add myapp.tasks:email --cron '0 0 * * *' --name email-daily
-        asyncz add myapp.tasks:cleanup --interval '1h'
+        asyncz add myapp.tasks:cleanup --interval '1h' --id cleanup-hourly
         asyncz add myapp.tasks:report --at '2026-01-01T10:00:00' --args '["user_id", 123]'
     """
     loop: asyncio.AbstractEventLoop = ensure_loop()
@@ -95,6 +96,7 @@ def add(
             scheduler.add_task(
                 func,
                 trigger=t,
+                id=job_id,
                 args=pos,
                 kwargs=kw,
                 name=name,
