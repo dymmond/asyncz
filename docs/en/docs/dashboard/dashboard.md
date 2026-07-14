@@ -7,6 +7,7 @@ Asyncz includes an optional Lilya-based dashboard for inspecting tasks and runni
 - an overview page with scheduler, task-state, and recent-run summaries
 - a runtime page with scheduler state, timing, store, and executor metadata
 - a timeline page that previews upcoming run times across all tasks
+- an audit page for dashboard create/run/pause/resume/remove actions
 - a task list with search, state/executor/trigger filters, sortable views, and last-run status
 - per-task actions for Run now, pause, resume, remove, and history inspection
 - bulk task actions for Run now, pause, resume, and remove
@@ -99,6 +100,7 @@ The dashboard is organized around operational tasks:
 | Runtime | Inspect scheduler timing, timezone, state code, stores, executors, and task distribution. |
 | Timeline | Preview upcoming run times across tasks without mutating scheduler state. |
 | History | Inspect manual and scheduled task runs captured from scheduler events. |
+| Audit | Inspect dashboard management actions separately from execution history. |
 | Logs | Filter captured log records by task id, run id, level, and message text. |
 
 The dashboard uses packaged Alpine.js for transient browser state such as
@@ -268,6 +270,21 @@ triggers, update `next_run_time`, or submit work to executors.
 Use the controls to choose how many run times to preview per task and the total
 number of rows to show. The result is sorted by due time so operators can quickly
 see what is expected to run next.
+
+## Audit page
+
+The audit page records dashboard management actions separately from run history.
+It captures task create, run, pause, resume, and remove attempts with:
+
+- action name
+- target task id
+- status (`succeeded`, `warning`, or `failed`)
+- timestamp
+- operator-facing message
+
+The default audit backend is process-local memory storage. Pass
+`audit_storage=` to `AsynczAdmin` when you want to share or replace that storage
+inside a larger application.
 
 ## Custom log storage
 

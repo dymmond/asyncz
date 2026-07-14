@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 import json
 from collections.abc import Callable
 from typing import Any
@@ -11,6 +10,7 @@ from lilya.responses import HTMLResponse, RedirectResponse
 from lilya.templating.controllers import TemplateController
 
 from asyncz.cli.utils import import_callable
+from asyncz.contrib.dashboard.audit import record_audit_event
 from asyncz.contrib.dashboard.controllers._helpers import (
     build_task_dashboard_context,
     parse_ids_from_request_form,
@@ -21,6 +21,23 @@ from asyncz.contrib.dashboard.messages import add_message
 from asyncz.contrib.dashboard.mixins import DashboardMixin
 from asyncz.exceptions import MaximumInstancesError, TaskLookupError
 from asyncz.schedulers import AsyncIOScheduler
+
+
+def _audit_task_action(
+    action: str,
+    task_id: str | None,
+    *,
+    status: str = "succeeded",
+    message: str | None = None,
+    details: dict[str, Any] | None = None,
+) -> None:
+    record_audit_event(
+        f"task.{action}",
+        status=status,
+        target_id=task_id,
+        message=message,
+        details=details,
+    )
 
 
 class TasklistController(DashboardMixin, TemplateController):
@@ -71,8 +88,12 @@ class TaskRunController(_BaseTaskAction):
         task_id: str = request.path_params["task_id"]
         try:
             self.scheduler.run_task(task_id, remove_finished=False)
+            _audit_task_action("run", task_id, message=f"Triggered task {task_id} manually.")
         except MaximumInstancesError as exc:
             add_message(request, "warning", str(exc))
+            _audit_task_action("run", task_id, status="warning", message=str(exc))
+        except TaskLookupError:
+            _audit_task_action("run", task_id, status="failed", message="Task was not found.")
         return await self._redirect()
 
 
@@ -82,7 +103,11 @@ class TaskPauseController(_BaseTaskAction):
     async def post(self, request: Request) -> Any:
         """Pause the specified task through the scheduler API."""
         task_id: str = request.path_params["task_id"]
-        self.scheduler.pause_task(task_id)
+        try:
+            self.scheduler.pause_task(task_id)
+            _audit_task_action("pause", task_id, message=f"Paused task {task_id}.")
+        except TaskLookupError:
+            _audit_task_action("pause", task_id, status="failed", message="Task was not found.")
         return await self._redirect()
 
 
@@ -92,7 +117,11 @@ class TaskResumeController(_BaseTaskAction):
     async def post(self, request: Request) -> Any:
         """Resume the specified task through the scheduler API."""
         task_id: str = request.path_params["task_id"]
-        self.scheduler.resume_task(task_id)
+        try:
+            self.scheduler.resume_task(task_id)
+            _audit_task_action("resume", task_id, message=f"Resumed task {task_id}.")
+        except TaskLookupError:
+            _audit_task_action("resume", task_id, status="failed", message="Task was not found.")
         return await self._redirect()
 
 
@@ -102,7 +131,11 @@ class TaskRemoveController(_BaseTaskAction):
     async def post(self, request: Request) -> Any:
         """Permanently removes the specified task from its store."""
         task_id: str = request.path_params["task_id"]
-        self.scheduler.delete_task(task_id)
+        try:
+            self.scheduler.delete_task(task_id)
+            _audit_task_action("remove", task_id, message=f"Removed task {task_id}.")
+        except TaskLookupError:
+            _audit_task_action("remove", task_id, status="failed", message="Task was not found.")
         return await self._redirect()
 
 
@@ -151,17 +184,34 @@ class TaskCreateController(DashboardMixin, Controller):
         except Exception as e:
             message = str(e)
             add_message(request, "error", f"{message}")
+            _audit_task_action(
+                "create",
+                callable_path or None,
+                status="failed",
+                message=message,
+                details={"callable_path": callable_path, "trigger_type": trigger_type},
+            )
             context = await self.get_context_data(request)
             return await render_table(self.scheduler, request, context)
 
         # Add task to the scheduler
-        self.scheduler.add_task(
+        task = self.scheduler.add_task(
             func,
             trigger=trigger,
             args=args,
             kwargs=kwargs,
             name=name,
             store=store_alias,
+        )
+        _audit_task_action(
+            "create",
+            task.id,
+            message=f"Created task {task.name or task.id}.",
+            details={
+                "callable_path": callable_path,
+                "trigger_type": trigger_type,
+                "store": store_alias,
+            },
         )
 
         # Return updated table partial (HTMX response)
@@ -183,7 +233,11 @@ class TaskBulkPauseController(DashboardMixin, Controller):
         for task_id in ids:
             try:
                 self.scheduler.pause_task(task_id)
+                _audit_task_action("pause", task_id, message=f"Paused task {task_id}.")
             except TaskLookupError:
+                _audit_task_action(
+                    "pause", task_id, status="failed", message="Task was not found."
+                )
                 continue
 
         context = await self.get_context_data(request)
@@ -205,9 +259,12 @@ class TaskBulkRunController(DashboardMixin, Controller):
         for task_id in ids:
             try:
                 self.scheduler.run_task(task_id, remove_finished=False)
+                _audit_task_action("run", task_id, message=f"Triggered task {task_id} manually.")
             except MaximumInstancesError as exc:
                 add_message(request, "warning", str(exc))
+                _audit_task_action("run", task_id, status="warning", message=str(exc))
             except TaskLookupError:
+                _audit_task_action("run", task_id, status="failed", message="Task was not found.")
                 continue
 
         # Return refreshed table fragment for HTMX swap
@@ -232,7 +289,11 @@ class TaskBulkResumeController(DashboardMixin, Controller):
         for task_id in ids:
             try:
                 self.scheduler.resume_task(task_id)
+                _audit_task_action("resume", task_id, message=f"Resumed task {task_id}.")
             except TaskLookupError:
+                _audit_task_action(
+                    "resume", task_id, status="failed", message="Task was not found."
+                )
                 continue
 
         context = await self.get_context_data(request)
@@ -253,8 +314,12 @@ class TaskBulkRemoveController(DashboardMixin, Controller):
         for task_id in ids:
             try:
                 self.scheduler.delete_task(task_id)
+                _audit_task_action("remove", task_id, message=f"Removed task {task_id}.")
             except TaskLookupError:
                 # Already removed or not found; keep operation idempotent.
+                _audit_task_action(
+                    "remove", task_id, status="failed", message="Task was not found."
+                )
                 continue
 
         context = await self.get_context_data(request)
@@ -272,10 +337,12 @@ class TaskHXRunController(DashboardMixin, Controller):
         task_id: str = request.path_params["task_id"]
         try:
             self.scheduler.run_task(task_id, remove_finished=False)
+            _audit_task_action("run", task_id, message=f"Triggered task {task_id} manually.")
         except MaximumInstancesError as exc:
             add_message(request, "warning", str(exc))
+            _audit_task_action("run", task_id, status="warning", message=str(exc))
         except TaskLookupError:
-            ...
+            _audit_task_action("run", task_id, status="failed", message="Task was not found.")
 
         context = await self.get_context_data(request)
         return await render_table(self.scheduler, request, context)
@@ -290,8 +357,11 @@ class TaskHXPauseController(DashboardMixin, Controller):
     async def post(self, request: Request) -> HTMLResponse:
         """Pause the specified task and return the refreshed task table."""
         task_id: str = request.path_params["task_id"]
-        with contextlib.suppress(TaskLookupError):
+        try:
             self.scheduler.pause_task(task_id)
+            _audit_task_action("pause", task_id, message=f"Paused task {task_id}.")
+        except TaskLookupError:
+            _audit_task_action("pause", task_id, status="failed", message="Task was not found.")
 
         context = await self.get_context_data(request)
         return await render_table(self.scheduler, request, context)
@@ -306,8 +376,11 @@ class TaskHXResumeController(DashboardMixin, Controller):
     async def post(self, request: Request) -> HTMLResponse:
         """Resume the specified task and return the refreshed task table."""
         task_id: str = request.path_params["task_id"]
-        with contextlib.suppress(TaskLookupError):
+        try:
             self.scheduler.resume_task(task_id)
+            _audit_task_action("resume", task_id, message=f"Resumed task {task_id}.")
+        except TaskLookupError:
+            _audit_task_action("resume", task_id, status="failed", message="Task was not found.")
 
         context = await self.get_context_data(request)
         return await render_table(self.scheduler, request, context)
@@ -323,8 +396,11 @@ class TaskHXRemoveController(DashboardMixin, Controller):
         """Permanently removes the specified task and returns the updated task table."""
         task_id: str = request.path_params["task_id"]
 
-        with contextlib.suppress(TaskLookupError):
+        try:
             self.scheduler.delete_task(task_id)
+            _audit_task_action("remove", task_id, message=f"Removed task {task_id}.")
+        except TaskLookupError:
+            _audit_task_action("remove", task_id, status="failed", message="Task was not found.")
 
         context = await self.get_context_data(request)
         return await render_table(self.scheduler, request, context)

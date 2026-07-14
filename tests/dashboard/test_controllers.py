@@ -13,6 +13,7 @@ from asyncz.contrib.dashboard.admin import (
     SimpleUsernamePasswordBackend,
     User,
 )
+from asyncz.contrib.dashboard.audit import get_audit_storage
 from asyncz.schedulers.asyncio import AsyncIOScheduler
 
 DASH_PREFIX = "/dashboard"
@@ -145,6 +146,29 @@ def test_timeline_page_renders_upcoming_runs(client: TestClient):
     assert "previewed run" in response.text
     assert 'title="Timeline"' in response.text
     assert 'aria-current="page"' in response.text
+
+
+def test_audit_page_tracks_task_management_actions(client: TestClient):
+    get_audit_storage().clear()
+    job_id = _create_task(client, "audited-task")
+
+    run_response = client.post(f"{DASH_PREFIX}/tasks/{job_id}/run")
+    assert run_response.status_code == 200
+
+    response = client.get(f"{DASH_PREFIX}/audit/")
+
+    assert response.status_code == 200
+    assert "Audit Trail" in response.text
+    assert "Task Create" in response.text
+    assert "Task Run" in response.text
+    assert job_id in response.text
+    assert "audited-task" in response.text
+    assert 'title="Audit"' in response.text
+    assert 'aria-current="page"' in response.text
+
+    filtered = client.get(f"{DASH_PREFIX}/audit/?action=task.run")
+    assert filtered.status_code == 200
+    assert "Task Run" in filtered.text
 
 
 def test_tasks_partial_table_initial(client: TestClient):

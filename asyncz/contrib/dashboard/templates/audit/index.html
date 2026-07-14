@@ -1,0 +1,126 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="az-page">
+  <section class="az-stat-grid">
+    <article class="az-stat-card az-stat-card--accent">
+      <div class="az-stat-label">Audit Events</div>
+      <div class="az-stat-value">{{ summary.total }}</div>
+      <div class="az-stat-detail">Dashboard management actions captured in memory</div>
+    </article>
+    <article class="az-stat-card az-stat-card--success">
+      <div class="az-stat-label">Succeeded</div>
+      <div class="az-stat-value">{{ summary.succeeded }}</div>
+      <div class="az-stat-detail">Completed admin actions</div>
+    </article>
+    <article class="az-stat-card az-stat-card--danger">
+      <div class="az-stat-label">Failed</div>
+      <div class="az-stat-value">{{ summary.failed }}</div>
+      <div class="az-stat-detail">Actions rejected or not found</div>
+    </article>
+    <article class="az-stat-card az-stat-card--warning">
+      <div class="az-stat-label">Warnings</div>
+      <div class="az-stat-value">{{ summary.warning }}</div>
+      <div class="az-stat-detail">Actions completed with scheduler warnings</div>
+    </article>
+  </section>
+
+  <section class="az-panel">
+    <div class="az-panel-header">
+      <div>
+        <h2 class="az-panel-title">Audit Filters</h2>
+        <div class="az-panel-meta">Dashboard actions separate from task execution history</div>
+      </div>
+    </div>
+    <form class="az-filter-bar" method="get" action="{{ url_for('dashboard:audit:index') }}">
+      <label class="az-field az-field--search">
+        <span>Search</span>
+        <input class="az-input" type="search" name="q" value="{{ filters.q }}" placeholder="task id, action, message">
+      </label>
+      <label class="az-field">
+        <span>Action</span>
+        <select class="az-select" name="action">
+          <option value="">Any action</option>
+          {% for action in ["task.create", "task.run", "task.pause", "task.resume", "task.remove"] %}
+            <option value="{{ action }}" {% if filters.action == action %}selected{% endif %}>{{ action }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="az-field">
+        <span>Status</span>
+        <select class="az-select" name="status">
+          <option value="">Any status</option>
+          {% for status in ["succeeded", "warning", "failed"] %}
+            <option value="{{ status }}" {% if filters.status == status %}selected{% endif %}>{{ status|title }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="az-field">
+        <span>Limit</span>
+        <input class="az-input az-input--compact" type="number" name="limit" min="1" max="1000" value="{{ filters.limit }}">
+      </label>
+      <button class="az-button az-button--primary" type="submit">Apply</button>
+      <a class="az-button" href="{{ url_for('dashboard:audit:index') }}">Reset</a>
+    </form>
+  </section>
+
+  <section class="az-panel">
+    <div class="az-panel-header">
+      <div>
+        <h2 class="az-panel-title">Events</h2>
+        <div class="az-panel-meta">Most recent actions first</div>
+      </div>
+    </div>
+    <div class="az-table-wrap">
+      <table class="az-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Action</th>
+            <th>Target</th>
+            <th>Message</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if not rows %}
+            <tr>
+              <td colspan="5">
+                <div class="az-empty">
+                  <strong>No audit events match the current filters.</strong>
+                </div>
+              </td>
+            </tr>
+          {% else %}
+            {% for row in rows %}
+              <tr>
+                <td>
+                  <div class="az-mono">{{ row.created_at_label }}</div>
+                  <div class="az-muted">{{ row.actor }}</div>
+                </td>
+                <td>
+                  <span class="az-badge az-badge--neutral">{{ row.action_label }}</span>
+                  <div class="az-muted az-mono">{{ row.event_id }}</div>
+                </td>
+                <td>
+                  <div class="az-mono">{{ row.target_id or '-' }}</div>
+                  <div class="az-muted">{{ row.target_type }}</div>
+                </td>
+                <td>{{ row.message or '-' }}</td>
+                <td>
+                  {% if row.status == "succeeded" %}
+                    <span class="az-badge az-badge--success">{{ row.status_label }}</span>
+                  {% elif row.status == "warning" %}
+                    <span class="az-badge az-badge--warning">{{ row.status_label }}</span>
+                  {% else %}
+                    <span class="az-badge az-badge--danger">{{ row.status_label }}</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

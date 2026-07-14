@@ -41,6 +41,8 @@
   executors, and per-component task distribution.
 - Added a dashboard timeline page that previews upcoming run times across all
   tasks without mutating scheduler state.
+- Added a dashboard audit page for task create, run, pause, resume, and remove
+  actions.
 
 ### Fixed
 

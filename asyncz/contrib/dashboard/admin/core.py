@@ -18,6 +18,7 @@ from asyncz.contrib.dashboard.admin.middleware.forward_root_path import (
     ForwardedPrefixMiddleware,
 )
 from asyncz.contrib.dashboard.admin.protocols import AuthBackend
+from asyncz.contrib.dashboard.audit import MemoryAuditTrailStorage
 from asyncz.contrib.dashboard.engine import templates
 from asyncz.contrib.dashboard.history import MemoryRunHistoryStorage
 from asyncz.contrib.dashboard.logs.storage import LogStorage
@@ -58,6 +59,7 @@ class AsynczAdmin:
         allowlist: tuple[str, ...] = ("/login", "/logout", "/static", "/assets"),
         log_storage: LogStorage | None = None,
         run_history_storage: MemoryRunHistoryStorage | None = None,
+        audit_storage: MemoryAuditTrailStorage | None = None,
     ) -> None:
         """
         Initializes the Asyncz Admin dashboard instance.
@@ -98,6 +100,7 @@ class AsynczAdmin:
         # Build the internal dashboard routing application immediately
         self.log_storage: LogStorage | None = log_storage
         self.run_history_storage: MemoryRunHistoryStorage | None = run_history_storage
+        self.audit_storage: MemoryAuditTrailStorage | None = audit_storage
         self.child_app: Router = self.assemble_dashboard_router()
 
     def add_sign_in_pages(self) -> list[Path | Include]:
@@ -213,6 +216,7 @@ class AsynczAdmin:
                         scheduler=self.scheduler,
                         log_storage=self.log_storage,
                         run_history_storage=self.run_history_storage,
+                        audit_storage=self.audit_storage,
                     ),
                 ),
             ],
