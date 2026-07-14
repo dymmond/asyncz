@@ -138,11 +138,15 @@ def test_failed_manual_run_preserves_exception_detail(
     record = history_storage.latest_for_task("failed-history")
     assert record is not None
     assert record.status == "failed"
+    assert record.exception_type == "RuntimeError"
+    assert record.exception_message == "history boom"
     assert "history boom" in (record.exception or "")
 
     detail = client.get(f"{DASH_PREFIX}/history/{record.run_id}")
     assert detail.status_code == 200
     assert "Failed" in detail.text
+    assert "Exception Type" in detail.text
+    assert "Exception Message" in detail.text
     assert "RuntimeError" in detail.text
     assert "history boom" in detail.text
 

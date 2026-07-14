@@ -55,6 +55,8 @@
 - Task events now include the scheduler identity seen by event listeners.
 - Submission events now report how many due run times were omitted by
   coalescing, and run history shows that count.
+- Failed run details now show exception type and message separately from the
+  traceback.
 - Added run detail pages that correlate lifecycle logs and task logs for
   a specific run id.
 - Added dashboard log filtering by `run_id` and structured log extras.

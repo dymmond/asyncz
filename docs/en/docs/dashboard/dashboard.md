@@ -274,7 +274,7 @@ Each run record captures:
 - status (`running`, `succeeded`, `failed`, `missed`, or `max_instances`)
 - submitted and finished timestamps
 - duration
-- return value or exception details when available
+- return value or exception type, message, and traceback when available
 
 Run history handles synchronous debug executors as well as asynchronous
 executors. If a debug executor emits the execution event before the submission

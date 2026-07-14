@@ -39,6 +39,8 @@ class RunRecord:
     submitted_at: datetime | None = None
     finished_at: datetime | None = None
     return_value: str | None = None
+    exception_type: str | None = None
+    exception_message: str | None = None
     exception: str | None = None
     traceback: str | None = None
     created_at: datetime | None = None
@@ -226,6 +228,8 @@ class MemoryRunHistoryStorage:
         record.return_value = (
             _safe_repr(event.return_value) if event.return_value is not None else None
         )
+        record.exception_type = _exception_type(event.exception)
+        record.exception_message = _safe_str(event.exception)
         record.exception = _safe_repr(event.exception) if event.exception is not None else None
         record.traceback = event.traceback
         record.updated_at = now
@@ -250,7 +254,9 @@ class MemoryRunHistoryStorage:
                     log_storage,
                     record,
                     "ERROR",
-                    f"Task run failed for {record.task_label}: {record.exception or 'unknown error'}.",
+                    "Task run failed for "
+                    f"{record.task_label}: "
+                    f"{record.exception_message or record.exception or 'unknown error'}.",
                 )
 
         return record
@@ -469,6 +475,27 @@ def _safe_repr(value: Any, limit: int = 500) -> str:
     return rendered
 
 
+def _safe_str(value: Any, limit: int = 500) -> str | None:
+    if value is None:
+        return None
+    try:
+        rendered = str(value)
+    except Exception:
+        rendered = f"<{type(value).__name__}>"
+    if len(rendered) > limit:
+        return f"{rendered[: limit - 3]}..."
+    return rendered
+
+
+def _exception_type(value: BaseException | None) -> str | None:
+    if value is None:
+        return None
+    cls = value.__class__
+    if cls.__module__ == "builtins":
+        return cls.__qualname__
+    return f"{cls.__module__}.{cls.__qualname__}"
+
+
 def _append_run_log(
     storage: LogStorage,
     record: RunRecord,
@@ -488,6 +515,8 @@ def _append_run_log(
                 "source": record.source,
                 "scheduler_identity": record.scheduler_identity,
                 "coalesced_run_count": record.coalesced_run_count,
+                "exception_type": record.exception_type,
+                "exception_message": record.exception_message,
                 "scheduled_run_time": (
                     record.scheduled_run_time.isoformat()
                     if isinstance(record.scheduled_run_time, datetime)

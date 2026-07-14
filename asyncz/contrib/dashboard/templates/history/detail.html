@@ -62,6 +62,18 @@
             <span>Callable</span>
             <strong>{{ record.callable_reference or "-" }}</strong>
           </div>
+          {% if record.exception_type %}
+            <div class="az-kv">
+              <span>Exception Type</span>
+              <strong class="az-mono">{{ record.exception_type }}</strong>
+            </div>
+          {% endif %}
+          {% if record.exception_message %}
+            <div class="az-kv">
+              <span>Exception Message</span>
+              <strong>{{ record.exception_message }}</strong>
+            </div>
+          {% endif %}
         </div>
 
         {% if record.exception %}
