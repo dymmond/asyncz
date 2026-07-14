@@ -157,15 +157,15 @@ For Nginx, use the same contract in your location block:
 ```nginx
 location /ops/dashboard/ {
     proxy_set_header X-Forwarded-Prefix /ops;
-    proxy_set_header Host $host;
+    proxy_set_header Host $http_host;
     proxy_pass http://127.0.0.1:8000/dashboard/;
 }
 ```
 
 With that shape, the upstream app receives `/dashboard/...` requests while
 rendered links, static assets, and HTMX endpoints point at `/ops/dashboard/...`.
-Run the full proxy in your deployment environment before treating the Nginx
-configuration itself as release evidence.
+Use `$http_host` so nonstandard ports survive in generated absolute asset URLs
+during local or internal deployments.
 
 `trusted_forwarded_hosts` accepts exact client host names, IP addresses, and IP
 network ranges such as `"10.0.0.0/8"`. Keep it limited to the proxy addresses
