@@ -27,6 +27,8 @@
   and the `asyncz preview` CLI command.
 - Added the `asyncz version` CLI command with JSON output for release and
   packaging smoke checks.
+- Added the `asyncz timeline` CLI command for upcoming run previews across all
+  tasks.
 - Added the `asyncz inspect` CLI command for single-task inspection with
   upcoming run previews and JSON output.
 - Added `asyncz add --id` for stable operator-owned task identifiers.

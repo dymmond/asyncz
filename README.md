@@ -40,7 +40,7 @@ Documentation: [https://asyncz.dymmond.com](https://asyncz.dymmond.com)
 - Built-in triggers for `date`, `interval`, `cron`, `and`, `or`, and `shutdown`.
 - Built-in stores for `memory`, `file`, `mongodb`, `redis`, and `sqlalchemy`.
 - Executors for in-event-loop work, thread pools, process pools, and direct debug execution.
-- CLI commands for showing the installed version, starting schedulers, adding tasks, inspecting one task, previewing run times, triggering runs, and managing persisted tasks.
+- CLI commands for showing the installed version, starting schedulers, adding tasks, inspecting one task, previewing upcoming timelines, triggering runs, and managing persisted tasks.
 - Scheduler-native inspection snapshots for dashboards, CLIs, and admin tooling.
 - Optional dashboard UI with a modern admin shell, task filters, row/bulk actions, manual Run now, run history, and per-run log inspection.
 - Packaged dashboard browser assets: no runtime dependency on public Tailwind, Alpine.js, HTMX, Toastify, or favicon CDNs.
@@ -165,7 +165,7 @@ Persistent stores support the `ASYNCZ_STORE_ENCRYPTION_KEY` environment variable
 
 Asyncz ships with:
 
-- a CLI for `version`, `start`, `add`, `list`, `inspect`, `preview`, `status`, `run`, `pause`, `resume`, and `remove`
+- a CLI for `version`, `start`, `add`, `list`, `inspect`, `preview`, `timeline`, `status`, `run`, `pause`, `resume`, and `remove`
 - a Lilya-based dashboard with a scheduler overview, task controls, bulk operations, run history, and log inspection
 
 See the documentation for usage details:

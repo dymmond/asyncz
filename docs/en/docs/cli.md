@@ -206,6 +206,30 @@ JSON output includes:
 - `exhausted`
 - `run_times`
 
+### Preview the scheduler timeline
+
+```bash
+asyncz timeline --store durable=sqlite:///scheduler.db
+asyncz timeline --json --per-task 3 --limit 100 --store durable=sqlite:///scheduler.db
+```
+
+The `timeline` command previews upcoming run times across every task and sorts
+the rows by due time. It calls the same scheduler-owned trigger preview API as
+`inspect` and `preview`, so it does not advance triggers or update stored
+`next_run_time` values.
+
+JSON output includes:
+
+- `timezone`
+- `generated_at`
+- `requested_per_task`
+- `limit`
+- `task_count`
+- `total_count`
+- `returned_count`
+- `exhausted_task_count`
+- `rows`
+
 ### Run, pause, resume, and remove
 
 ```bash
