@@ -20,3 +20,18 @@ with some of the new use cases covered by Asyncz and therefore the attribution g
 By the time of the use of the license, the latest commit is linked to:
 
 https://github.com/agronholm/apscheduler/commit/3205a400a5f0ee4677cef082f6c50570c7004edf
+
+## Dashboard browser assets
+
+The optional dashboard vendors its runtime browser assets as package resources
+so installed deployments do not depend on public CDNs.
+
+The current vendored assets are:
+
+- Alpine.js CSP from npm `@alpinejs/csp`
+- Tailwind CSS from npm `tailwindcss` and `@tailwindcss/cli`
+- HTMX from npm `htmx.org`
+- Toastify from npm `toastify-js`
+
+Checksums, npm integrity values, upstream tarball URLs, and license file paths
+are recorded in `asyncz/contrib/dashboard/statics/vendor/manifest.json`.

@@ -100,6 +100,26 @@ The most commonly customized fields are:
 
 You can return a custom `DashboardConfig` from `settings.dashboard_config`.
 
+## Static assets
+
+The dashboard serves its browser assets from package resources. It does not
+load Tailwind CSS, Alpine.js, HTMX, Toastify, or the default favicon from public
+CDNs at runtime.
+
+Packaged assets live under `asyncz.contrib.dashboard/statics` and include:
+
+- Tailwind CSS compiled for the bundled Jinja templates
+- Alpine.js CSP build
+- HTMX
+- Toastify JavaScript and CSS
+- the dashboard favicon
+
+The asset manifest at `statics/vendor/manifest.json` records upstream package
+versions, npm integrity values, SHA-256 checksums, and license files. When
+updating these assets, regenerate the compiled Tailwind file from
+`statics/css/asyncz-tailwind.input.css`, update the manifest, and run the
+dashboard static-asset tests plus a wheel/sdist build.
+
 ## Task list behavior
 
 The task dashboard now reads from the scheduler's immutable task inspection snapshots rather than serializing live tasks ad hoc inside each controller.

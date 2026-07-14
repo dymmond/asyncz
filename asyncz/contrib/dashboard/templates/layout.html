@@ -6,47 +6,14 @@
   <link rel="icon" href="{{ favicon }}"/>
   <title>AsyncZ | {{ title }}</title>
 
-  <!-- Tailwind via CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Project assets -->
+  <!-- Packaged dashboard assets -->
+  <link rel="stylesheet" href="{{ url_for('dashboard:statics', path='css/tailwind-4.3.2.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('dashboard:statics', path='css/toastify.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('dashboard:statics', path='css/asyncz.css') }}">
+  <script src="{{ url_for('dashboard:statics', path='js/toastify.min.js') }}"></script>
   <script src="{{ url_for('dashboard:statics', path='js/asyncz.js') }}"></script>
-  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-
-  <!-- Optional Tailwind runtime config (kept for compatibility) -->
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            asyncz: {
-              amber: "{{ sidebar_bg_colour }}"
-            }
-          },
-          boxShadow: {
-            soft: "0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06)"
-          }
-        }
-      }
-    }
-  </script>
-
-  <style>
-    .loader {
-      border-top-color: #3490dc;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    /* Fancy focus ring for accessibility */
-    .focus-ring:focus-visible {
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(59,130,246,.45);
-    }
-  </style>
+  <script src="{{ url_for('dashboard:statics', path='vendor/htmx/htmx-1.9.12.min.js') }}"></script>
+  <script defer src="{{ url_for('dashboard:statics', path='vendor/alpinejs/alpine-csp-3.15.12.min.js') }}"></script>
 </head>
 <body class="bg-gradient-to-br from-gray-50 via-white to-gray-100 text-gray-900 antialiased">
   <div id="flash-messages"></div>

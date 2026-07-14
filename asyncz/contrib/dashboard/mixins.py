@@ -11,12 +11,16 @@ from asyncz.contrib.dashboard.messages import get_messages
 def default_context(request: Request) -> dict:
     context = {}
     effective_prefix = get_effective_prefix(request)
+    favicon = monkay.settings.dashboard_config.favicon
+    if favicon == "/static/favicon.ico" and effective_prefix != "/":
+        favicon = f"{effective_prefix}/static/favicon.ico"
+
     context.update(
         {
             "request": request,
             "title": monkay.settings.dashboard_config.title,
             "header_text": monkay.settings.dashboard_config.header_title,
-            "favicon": monkay.settings.dashboard_config.favicon,
+            "favicon": favicon,
             "url_prefix": effective_prefix,
             "sidebar_bg_colour": "#f06824",
             "messages": get_messages(request),

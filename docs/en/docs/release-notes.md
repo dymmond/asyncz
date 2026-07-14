@@ -1,5 +1,20 @@
 # Release Notes
 
+## 0.16.0
+
+### Changed
+
+- Updated the release version to `0.16.0`.
+- Pinned the dashboard extra to Lilya `0.27.0`.
+- Pinned the testing type checker dependency to `ty==0.0.59`.
+- Replaced dashboard runtime CDN dependencies with packaged Tailwind CSS,
+  Alpine.js CSP, HTMX, Toastify, and favicon assets.
+
+### Added
+
+- Added dashboard static-asset tests that verify local serving, rendered
+  template references, and recorded checksum integrity.
+
 ## 0.15.0
 
 ### Added
