@@ -50,6 +50,8 @@
 
 ### Fixed
 
+- Fixed forwarded-prefix dashboard rendering so `X-Forwarded-Prefix` updates
+  generated links and static asset URLs without breaking route matching.
 - Auth-enabled dashboards now allow prefixed static assets such as
   `/dashboard/static/...` through the authentication gate so login pages can load
   packaged CSS and JavaScript.

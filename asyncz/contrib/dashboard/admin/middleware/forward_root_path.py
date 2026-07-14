@@ -5,11 +5,13 @@ from lilya.types import ASGIApp, Receive, Scope, Send
 
 class ForwardedPrefixMiddleware:
     """
-    ASGI middleware that automatically updates the `scope['root_path']` based on the
+    ASGI middleware that records the external root path based on the
     `X-Forwarded-Prefix` header provided by a reverse proxy (like Nginx).
 
-    This ensures that internal framework components, such as `url_for()` and `StaticFiles`,
-    generate correct absolute URLs that include the proxy's mount prefix (e.g., /base/static).
+    Lilya uses ``root_path`` during route matching and ``app_root_path`` when
+    generating absolute URLs. Reverse proxies usually strip the external prefix
+    before forwarding the request, so this middleware leaves route matching alone
+    and only sets ``app_root_path`` for URL generation.
     """
 
     def __init__(self, app: ASGIApp, header_name: bytes = b"x-forwarded-prefix"):
@@ -52,19 +54,19 @@ class ForwardedPrefixMiddleware:
                     if p != "/":
                         p = p.rstrip("/")
 
-                    # 3. Combine with any existing root_path
-                    existing: str = scope.get("root_path") or ""
+                    # 3. Combine with any existing external root path
+                    existing: str = scope.get("app_root_path") or scope.get("root_path") or ""
 
-                    # Ensure existing root_path also has a leading slash
+                    # Ensure existing external prefix also has a leading slash
                     if existing and not existing.startswith("/"):
                         existing = "/" + existing
 
                     # Concatenate and clean up trailing slash (result is either '/base' or '/')
                     combined: str = (p + existing).rstrip("/") or "/"
 
-                    # 4. Create a copy of the scope and update root_path
+                    # 4. Create a copy of the scope and update URL generation metadata
                     scope = dict(scope)
-                    scope["root_path"] = combined
+                    scope["app_root_path"] = combined
 
         # Pass control to the next application
         await self.app(scope, receive, send)

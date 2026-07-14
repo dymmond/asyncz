@@ -124,6 +124,35 @@ The most commonly customized fields are:
 
 You can return a custom `DashboardConfig` from `settings.dashboard_config`.
 
+## Reverse proxies
+
+When the dashboard is served behind a proxy prefix, enable the forwarded-prefix
+middleware and configure the proxy to strip the external prefix before forwarding
+requests to the ASGI app.
+
+```python
+from asyncz.contrib.dashboard.admin import AsynczAdmin
+
+admin = AsynczAdmin(
+    scheduler=scheduler,
+    url_prefix="/dashboard",
+    enable_forward_middleware=True,
+)
+```
+
+Example Nginx location:
+
+```nginx
+location /ops/dashboard/ {
+    proxy_set_header X-Forwarded-Prefix /ops;
+    proxy_set_header Host $host;
+    proxy_pass http://127.0.0.1:8000/dashboard/;
+}
+```
+
+With that shape, the upstream app receives `/dashboard/...` requests while
+rendered links, static assets, and HTMX endpoints point at `/ops/dashboard/...`.
+
 ## Static assets
 
 The dashboard serves its browser assets from package resources. It does not

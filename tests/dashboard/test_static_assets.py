@@ -46,6 +46,19 @@ def client(scheduler: AsyncIOScheduler) -> Iterator[TestClient]:
 
 
 @pytest.fixture()
+def forwarded_prefix_client(scheduler: AsyncIOScheduler) -> Iterator[TestClient]:
+    app = Lilya()
+    admin = AsynczAdmin(
+        url_prefix=DASH_PREFIX,
+        scheduler=scheduler,
+        enable_forward_middleware=True,
+    )
+    admin.include_in(app)
+    with TestClient(app) as c:
+        yield c
+
+
+@pytest.fixture()
 def client_login(scheduler: AsyncIOScheduler) -> Iterator[TestClient]:
     app = Lilya()
     admin = AsynczAdmin(
@@ -135,6 +148,24 @@ def test_templates_reference_local_assets_without_public_cdns(client: TestClient
         if path != "/missing-page":
             assert f"{DASH_PREFIX}/static/vendor/htmx/htmx-1.9.12.min.js" in html
             assert f"{DASH_PREFIX}/static/vendor/alpinejs/alpine-csp-3.15.12.min.js" in html
+
+
+def test_forwarded_prefix_generates_proxy_aware_dashboard_urls(
+    forwarded_prefix_client: TestClient,
+) -> None:
+    response = forwarded_prefix_client.get(
+        f"{DASH_PREFIX}/tasks",
+        headers={"x-forwarded-prefix": "/ops/"},
+    )
+
+    assert response.status_code == 200
+    assert "http://testserver/ops/dashboard/static/css/asyncz.css" in response.text
+    assert (
+        "http://testserver/ops/dashboard/static/vendor/alpinejs/alpine-csp-3.15.12.min.js"
+        in response.text
+    )
+    assert 'href="http://testserver/ops/dashboard/runtime/"' in response.text
+    assert 'hx-get="/ops/dashboard/tasks/partials/table"' in response.text
 
 
 def test_bundled_login_template_uses_local_assets(client_login: TestClient) -> None:
