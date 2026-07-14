@@ -18,6 +18,19 @@ All built-in stores except `MemoryStore` support `ASYNCZ_STORE_ENCRYPTION_KEY`.
 
 When it is set, Asyncz encrypts serialized task payloads before they are written to the store. This is strongly recommended for any store that can be modified by untrusted users or processes.
 
+## Persistence envelopes
+
+Durable stores write a versioned task-state envelope around new task records.
+The envelope records the Asyncz entity kind, persistence version, selected
+Shape name, and native task-state payload.
+
+Older raw `TaskState` pickle records still restore. Unknown Shape names or
+unsupported envelope versions fail clearly instead of being interpreted through
+another representation.
+
+Shapes do not own store locking, encryption, task acquisition, or backend
+queries. Those remain store responsibilities.
+
 ## `MemoryStore`
 
 The default store. It is fast and simple, but it does not survive process restarts.

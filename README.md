@@ -47,6 +47,7 @@ Documentation: [https://asyncz.dymmond.com](https://asyncz.dymmond.com)
 - Async runtimes: `AsyncIOScheduler` for regular async applications and `NativeAsyncIOScheduler` for environments that already own the event loop.
 - Scheduling primitives: `date`, `interval`, `cron`, `and`, `or`, and `shutdown` triggers.
 - Durable stores: `memory`, `file`, `mongodb`, `redis`, and `sqlalchemy`.
+- Asyncz Shapes: validator-agnostic scheduler representation with Pydantic defaults and optional dataclass, attrs, msgspec, or trusted Python values.
 - Executor choices: asyncio event loop execution, thread pools, process pools, and direct debug execution.
 - Safe task control for operators: stable task ids, manual Run now, pause, resume, remove, inspect, preview, and update workflows.
 - Scheduler inspection APIs: process identity, lifecycle timing, task counts, stores, executors, instances visible in the current process, and upcoming run previews.
@@ -65,6 +66,8 @@ Useful extras:
 ```bash
 pip install "asyncz[dashboard]"
 pip install "asyncz[localtime]"
+pip install "asyncz[attrs]"
+pip install "asyncz[msgspec]"
 ```
 
 ## Quick start
@@ -147,6 +150,7 @@ Asyncz is built around four main component types:
 
 - [Schedulers](https://asyncz.dymmond.com/schedulers/)
 - [Triggers](https://asyncz.dymmond.com/triggers/)
+- [Shapes](https://asyncz.dymmond.com/shapes/)
 - [Stores](https://asyncz.dymmond.com/stores/)
 - [Executors](https://asyncz.dymmond.com/executors/)
 

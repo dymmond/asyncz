@@ -71,6 +71,9 @@ asyncz = "asyncz.cli.app:main"
 
 [project.optional-dependencies]
 localtime=["tzlocal"]
+attrs = ["attrs>=23.1.0"]
+msgspec = ["msgspec>=0.18.0"]
+all-shapes = ["attrs>=23.1.0", "msgspec>=0.18.0"]
 testing = [
     "asyncz[localtime]",
     "pymongo>=4.3.3,<5.0.0",

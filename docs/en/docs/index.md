@@ -96,6 +96,7 @@ asyncz run cleanup-task --store durable=sqlite:///scheduler.db
 - [Schedulers](./schedulers.md) for configuration, lifecycle, and logging.
 - [Triggers](./triggers.md) for scheduling rules.
 - [Tasks](./tasks.md) for task objects, decorator mode, and lifecycle generators.
+- [Shapes](./shapes.md) for validator-agnostic scheduler representation.
 - [Stores](./stores.md) for persistence and encryption.
 - [Executors](./executors.md) for runtime execution strategy.
 - [ASGI and Context Managers](./asgi.md) for framework integration.

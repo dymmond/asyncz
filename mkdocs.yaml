@@ -71,6 +71,7 @@ nav:
   - schedulers.md
   - triggers.md
   - tasks.md
+  - shapes.md
   - executors.md
   - stores.md
   - events.md

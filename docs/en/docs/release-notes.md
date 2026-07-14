@@ -1,5 +1,31 @@
 # Release Notes
 
+## 0.17.0
+
+### Highlights
+
+- Asyncz now has Shapes: a validator-agnostic representation layer that keeps
+  scheduler behavior owned by Asyncz while preserving Pydantic as the default.
+- Schedulers can be configured with built-in or custom Shapes by instance, class,
+  or registered name.
+- Durable task records now include a versioned persistence envelope with Shape
+  identity while continuing to restore existing raw task-state records.
+
+### Added
+
+- Public `asyncz.shapes` APIs for Shape implementations, registry operations,
+  capability errors, dependency errors, and migration-safe restoration failures.
+- Built-in Pydantic, dataclass, attrs, msgspec, and trusted Python Shapes.
+- `from asyncz import Asyncz` as the default `AsyncIOScheduler` entry point.
+- Documentation for adopting, extending, testing, and operating Shapes.
+
+### Compatibility
+
+- Existing Pydantic-first usage remains the default.
+- Legacy durable task records continue to restore.
+- Optional attrs and msgspec support is available through `asyncz[attrs]`,
+  `asyncz[msgspec]`, or `asyncz[all-shapes]`.
+
 ## 0.16.0
 
 ### Highlights

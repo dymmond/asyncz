@@ -66,7 +66,7 @@ class MongoDBStore(BaseStore):
         return self.rebuild_task(document["state"]) if document else None
 
     def rebuild_task(self, state: Any) -> "TaskType":
-        state = pickle.loads(self.conditional_decrypt(state))
+        state = self.deserialize_task_state(pickle.loads(self.conditional_decrypt(state)))
         task = Task.__new__(Task)
         task.__setstate__(state)
         task.scheduler = cast("SchedulerType", self.scheduler)
@@ -119,7 +119,7 @@ class MongoDBStore(BaseStore):
                     "next_run_time": datetime_to_utc_timestamp(task.next_run_time or None),
                     "state": Binary(
                         self.conditional_encrypt(
-                            pickle.dumps(task.__getstate__(), self.pickle_protocol)
+                            pickle.dumps(self.serialize_task_state(task), self.pickle_protocol)
                         )
                     ),
                 }
@@ -131,7 +131,9 @@ class MongoDBStore(BaseStore):
         updates = {
             "next_run_time": datetime_to_utc_timestamp(task.next_run_time or None),
             "state": Binary(
-                self.conditional_encrypt(pickle.dumps(task.__getstate__(), self.pickle_protocol))
+                self.conditional_encrypt(
+                    pickle.dumps(self.serialize_task_state(task), self.pickle_protocol)
+                )
             ),
         }
         result = self.collection.update_one({"_id": task.id}, {"$set": updates})
