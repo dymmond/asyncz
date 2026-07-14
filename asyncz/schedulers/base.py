@@ -51,6 +51,7 @@ from asyncz.schedulers import defaults
 from asyncz.schedulers.datastructures import TaskDefaultStruct
 from asyncz.schedulers.inspection import SchedulerInfo, SchedulerInstanceInfo
 from asyncz.schedulers.types import LoggersType, SchedulerType
+from asyncz.shapes import ShapeContext, resolve_shape
 from asyncz.stores.memory import MemoryStore
 from asyncz.stores.types import StoreType
 from asyncz.tasks.inspection import TaskInfo, TaskRunPreview
@@ -115,6 +116,7 @@ class BaseScheduler(SchedulerType):
         self.started_at: datetime | None = None
         self.last_seen_at: datetime | None = None
         self.heartbeat_stale_after: float = 30.0
+        self.shape = resolve_shape()
 
         self.ref_counter: int = 0
         self.ref_lock: Lock = Lock()
@@ -620,7 +622,19 @@ class BaseScheduler(SchedulerType):
         if task_kwargs["trigger"].allow_mistrigger_by_default:
             # we want to be able, to just use add_task, and the task is scheduled
             task_kwargs.setdefault("mistrigger_grace_time", None)
-        for key, value in self.task_defaults.model_dump(exclude_none=True).items():
+        task_default_context = ShapeContext(
+            entity="task_defaults",
+            operation="dump",
+            scheduler_identity=self.identity,
+        )
+        task_defaults = self.shape.dump(
+            self.task_defaults,
+            context=task_default_context,
+            exclude_none=True,
+        )
+        if not isinstance(task_defaults, Mapping):
+            raise TypeError("Task defaults must dump to a mapping.")
+        for key, value in task_defaults.items():
             task_kwargs.setdefault(key, value)
 
         task = Task(**task_kwargs)
@@ -644,7 +658,17 @@ class BaseScheduler(SchedulerType):
         """
         if isinstance(task_id, TaskType):
             assert task_id.id, "Cannot update a decorator type Task"
-            new_updates = task_id.model_dump()
+            new_updates = self.shape.dump(
+                task_id,
+                context=ShapeContext(
+                    entity="task",
+                    operation="dump",
+                    scheduler_identity=self.identity,
+                ),
+            )
+            if not isinstance(new_updates, Mapping):
+                raise TypeError("Task snapshots must dump to a mapping.")
+            new_updates = dict(new_updates)
             new_updates.update(**updates)
             task_id = task_id.id
         else:
@@ -1229,12 +1253,24 @@ class BaseScheduler(SchedulerType):
         self.started_at = None
         self.last_seen_at = None
         self.heartbeat_stale_after = float(config.pop("heartbeat_stale_after", 30))
+        self.shape = resolve_shape(config.pop("shape", self.shape))
         self.timezone = to_timezone_with_fallback(config.pop("timezone", None))
         self.lock_path = str(config.pop("lock_path", "") or "")
         self.store_retry_interval = float(config.pop("store_retry_interval", 10))
         self.startup_delay = float(config.pop("startup_delay", 0 if not self.lock_path else 1))
 
-        self.task_defaults = TaskDefaultStruct(**(config.get("task_defaults", None) or {}))
+        task_defaults_value = config.get("task_defaults", None) or {}
+        task_defaults_data = self.shape.dump(
+            task_defaults_value,
+            context=ShapeContext(
+                entity="task_defaults",
+                operation="load",
+                scheduler_identity=self.identity,
+            ),
+        )
+        if not isinstance(task_defaults_data, Mapping):
+            raise TypeError("Configured task_defaults must resolve to a mapping.")
+        self.task_defaults = TaskDefaultStruct(**task_defaults_data)
         loggers_class: type[LoggersType] = (
             maybe_ref(config.pop("loggers_class", None)) or default_loggers_class
         )

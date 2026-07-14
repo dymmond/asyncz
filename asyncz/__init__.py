@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 
 from .monkay import create_monkay
+from .schedulers import AsyncIOScheduler as Asyncz
 
 __version__ = "0.16.0"
 
@@ -10,6 +11,7 @@ if TYPE_CHECKING:
 
 
 __all__ = [
+    "Asyncz",
     "Settings",
     "settings",
 ]
