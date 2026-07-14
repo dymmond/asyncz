@@ -318,7 +318,7 @@ class SchedulerType(ABC):
         """
         Return task inspection snapshots with optional filtering and sorting.
 
-        This is the scheduler-native query surface used by the CLI, dashboard,
+        This is the scheduler task query surface used by the CLI, dashboard,
         and any custom operational tooling built on top of Asyncz.
         """
 

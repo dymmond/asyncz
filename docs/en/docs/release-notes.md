@@ -2,73 +2,47 @@
 
 ## 0.16.0
 
-### Changed
+### Highlights
 
-- Replaced dashboard runtime CDN dependencies with packaged Tailwind CSS,
-  Alpine.js CSP, HTMX, Toastify, and favicon assets.
-- Rebuilt the dashboard as a modern admin surface with a fixed navigation shell,
-  responsive mobile navigation, denser operational tables, Alpine.js
-  interaction state, and clearer task action buttons.
-- Refined dashboard navigation and task ergonomics with grouped menu sections,
-  persisted table density controls, collapsible filters, sticky row actions,
-  and a resizable task table region.
-- Added a Logs action to each task row so operators can open logs filtered by
-  task id.
-- Added task detail pages with scheduler metadata, upcoming run preview, recent
-  runs, and recent logs for one task.
-- Added a scheduler events page for process-local scheduler and task events.
-- The dashboard task table now shows last run status and links directly to run
-  history details.
-- The overview page now includes recent run history alongside scheduler and task
-  summaries.
+- The dashboard is now a stronger operations console for tasks, runs, logs,
+  events, audit records, runtime details, and scheduler instances visible to the
+  current process.
+- Operators can trigger tasks manually, preview upcoming run times, inspect run
+  history, open correlated logs, and review supported task edits before applying
+  them.
+- The CLI adds practical inspection and intervention commands while delegating
+  behavior to the scheduler instead of duplicating runtime logic.
+- Dashboard browser assets are packaged locally and load without runtime CDNs.
 
 ### Added
 
-- Added scheduler status inspection through `scheduler.get_scheduler_info()`
-  and the `asyncz status` CLI command.
-- Added automatically generated scheduler identity, start time, and uptime
-  metadata to runtime inspection snapshots, the dashboard runtime page, and
-  `asyncz status --json`.
-- Added scheduler instance inspection for the current process through
-  `scheduler.get_scheduler_instance_infos()`, `asyncz instances`, and the
-  dashboard instances page.
-- Added default dashboard browser security headers, including a CSP that keeps
-  scripts restricted to packaged same-origin assets.
-- Added the `asyncz doctor` CLI command for scheduler diagnostics, readiness
-  checks, and strict health validation for automation.
-- Added trigger previews through `scheduler.preview_task_runs()` and the
-  `asyncz preview` CLI command.
-- Added the `asyncz version` CLI command with JSON output for release and
-  packaging smoke checks.
-- Added the `asyncz timeline` CLI command for upcoming run previews across all
-  tasks.
-- Added the `asyncz inspect` CLI command for single task inspection with
-  upcoming run previews and JSON output.
-- Added the `asyncz update` CLI command for supported task metadata updates,
-  diffs, dry runs, and `--yes` automation.
-- Expanded `asyncz inspect --json` task payloads with coalesce, max instances,
-  and misfire grace metadata.
-- Added a dashboard task edit workflow with preview/apply diffs, scheduler
-  validation, and `task.update` audit events.
-- Added `asyncz add --id` for stable task identifiers chosen by operators.
-- Added dashboard run history backed by scheduler submission and execution
-  events, including source tracking for manual and scheduled runs.
-- Added scheduler identity to run history records, run detail pages, and
-  lifecycle log metadata.
-- Task events now include the scheduler identity seen by event listeners.
-- Submission events now report how many due run times were omitted by
-  coalescing, and run history shows that count.
-- Failed run details now show exception type and message separately from the
-  traceback.
-- Added run detail pages that correlate lifecycle logs and task logs for
-  a specific run id.
-- Added dashboard log filtering by `run_id` and structured log extras.
-- Added a dashboard runtime page for scheduler timing metadata, stores,
-  executors, and task distribution by component.
-- Added a dashboard timeline page that previews upcoming run times across all
-  tasks without mutating scheduler state.
-- Added a dashboard audit page for task create, run, pause, resume, and remove
-  actions.
+- Scheduler inspection APIs for status, identity, uptime, stores, executors,
+  task counts, and process-local instance data.
+- `asyncz status`, `asyncz instances`, `asyncz doctor`, `asyncz preview`,
+  `asyncz timeline`, `asyncz inspect`, `asyncz update`, and `asyncz version`.
+- `scheduler.preview_task_runs()`, `scheduler.run_task(...)`, and
+  `scheduler.update_task(...)` for shared CLI, dashboard, and application
+  behavior.
+- Dashboard pages for runtime state, instances, timeline, events, audit records,
+  run history, run detail, logs, task detail, and task edits.
+- Stable task identifiers through `asyncz add --id`.
+- Scheduler identity on task events, run history, run detail pages, and
+  lifecycle log records.
+- Coalesced run counts on submission events and dashboard run history.
+- Default dashboard security headers, including a CSP for same-origin packaged
+  scripts.
+
+### Improved
+
+- The dashboard shell now has fixed navigation, grouped menu sections,
+  responsive mobile navigation, denser tables, Alpine.js interaction state,
+  clearer action placement, table density controls, collapsible filters, sticky
+  row actions, and a resizable task table region.
+- Task lists now show last run status and link directly to run history and logs.
+- The overview page includes recent run history alongside scheduler and task
+  summaries.
+- Failed run details show exception type and message separately from traceback
+  content.
 
 ### Fixed
 
@@ -82,12 +56,22 @@
 - Replaced invalid HTMX request attributes in task refresh/action flows with
   valid synchronization behavior.
 
+### Documentation
+
+- Expanded dashboard, CLI, schedulers, events, vendors, README, and operations
+  guidance for the new inspection and control workflows.
+
+### Compatibility
+
+- Supports Python 3.10 through 3.14.
+- Install `asyncz[dashboard]` when the optional Lilya dashboard is needed.
+
 ## 0.15.0
 
 ### Added
 
-- Added scheduler-native task inspection APIs through `Task.schedule_state`, `Task.paused`, `Task.snapshot()`, `scheduler.get_task_info()`, and `scheduler.get_task_infos(...)`.
-- Added `scheduler.run_task(...)` as the canonical Asyncz-native "run now" operation for administrative and dashboard flows.
+- Added task inspection APIs through `Task.schedule_state`, `Task.paused`, `Task.snapshot()`, `scheduler.get_task_info()`, and `scheduler.get_task_infos(...)`.
+- Added `scheduler.run_task(...)` as the shared "run now" operation for administrative and dashboard flows.
 - Added richer task filtering and sorting to the CLI `list` command, including task state, executor, trigger, and free-text query support.
 - Expanded the dashboard task view with state-aware filtering, richer task metadata, and overview summaries for scheduled, paused, and pending tasks.
 
@@ -129,11 +113,11 @@ to the `from future import __annotations__`.
 
 ### Changed
 
-- Replaced `ChildLilya` sub‑app mounting with `Router`‑based composition for a cleaner and more maintainable architecture.
+- Replaced `ChildLilya` sub-app mounting with composition built on `Router`.
 - `AsynczAdmin` now uses a single composed Lilya app that mounts `/login` and `/logout` at root while serving the dashboard under its prefix.
-- Simplified `include_in()` method — mounts the composed app at `/` for proper reverse‑proxy behavior.
+- Simplified `include_in()` so it mounts the composed app at `/` for reverse proxy behavior.
 - Improved `url_prefix` normalization to avoid double slashes and ensure consistent route generation.
-- `Asyncz Dashboard` is now fully reverse-proxy agnostic and works seamlessly behind Nginx or ASGI mounts.
+- `Asyncz Dashboard` now handles forwarded prefixes and ASGI mounts more consistently.
 
 ## 0.14.1
 
@@ -145,9 +129,9 @@ to the `from future import __annotations__`.
 ### Changed
 
 - `get_effective_prefix()` now prefers the configured `dashboard_url_prefix` and falls back to `root_path` only when configured as `/`.
-- All HTMX and action URLs in the dashboard are now relative to the current path for reverse-proxy compatibility.
+- All HTMX and action URLs in the dashboard are now relative to the current path for reverse proxy compatibility.
 - Updated templates to remove hardcoded `/dashboard` from links and actions.
-- Asyncz Dashboard is now fully **reverse-proxy ready** (works with `X-Forwarded-Prefix` and ASGI mounts).
+- Asyncz Dashboard now supports `X-Forwarded-Prefix` and ASGI mounts more reliably.
 
 ## 0.14.0
 

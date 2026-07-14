@@ -229,7 +229,7 @@ class TasklistController(DashboardMixin, TemplateController):
         self.scheduler: AsyncIOScheduler = scheduler
 
     async def get(self, request: Request) -> Any:
-        """Render the main task page using the scheduler-native task inspection API."""
+        """Render the main task page using the scheduler task inspection API."""
         ctx: dict[str, Any] = await self.get_context_data(request)
         ctx.update(
             {

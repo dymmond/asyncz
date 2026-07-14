@@ -907,7 +907,7 @@ class BaseScheduler(SchedulerType):
         descending: bool = False,
     ) -> list[TaskInfo]:
         """
-        Return task snapshots with scheduler-native filtering and sorting.
+        Return task snapshots with scheduler filtering and sorting.
 
         This API is meant for read-oriented operational tooling. Instead of every
         consumer re-implementing its own serialization, filtering, and ordering
@@ -1063,7 +1063,7 @@ class BaseScheduler(SchedulerType):
         Return an immutable scheduler-level inspection snapshot.
 
         The snapshot combines lifecycle state owned by the scheduler with task
-        counts derived from the scheduler-native task inspection API. Consumers
+        counts derived from the scheduler task inspection API. Consumers
         should prefer this over reading ``state``, ``stores``, or ``executors``
         directly.
         """
