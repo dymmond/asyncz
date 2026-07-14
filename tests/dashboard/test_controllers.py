@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from collections.abc import Iterator
 
 import pytest
@@ -13,8 +14,10 @@ from asyncz.contrib.dashboard.admin import (
     SimpleUsernamePasswordBackend,
     User,
 )
-from asyncz.contrib.dashboard.audit import get_audit_storage
+from asyncz.contrib.dashboard.audit import MemoryAuditTrailStorage, get_audit_storage
 from asyncz.contrib.dashboard.events import get_scheduler_event_storage
+from asyncz.contrib.dashboard.history import MemoryRunHistoryStorage
+from asyncz.contrib.dashboard.logs.storage import MemoryLogStorage
 from asyncz.schedulers.asyncio import AsyncIOScheduler
 
 DASH_PREFIX = "/dashboard"
@@ -39,7 +42,12 @@ def verify(u, p):
 @pytest.fixture()
 def client(scheduler: AsyncIOScheduler) -> Iterator[TestClient]:
     app = Lilya()
-    admin = AsynczAdmin(scheduler=scheduler)
+    admin = AsynczAdmin(
+        scheduler=scheduler,
+        log_storage=MemoryLogStorage(maxlen=1_000),
+        run_history_storage=MemoryRunHistoryStorage(maxlen=1_000),
+        audit_storage=MemoryAuditTrailStorage(maxlen=1_000),
+    )
     admin.include_in(app)
     with TestClient(app) as c:
         yield c
@@ -53,6 +61,9 @@ def client_login(scheduler: AsyncIOScheduler) -> Iterator[TestClient]:
         scheduler=scheduler,
         enable_login=True,
         backend=SimpleUsernamePasswordBackend(verify),
+        log_storage=MemoryLogStorage(maxlen=1_000),
+        run_history_storage=MemoryRunHistoryStorage(maxlen=1_000),
+        audit_storage=MemoryAuditTrailStorage(maxlen=1_000),
     )
     admin.include_in(app)
     with TestClient(app) as c:
@@ -299,6 +310,11 @@ def test_task_detail_page_renders_task_context(client: TestClient):
     assert run_response.status_code == 200
 
     response = client.get(f"{DASH_PREFIX}/tasks/{job_id}")
+    for _ in range(20):
+        if "Task run succeeded" in response.text:
+            break
+        time.sleep(0.01)
+        response = client.get(f"{DASH_PREFIX}/tasks/{job_id}")
 
     assert response.status_code == 200
     assert "Task Detail" in response.text
@@ -604,10 +620,43 @@ def test_tasks_filter_by_state_and_executor(client: TestClient):
 def test_tasks_partial_preserves_active_filters(client: TestClient):
     _create_task(client, "filter-me")
 
-    response = client.get(f"{DASH_PREFIX}/tasks/partials/table?q=filter&state=scheduled")
+    response = client.get(
+        f"{DASH_PREFIX}/tasks/partials/table?q=filter&state=scheduled&page=2&per_page=25"
+    )
 
     assert response.status_code == 200
-    assert "q=filter&amp;state=scheduled" in response.text
+    assert "q=filter&amp;state=scheduled&amp;per_page=25" in response.text
+
+
+def test_tasks_table_paginates_full_page(client: TestClient):
+    _create_task(client, "alpha-page")
+    _create_task(client, "bravo-page")
+    _create_task(client, "charlie-page")
+
+    response = client.get(f"{DASH_PREFIX}/tasks/?sort=name&per_page=2")
+
+    assert response.status_code == 200
+    assert "Showing 1-2 of 3 matching tasks" in response.text
+    assert "Page 1 of 2" in response.text
+    assert "alpha-page" in response.text
+    assert "bravo-page" in response.text
+    assert "charlie-page" not in response.text
+    assert "page=2&amp;per_page=2" in response.text
+
+
+def test_tasks_table_paginates_partial_page(client: TestClient):
+    _create_task(client, "alpha-partial")
+    _create_task(client, "bravo-partial")
+    _create_task(client, "charlie-partial")
+
+    response = client.get(f"{DASH_PREFIX}/tasks/partials/table?sort=name&per_page=2&page=2")
+
+    assert response.status_code == 200
+    assert "Showing 3-3 of 3 matching tasks" in response.text
+    assert "Page 2 of 2" in response.text
+    assert "charlie-partial" in response.text
+    assert "alpha-partial" not in response.text
+    assert "bravo-partial" not in response.text
 
 
 def test_tasks_search_reset_link_clears_query(client: TestClient):

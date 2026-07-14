@@ -730,12 +730,17 @@ html {
 }
 
 .az-button:disabled,
-.az-icon-button:disabled {
+.az-icon-button:disabled,
+.az-button--disabled {
   color: #8a96a8;
   background: #eef2f7;
   border-color: var(--az-border);
   cursor: not-allowed;
   opacity: .72;
+}
+
+.az-button--disabled {
+  pointer-events: none;
 }
 
 .az-button--primary,

@@ -3,6 +3,38 @@
      hx-trigger="load delay:10000ms once, every 60s"
      hx-sync="this:replace"
      hx-swap="innerHTML">
+  <div class="az-table-toolbar">
+    <div class="az-panel-meta">
+      Showing {{ pagination.start }}-{{ pagination.end }} of {{ pagination.total }} matching tasks
+      {% if pagination.page_count > 1 %}
+        · Page {{ pagination.page }} of {{ pagination.page_count }}
+      {% endif %}
+    </div>
+    <div class="az-actions">
+      <a
+        href="{{ url_prefix }}/tasks/{{ pagination.previous_query_suffix }}"
+        class="az-button {% if not pagination.has_previous %}az-button--disabled{% endif %}"
+        {% if pagination.has_previous %}
+          hx-get="{{ url_prefix }}/tasks/partials/table{{ pagination.previous_query_suffix }}"
+          hx-target="#tasks-table"
+          hx-swap="outerHTML"
+        {% else %}
+          aria-disabled="true"
+        {% endif %}
+      >Previous</a>
+      <a
+        href="{{ url_prefix }}/tasks/{{ pagination.next_query_suffix }}"
+        class="az-button {% if not pagination.has_next %}az-button--disabled{% endif %}"
+        {% if pagination.has_next %}
+          hx-get="{{ url_prefix }}/tasks/partials/table{{ pagination.next_query_suffix }}"
+          hx-target="#tasks-table"
+          hx-swap="outerHTML"
+        {% else %}
+          aria-disabled="true"
+        {% endif %}
+      >Next</a>
+    </div>
+  </div>
   <table class="az-table">
     <thead>
       <tr>

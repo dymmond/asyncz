@@ -38,6 +38,8 @@
   responsive mobile navigation, denser tables, Alpine.js interaction state,
   clearer action placement, table density controls, collapsible filters, sticky
   row actions, and a resizable task table region.
+- Task tables now render a bounded page of rows and preserve filters during
+  pagination, refreshes, and task actions.
 - Task lists now show last run status and link directly to run history and logs.
 - The overview page includes recent run history alongside scheduler and task
   summaries.

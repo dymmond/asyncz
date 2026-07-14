@@ -226,6 +226,7 @@ The task table supports:
 - executor filtering
 - trigger filtering
 - sorting by name, trigger, state, or next run time
+- bounded pagination with 25, 50, 100, or 200 rows per page
 - edit links for supported task fields
 - log links that open the log viewer filtered to the selected task id
 - comfortable and compact density modes
@@ -234,6 +235,7 @@ The task table supports:
 Active filters are preserved across:
 
 - automatic HTMX refreshes
+- pagination
 - row actions
 - bulk actions
 

@@ -98,6 +98,14 @@
           <option value="desc" {% if filters.direction == "desc" %}selected{% endif %}>Descending</option>
         </select>
       </label>
+      <label class="az-field">
+        <span>Rows</span>
+        <select name="per_page" class="az-select">
+          {% for option in pagination.page_size_options %}
+            <option value="{{ option }}" {% if filters.per_page == option %}selected{% endif %}>{{ option }}</option>
+          {% endfor %}
+        </select>
+      </label>
       <button class="az-button az-button--primary">Apply</button>
     </form>
 
