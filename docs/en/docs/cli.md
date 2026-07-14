@@ -237,9 +237,9 @@ asyncz instances --json --store durable=sqlite:///scheduler.db
 ```
 
 The `instances` command lists scheduler instances visible through the current
-runtime inspection contract. In `0.16.0`, this is process-local visibility: the
-command reports the scheduler object it can reach and does not fabricate
-distributed membership from task stores.
+runtime inspection contract. Visibility is process-local: the command reports
+the scheduler object it can reach and does not fabricate distributed membership
+from task stores.
 
 JSON output includes:
 

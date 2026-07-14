@@ -243,9 +243,9 @@ for instance in instances:
     print(instance.identity, instance.active, instance.last_seen_at)
 ```
 
-In `0.16.0`, this contract is process-local. It reports the scheduler object
-that the current process can reach, including identity, active/stale state,
-last-seen time, heartbeat age, store aliases, executor aliases, and task counts.
+This contract is process-local. It reports the scheduler object that the current
+process can reach, including identity, active/stale state, last-seen time,
+heartbeat age, store aliases, executor aliases, and task counts.
 The local inspection call refreshes `last_seen_at` for the reachable scheduler;
 `stale` marks a stopped local runtime. It does not reconstruct distributed
 scheduler membership from task stores.

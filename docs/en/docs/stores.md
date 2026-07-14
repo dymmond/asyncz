@@ -8,9 +8,9 @@ Stores persist scheduled tasks. The default store is in-memory, but Asyncz also 
 | ----- | ------------ | ----- |
 | `MemoryStore` | `memory` | Default, process-local, non-persistent |
 | `FileStore` | `file` | Local directory-based persistence and coordination |
-| `MongoDBStore` | `mongodb` or `mongo` | Durable MongoDB-backed persistence |
-| `RedisStore` | `redis` | Durable Redis-backed persistence |
-| `SQLAlchemyStore` | `sqlalchemy` | Durable SQL-backed persistence |
+| `MongoDBStore` | `mongodb` or `mongo` | Durable MongoDB persistence |
+| `RedisStore` | `redis` | Durable Redis persistence |
+| `SQLAlchemyStore` | `sqlalchemy` | Durable SQL persistence |
 
 ## Store encryption
 

@@ -32,6 +32,12 @@
 
 Asyncz is a production scheduler for async Python applications and ASGI services. It keeps the familiar scheduler / trigger / store / executor model, but it is built around `asyncio`, explicit task objects, framework lifecycle integration, durable stores, Python standard logging, and operator tooling that works from both the CLI and the browser.
 
+Asyncz descends from the APScheduler model and was rewritten around Pydantic,
+async Python runtimes, and Asyncz's own operational workflows. It is not a
+drop-in APScheduler clone; it keeps the scheduling ideas that fit Asyncz and
+adds production controls such as dashboard actions, history, logs, and CLI
+inspection.
+
 Use Asyncz when scheduled work needs to be observable, editable, and safe to operate in production. Tasks can be inspected before they are changed, triggered manually when needed, previewed without advancing their triggers, and followed through history and logs after they run.
 
 Documentation: [https://asyncz.dymmond.com](https://asyncz.dymmond.com)

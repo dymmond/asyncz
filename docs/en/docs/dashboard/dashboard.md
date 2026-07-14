@@ -15,10 +15,10 @@ Asyncz includes an optional Lilya dashboard for inspecting tasks and running com
 - task detail pages with scheduler metadata, upcoming run preview, recent runs, and recent logs
 - actions on each task row for Run now, Logs, Edit, pause, resume, remove, and history inspection
 - bulk task actions for Run now, pause, resume, and remove
-- a run history page backed by scheduler execution events
+- a run history page populated from scheduler execution events
 - run detail pages with correlated log records
 - an optional login flow
-- a log viewer backed by the dashboard logging subsystem, including run id filtering
+- a log viewer powered by the dashboard logging subsystem, including run id filtering
 
 ## Install
 
@@ -366,9 +366,8 @@ The instances page renders `scheduler.get_scheduler_instance_infos()` and shows:
 - configured store and executor aliases
 - task inventory totals
 
-In `0.16.0`, this page reports the scheduler instance reachable through the
-current runtime object. It does not invent distributed scheduler membership from
-task stores.
+This page reports the scheduler instance reachable through the current runtime
+object. It does not invent distributed scheduler membership from task stores.
 
 ## Timeline page
 

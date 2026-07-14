@@ -1114,7 +1114,7 @@ class BaseScheduler(SchedulerType):
         Asyncz does not yet persist distributed scheduler heartbeats in stores, so
         this method reports the scheduler instance represented by this runtime
         object. The tuple return shape is intentionally list-friendly for future
-        store-backed instance registries.
+        instance registries persisted in stores.
         """
 
         now = datetime.now(self.timezone)
