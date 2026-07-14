@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 from sayer.testing import SayerTestClient
 
+from asyncz import __version__
 from asyncz.cli.app import asyncz_cli
 from asyncz.cli.utils import parse_store
 
@@ -96,6 +97,21 @@ def _inspect_json(client: SayerTestClient, job_id: str, store: str, count: int =
 
 def _as_datetime(value):
     return value if isinstance(value, datetime) else datetime.fromisoformat(str(value))
+
+
+def test_version_json_reports_package_version(client: SayerTestClient):
+    result = client.invoke(["version", "--json"])
+    assert result.exit_code == 0, result.stderr
+
+    if isinstance(result.return_value, dict):
+        payload = result.return_value
+    else:
+        out = (result.stdout or "").strip() or (result.stderr or "").strip()
+        match = re.search(r"(\{.*\})", out, re.S)
+        assert match, f"Expected JSON in output, got: {out!r}"
+        payload = json.loads(match.group(1))
+
+    assert payload == {"version": __version__}
 
 
 def test_add_and_list_with_sqlite_store(client: SayerTestClient, sqlite_url: str):

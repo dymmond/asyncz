@@ -25,6 +25,8 @@
   and the `asyncz status` CLI command.
 - Added scheduler-backed trigger previews through `scheduler.preview_task_runs()`
   and the `asyncz preview` CLI command.
+- Added the `asyncz version` CLI command with JSON output for release and
+  packaging smoke checks.
 - Added the `asyncz inspect` CLI command for single-task inspection with
   upcoming run previews and JSON output.
 - Added `asyncz add --id` for stable operator-owned task identifiers.

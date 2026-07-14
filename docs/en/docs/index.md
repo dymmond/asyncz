@@ -38,7 +38,7 @@ Asyncz is an async-first production scheduler for Python applications and ASGI s
 - `NativeAsyncIOScheduler` for environments that already own the event loop.
 - Built-in triggers for one-off work, recurring intervals, cron expressions, combinations, and shutdown hooks.
 - Multiple persistence options for local development and production deployments.
-- CLI tooling for add, list, inspect, preview, status, run, pause, resume, and remove workflows.
+- CLI tooling for version checks, add, list, inspect, preview, status, run, pause, resume, and remove workflows.
 - Dashboard tooling for task control, bulk actions, manual Run now, run history, and per-run log inspection.
 - Packaged dashboard assets for Tailwind CSS, Alpine.js, HTMX, Toastify, and the favicon.
 

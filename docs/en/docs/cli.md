@@ -58,6 +58,17 @@ Notes:
 
 ## Common commands
 
+### Show the installed version
+
+```bash
+asyncz version
+asyncz version --json
+```
+
+Use `--json` for release checks, packaging smoke tests, and automation that
+needs to compare the installed package version without parsing human-oriented
+output.
+
 ### Start a scheduler
 
 ```bash
