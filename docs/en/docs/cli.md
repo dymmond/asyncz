@@ -159,8 +159,45 @@ The nested `task` object includes:
 - `executor`
 - `callable_name`
 - `callable_reference`
+- `coalesce`
+- `max_instances`
+- `mistrigger_grace_time`
 - `pending`
 - `paused`
+
+### Update one task
+
+```bash
+asyncz update <task-id> --name cleanup-v2 --max-instances 2 --dry-run --store durable=sqlite:///scheduler.db
+asyncz update <task-id> --name cleanup-v2 --max-instances 2 --yes --store durable=sqlite:///scheduler.db
+asyncz update <task-id> --json --coalesce false --clear-mistrigger-grace-time --yes --store durable=sqlite:///scheduler.db
+```
+
+`update` safely mutates supported task fields through `scheduler.update_task()`.
+It calculates a before/after diff before applying the change. Use `--dry-run` to
+inspect the diff without writing, and use `--yes` for non-interactive mutation.
+
+Supported fields:
+
+- `--name`
+- `--callable`
+- `--args`
+- `--kwargs`
+- `--executor`
+- `--coalesce`
+- `--max-instances`
+- `--mistrigger-grace-time`
+- `--clear-mistrigger-grace-time`
+
+JSON output includes:
+
+- `id`
+- `store`
+- `dry_run`
+- `applied`
+- `changed`
+- `diff`
+- `after` when applied
 
 ### Inspect scheduler status
 

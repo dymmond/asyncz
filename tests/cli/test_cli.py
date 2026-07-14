@@ -127,6 +127,22 @@ def _inspect_json(client: SayerTestClient, job_id: str, store: str, count: int =
     return json.loads(m.group(1))
 
 
+def _update_json(client: SayerTestClient, args: list[str]):
+    r = client.invoke(["update", *args, "--json"])
+    assert r.exit_code == 0, r.stderr
+
+    if isinstance(r.return_value, dict):
+        return r.return_value
+
+    out = (r.stdout or "").strip() or (r.stderr or "").strip()
+    if out.startswith("ℹ"):
+        out = out.lstrip("ℹ️ ").lstrip()
+
+    m = re.search(r"(\{.*\})", out, re.S)
+    assert m, f"Expected JSON in output, got: {out!r}"
+    return json.loads(m.group(1))
+
+
 def _timeline_json(client: SayerTestClient, store: str, per_task: int = 3, limit: int = 10):
     r = client.invoke(
         [
@@ -408,8 +424,113 @@ def test_inspect_json_reports_task_state_and_upcoming_runs(
     assert payload["task"]["name"] == "inspectable"
     assert payload["task"]["state"] == "scheduled"
     assert payload["task"]["store"] == "durable"
+    assert payload["task"]["coalesce"] is True
+    assert payload["task"]["max_instances"] == 1
+    assert payload["task"]["mistrigger_grace_time"] == 1
     assert payload["returned_count"] == 2
     assert run_times[1] - run_times[0] == timedelta(seconds=7)
+
+
+def test_update_dry_run_reports_diff_without_persisting(client: SayerTestClient, sqlite_url: str):
+    job_id = "update-dry-run"
+    r = client.invoke(
+        [
+            "add",
+            "tests.fixtures:noop",
+            "--id",
+            job_id,
+            "--name",
+            "before-dry-run",
+            "--interval",
+            "7s",
+            "--store",
+            f"durable={sqlite_url}",
+        ]
+    )
+    assert r.exit_code == 0, r.stderr
+
+    payload = _update_json(
+        client,
+        [
+            job_id,
+            "--name",
+            "after-dry-run",
+            "--dry-run",
+            "--store",
+            f"durable={sqlite_url}",
+        ],
+    )
+
+    assert payload["applied"] is False
+    assert payload["changed"] is True
+    assert payload["diff"]["name"] == {
+        "before": "before-dry-run",
+        "after": "after-dry-run",
+    }
+
+    inspected = _inspect_json(client, job_id, f"durable={sqlite_url}")
+    assert inspected["task"]["name"] == "before-dry-run"
+
+
+def test_update_json_applies_supported_task_fields(client: SayerTestClient, sqlite_url: str):
+    job_id = "update-noop"
+    r = client.invoke(
+        [
+            "add",
+            "tests.fixtures:echo",
+            "--id",
+            job_id,
+            "--name",
+            "update-before",
+            "--interval",
+            "10s",
+            "--args",
+            '["old"]',
+            "--kwargs",
+            '{"flag": false}',
+            "--store",
+            f"durable={sqlite_url}",
+        ]
+    )
+    assert r.exit_code == 0, r.stderr
+
+    payload = _update_json(
+        client,
+        [
+            job_id,
+            "--name",
+            "update-after",
+            "--args",
+            '["new", 7]',
+            "--kwargs",
+            '{"flag": true}',
+            "--executor",
+            "default",
+            "--coalesce",
+            "false",
+            "--max-instances",
+            "3",
+            "--clear-mistrigger-grace-time",
+            "--yes",
+            "--store",
+            f"durable={sqlite_url}",
+        ],
+    )
+
+    assert payload["applied"] is True
+    assert payload["changed"] is True
+    assert payload["diff"]["name"] == {"before": "update-before", "after": "update-after"}
+    assert payload["diff"]["coalesce"] == {"before": True, "after": False}
+    assert payload["diff"]["max_instances"] == {"before": 1, "after": 3}
+    assert payload["diff"]["mistrigger_grace_time"] == {"before": 1, "after": None}
+    assert payload["after"]["args"] == ["new", 7]
+    assert payload["after"]["kwargs"] == {"flag": True}
+
+    inspected = _inspect_json(client, job_id, f"durable={sqlite_url}")
+    assert inspected["task"]["name"] == "update-after"
+    assert inspected["task"]["coalesce"] is False
+    assert inspected["task"]["max_instances"] == 3
+    assert inspected["task"]["mistrigger_grace_time"] is None
 
 
 def test_add_run_pause_resume_remove_flow(client: SayerTestClient, sqlite_url: str):

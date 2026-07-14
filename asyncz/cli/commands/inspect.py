@@ -26,6 +26,9 @@ def _serialize_task(task: TaskInfo) -> dict[str, Any]:
         "executor": task.executor,
         "callable_name": task.callable_name,
         "callable_reference": task.callable_reference,
+        "coalesce": task.coalesce,
+        "max_instances": task.max_instances,
+        "mistrigger_grace_time": task.mistrigger_grace_time,
         "pending": task.pending,
         "paused": task.paused,
     }

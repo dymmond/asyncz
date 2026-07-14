@@ -40,6 +40,10 @@
   tasks.
 - Added the `asyncz inspect` CLI command for single-task inspection with
   upcoming run previews and JSON output.
+- Added the `asyncz update` CLI command for supported task metadata updates,
+  before/after diffs, dry runs, and `--yes` automation.
+- Expanded `asyncz inspect --json` task payloads with coalesce, max-instances,
+  and misfire grace metadata.
 - Added `asyncz add --id` for stable operator-owned task identifiers.
 - Added dashboard run history backed by scheduler submission and execution
   events, including manual-vs-scheduled source tracking.

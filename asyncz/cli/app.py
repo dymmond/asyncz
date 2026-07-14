@@ -15,6 +15,7 @@ from asyncz.cli.commands.run import run
 from asyncz.cli.commands.start import start
 from asyncz.cli.commands.status import status
 from asyncz.cli.commands.timeline import timeline
+from asyncz.cli.commands.update import update
 from asyncz.cli.commands.version import version
 
 asyncz_cli = Sayer(name="asyncz", help="Asyncz scheduler CLI")
@@ -34,6 +35,7 @@ asyncz_cli.add_command(preview)
 asyncz_cli.add_command(inspect_task)
 asyncz_cli.add_command(version)
 asyncz_cli.add_command(timeline)
+asyncz_cli.add_command(update)
 
 
 def main() -> None:
