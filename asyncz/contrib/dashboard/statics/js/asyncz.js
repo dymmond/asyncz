@@ -196,6 +196,28 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
+  document.addEventListener("click", (event) => {
+    const dismissButton = event.target.closest("[data-dismiss-target]");
+    if (dismissButton) {
+      const targetId = dismissButton.getAttribute("data-dismiss-target");
+      const target = targetId && document.getElementById(targetId);
+      if (target) {
+        target.classList.add("opacity-0");
+        setTimeout(() => target.remove(), 200);
+      }
+      return;
+    }
+
+    const passwordToggle = event.target.closest("[data-password-toggle]");
+    if (passwordToggle) {
+      const targetId = passwordToggle.getAttribute("data-password-toggle");
+      const target = targetId && document.getElementById(targetId);
+      if (target) {
+        target.type = target.type === "password" ? "text" : "password";
+      }
+    }
+  });
+
   document.querySelectorAll("dialog").forEach((dialog) => {
     dialog.addEventListener("close", hideLoading);
     dialog.addEventListener("cancel", hideLoading);

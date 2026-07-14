@@ -100,6 +100,40 @@ def test_static_assets_are_served_locally(client: TestClient) -> None:
             assert marker in response.text
 
 
+def test_dashboard_responses_include_security_headers(client: TestClient) -> None:
+    response = client.get(f"{DASH_PREFIX}/")
+
+    assert response.status_code == 200
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["x-frame-options"] == "DENY"
+    assert response.headers["referrer-policy"] == "same-origin"
+    assert response.headers["permissions-policy"] == "camera=(), microphone=(), geolocation=()"
+
+    csp = response.headers["content-security-policy"]
+    assert "default-src 'self'" in csp
+    assert "script-src 'self'" in csp
+    assert "script-src 'self' 'unsafe-inline'" not in csp
+    assert "style-src 'self' 'unsafe-inline'" in csp
+    assert "frame-ancestors 'none'" in csp
+
+
+def test_dashboard_templates_avoid_inline_script_handlers(client_login: TestClient) -> None:
+    login = client_login.get("/login")
+    dashboard = client_login.get(f"{DASH_PREFIX}/", follow_redirects=False)
+    script = client_login.get(f"{DASH_PREFIX}/static/js/asyncz.js")
+
+    assert login.status_code == 200
+    assert dashboard.status_code in {200, 303}
+    assert script.status_code == 200
+    assert "content-security-policy" in login.headers
+    assert "content-security-policy" in dashboard.headers
+    assert "onclick=" not in login.text
+    assert "onclick=" not in dashboard.text
+    assert "data-password-toggle" in login.text
+    assert "data-dismiss-target" in script.text
+    assert "data-password-toggle" in script.text
+
+
 def test_vendor_manifest_checksums_match_packaged_assets() -> None:
     static_root = package_static_root()
     manifest = json.loads(static_root.joinpath("vendor/manifest.json").read_text())

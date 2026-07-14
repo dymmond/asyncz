@@ -28,6 +28,8 @@
 - Added process-local scheduler instance inspection through
   `scheduler.get_scheduler_instance_infos()`, `asyncz instances`, and the
   dashboard instances page.
+- Added default dashboard browser security headers, including a CSP that keeps
+  scripts restricted to packaged same-origin assets.
 - Added the `asyncz doctor` CLI command for scheduler diagnostics, readiness
   checks, and strict automation-friendly health validation.
 - Added scheduler-backed trigger previews through `scheduler.preview_task_runs()`
@@ -55,6 +57,8 @@
 
 - Fixed forwarded-prefix dashboard rendering so `X-Forwarded-Prefix` updates
   generated links and static asset URLs without breaking route matching.
+- Removed inline dashboard click handlers so the packaged JavaScript can satisfy
+  the default script CSP.
 - Auth-enabled dashboards now allow prefixed static assets such as
   `/dashboard/static/...` through the authentication gate so login pages can load
   packaged CSS and JavaScript.

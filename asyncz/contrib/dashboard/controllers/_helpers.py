@@ -205,7 +205,7 @@ def _render_messages_oob(request: Request, context: dict[str, Any]) -> str:
                   border-l-4 border-{color}-500 text-{color}-700 shadow transition-opacity duration-200">
                     <i data-lucide="{icon}" class="w-5 h-5 mt-1 flex-shrink-0"></i>
                     <div class="flex-1 leading-relaxed">{text}</div>
-                    <button type="button" onclick="(function(id){{const el=document.getElementById(id); if(el){{el.classList.add('opacity-0'); setTimeout(()=>el.remove(),200);}}}})('flash-{i}');"
+                    <button type="button" data-dismiss-target="flash-{i}"
                       class="absolute top-5 right-6 text-xl font-bold leading-none text-{color}-700 hover:text-{color}-900 focus:outline-none"
                       aria-label="Dismiss">&times;</button>
                   </div>

@@ -13,7 +13,7 @@ from lilya.types import ASGIApp
 
 from asyncz import monkay
 from asyncz.contrib.dashboard import create_dashboard_app
-from asyncz.contrib.dashboard.admin.middleware import AuthGateMiddleware
+from asyncz.contrib.dashboard.admin.middleware import AuthGateMiddleware, SecurityHeadersMiddleware
 from asyncz.contrib.dashboard.admin.middleware.forward_root_path import (
     ForwardedPrefixMiddleware,
 )
@@ -278,6 +278,8 @@ class AsynczAdmin:
         if self.include_cors:
             # CORS handling
             middlewares.append(self.cors_middleware)
+
+        middlewares.append(DefineMiddleware(SecurityHeadersMiddleware))
 
         if self.include_session:
             # Session handling (required for SimpleUsernamePasswordBackend)

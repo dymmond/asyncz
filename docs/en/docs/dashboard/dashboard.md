@@ -175,6 +175,20 @@ updating these assets, regenerate the compiled Tailwind file from
 `statics/css/asyncz-tailwind.input.css`, update the manifest, and run the
 dashboard static-asset tests plus a wheel/sdist build.
 
+## Security headers
+
+Dashboard responses include browser hardening headers by default:
+
+- `Content-Security-Policy`
+- `X-Content-Type-Options`
+- `X-Frame-Options`
+- `Referrer-Policy`
+- `Permissions-Policy`
+
+The default CSP allows scripts only from the dashboard origin. Styles allow
+`'unsafe-inline'` because current templates and third-party browser libraries
+still require inline style support, but inline script handlers are not used.
+
 ## Task list behavior
 
 The task dashboard now reads from the scheduler's immutable task inspection snapshots rather than serializing live tasks ad hoc inside each controller.
