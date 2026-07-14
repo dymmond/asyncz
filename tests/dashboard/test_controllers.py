@@ -252,7 +252,9 @@ def test_task_table_links_to_edit_page(client: TestClient):
 
     assert response.status_code == 200
     assert f'href="{DASH_PREFIX}/tasks/{job_id}/edit"' in response.text
+    assert f'href="{DASH_PREFIX}/logs?task_id={job_id}"' in response.text
     assert 'title="Edit"' in response.text
+    assert 'title="Logs"' in response.text
 
 
 def test_task_edit_previews_and_applies_update(client: TestClient, scheduler: AsyncIOScheduler):

@@ -15,7 +15,7 @@
         <th>Next Run</th>
         <th>Last Run</th>
         <th>Store / Executor</th>
-        <th style="width: 360px; text-align: right">Actions</th>
+        <th style="width: 430px; text-align: right">Actions</th>
       </tr>
     </thead>
 
@@ -103,6 +103,21 @@
                     </button>
                   </form>
                 {% endif %}
+
+                <a href="{{ url_prefix }}/logs?task_id={{ t.id }}"
+                   class="az-icon-button az-action-button"
+                   aria-label="Open logs for {{ t.name or t.id }}"
+                   title="Logs">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M5 4.5h10l4 4v11H5z"/>
+                    <path d="M15 4.5v4h4"/>
+                    <path d="M8 11h6"/>
+                    <path d="M8 15h3"/>
+                    <circle cx="16" cy="16" r="2.4"/>
+                    <path d="M18 18l2 2"/>
+                  </svg>
+                  <span>Logs</span>
+                </a>
 
                 <a href="{{ url_prefix }}/tasks/{{ t.id }}/edit"
                    class="az-icon-button az-action-button"
