@@ -143,6 +143,7 @@ admin = AsynczAdmin(
     scheduler=scheduler,
     url_prefix="/dashboard",
     enable_forward_middleware=True,
+    trusted_forwarded_hosts=("127.0.0.1", "::1"),
 )
 ```
 
@@ -165,6 +166,11 @@ With that shape, the upstream app receives `/dashboard/...` requests while
 rendered links, static assets, and HTMX endpoints point at `/ops/dashboard/...`.
 Run the full proxy in your deployment environment before treating the Nginx
 configuration itself as release evidence.
+
+`trusted_forwarded_hosts` accepts exact client host names, IP addresses, and IP
+network ranges such as `"10.0.0.0/8"`. Keep it limited to the proxy addresses
+that can reach the application. Use `"*"` only when another network layer
+already prevents direct client access to the dashboard process.
 
 ## Static assets
 

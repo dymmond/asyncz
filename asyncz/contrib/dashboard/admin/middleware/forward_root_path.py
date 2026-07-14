@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+import ipaddress
+from collections.abc import Iterable
+
 from lilya.types import ASGIApp, Receive, Scope, Send
+
+DEFAULT_TRUSTED_FORWARD_CLIENTS: tuple[str, ...] = ("127.0.0.1", "::1", "localhost")
 
 
 class ForwardedPrefixMiddleware:
@@ -14,7 +19,12 @@ class ForwardedPrefixMiddleware:
     and only sets ``app_root_path`` for URL generation.
     """
 
-    def __init__(self, app: ASGIApp, header_name: bytes = b"x-forwarded-prefix"):
+    def __init__(
+        self,
+        app: ASGIApp,
+        header_name: bytes = b"x-forwarded-prefix",
+        trusted_hosts: Iterable[str] = DEFAULT_TRUSTED_FORWARD_CLIENTS,
+    ) -> None:
         """
         Initializes the middleware.
 
@@ -22,9 +32,12 @@ class ForwardedPrefixMiddleware:
             app: The next ASGI application in the stack.
             header_name: The byte string name of the HTTP header to check for the prefix.
                          Defaults to `b"x-forwarded-prefix"`.
+            trusted_hosts: Client hosts or networks allowed to set the forwarded prefix.
+                           Use `("*",)` only when another layer already enforces trust.
         """
         self.app: ASGIApp = app
         self.header_name: bytes = header_name
+        self.trusted_hosts = tuple(trusted_hosts)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         """
@@ -35,7 +48,7 @@ class ForwardedPrefixMiddleware:
             receive: The ASGI receive callable.
             send: The ASGI send callable.
         """
-        if scope["type"] in ("http", "websocket"):
+        if scope["type"] in ("http", "websocket") and self._is_trusted(scope):
             # Normalize headers to a dictionary for easy, case-insensitive lookup
             headers: dict[bytes, bytes] = {k.lower(): v for k, v in scope.get("headers", [])}
 
@@ -70,3 +83,27 @@ class ForwardedPrefixMiddleware:
 
         # Pass control to the next application
         await self.app(scope, receive, send)
+
+    def _is_trusted(self, scope: Scope) -> bool:
+        if "*" in self.trusted_hosts:
+            return True
+
+        client = scope.get("client")
+        client_host = str(client[0]) if isinstance(client, (list, tuple)) and client else ""
+        if not client_host:
+            return False
+        if client_host in self.trusted_hosts:
+            return True
+
+        try:
+            client_ip = ipaddress.ip_address(client_host)
+        except ValueError:
+            return False
+
+        for value in self.trusted_hosts:
+            try:
+                if client_ip in ipaddress.ip_network(value, strict=False):
+                    return True
+            except ValueError:
+                continue
+        return False

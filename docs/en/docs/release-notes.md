@@ -48,6 +48,7 @@
 
 - Fixed proxy prefix dashboard rendering so `X-Forwarded-Prefix` updates
   generated links and static asset URLs without breaking route matching.
+- Forwarded prefix headers are now honored only from configured proxy clients.
 - Removed inline dashboard click handlers so the packaged JavaScript can satisfy
   the default script CSP.
 - Dashboards with auth now allow prefixed static assets such as

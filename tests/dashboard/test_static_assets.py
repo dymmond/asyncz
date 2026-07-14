@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 from collections.abc import Iterator
@@ -15,6 +16,7 @@ from asyncz.contrib.dashboard.admin import (
     SimpleUsernamePasswordBackend,
     User,
 )
+from asyncz.contrib.dashboard.admin.middleware.forward_root_path import ForwardedPrefixMiddleware
 from asyncz.schedulers.asyncio import AsyncIOScheduler
 
 DASH_PREFIX = "/dashboard"
@@ -52,6 +54,7 @@ def forwarded_prefix_client(scheduler: AsyncIOScheduler) -> Iterator[TestClient]
         url_prefix=DASH_PREFIX,
         scheduler=scheduler,
         enable_forward_middleware=True,
+        trusted_forwarded_hosts=("*",),
     )
     admin.include_in(app)
     with TestClient(app) as c:
@@ -201,6 +204,53 @@ def test_forwarded_prefix_generates_proxy_aware_dashboard_urls(
     )
     assert 'href="http://testserver/ops/dashboard/runtime/"' in response.text
     assert 'hx-get="/ops/dashboard/tasks/partials/table"' in response.text
+
+
+def test_forwarded_prefix_is_ignored_from_untrusted_clients(
+    scheduler: AsyncIOScheduler,
+) -> None:
+    app = Lilya()
+    admin = AsynczAdmin(
+        url_prefix=DASH_PREFIX,
+        scheduler=scheduler,
+        enable_forward_middleware=True,
+        trusted_forwarded_hosts=("127.0.0.1",),
+    )
+    admin.include_in(app)
+
+    with TestClient(app) as client:
+        response = client.get(
+            f"{DASH_PREFIX}/tasks",
+            headers={"x-forwarded-prefix": "/ops/"},
+        )
+
+    assert response.status_code == 200
+    assert "/ops/dashboard" not in response.text
+    assert "http://testserver/dashboard/static/css/asyncz.css" in response.text
+
+
+def test_forwarded_prefix_trusts_configured_networks() -> None:
+    seen_scope: dict[str, Any] = {}
+
+    async def app(scope: dict[str, Any], receive: Any, send: Any) -> None:
+        seen_scope.update(scope)
+
+    scope: dict[str, Any] = {
+        "type": "http",
+        "client": ("10.42.0.10", 12345),
+        "headers": [(b"x-forwarded-prefix", b"/ops")],
+    }
+    middleware = ForwardedPrefixMiddleware(app, trusted_hosts=("10.0.0.0/8",))
+
+    async def receive() -> dict[str, Any]:
+        return {"type": "http.request", "body": b"", "more_body": False}
+
+    async def send(_message: dict[str, Any]) -> None:
+        return None
+
+    asyncio.run(middleware(scope, receive, send))
+
+    assert seen_scope["app_root_path"] == "/ops"
 
 
 def test_bundled_login_template_uses_local_assets(client_login: TestClient) -> None:

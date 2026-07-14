@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from functools import cached_property
 from typing import Any, cast
 
@@ -51,6 +52,7 @@ class AsynczAdmin:
         enable_login: bool = False,
         backend: AuthBackend | None = None,
         enable_forward_middleware: bool = False,
+        trusted_forwarded_hosts: Iterable[str] = ("127.0.0.1", "::1", "localhost"),
         url_prefix: str | None = None,
         scheduler: AsyncIOScheduler | None = None,
         include_session: bool = True,
@@ -90,6 +92,7 @@ class AsynczAdmin:
         self.enable_login: bool = enable_login
         self.backend: AuthBackend = backend  # type: ignore[assignment]
         self.enable_forward_middleware = enable_forward_middleware
+        self.trusted_forwarded_hosts = tuple(trusted_forwarded_hosts)
 
         # Extras
         self.include_session = include_session
@@ -273,7 +276,12 @@ class AsynczAdmin:
 
         if self.enable_forward_middleware:
             # X-Forwarded-Prefix handling (useful if mounted via proxy)
-            middlewares.append(DefineMiddleware(ForwardedPrefixMiddleware))
+            middlewares.append(
+                DefineMiddleware(
+                    ForwardedPrefixMiddleware,
+                    trusted_hosts=self.trusted_forwarded_hosts,
+                )
+            )
 
         if self.include_cors:
             # CORS handling
