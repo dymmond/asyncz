@@ -269,6 +269,7 @@ Each run record captures:
 - callable reference
 - store and executor alias
 - scheduler identity from the task event that recorded the run
+- number of due runs omitted by coalescing
 - source (`manual`, `scheduled`, or `unknown`)
 - status (`running`, `succeeded`, `failed`, `missed`, or `max_instances`)
 - submitted and finished timestamps

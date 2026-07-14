@@ -43,10 +43,12 @@ class TaskSubmissionEvent(TaskEvent):
     Args:
         scheduled_run_times: List of datetimes when the task is supposed to run.
         source: Optional origin of the submission, such as ``manual`` or ``scheduled``.
+        coalesced_run_count: Number of due run times omitted by coalescing.
     """
 
     scheduled_run_times: list[datetime]
     source: Optional[str] = None
+    coalesced_run_count: int = 0
 
 
 class TaskExecutionEvent(TaskEvent):

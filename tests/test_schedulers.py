@@ -1112,6 +1112,25 @@ class TestBaseScheduler:
         assert len(events) == 1
         assert events[0].scheduled_run_times == [freeze_time.get(scheduler.timezone)]
 
+    def test_task_submitted_event_reports_coalesced_run_times(self, scheduler):
+        events = []
+        now = datetime.now(scheduler.timezone)
+        first_due_time = now - timedelta(minutes=3)
+        scheduler.add_task(
+            lambda: None,
+            "interval",
+            minutes=1,
+            next_run_time=first_due_time,
+            coalesce=True,
+        )
+        scheduler.add_listener(events.append, TASK_SUBMITTED)
+        scheduler.start()
+        scheduler.process_tasks()
+
+        assert len(events) == 1
+        assert events[0].scheduled_run_times == [now]
+        assert events[0].coalesced_run_count == 3
+
     @pytest.mark.parametrize(
         "scheduler_events", [TASK_MAX_INSTANCES], indirect=["scheduler_events"]
     )

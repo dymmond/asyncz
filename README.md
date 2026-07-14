@@ -156,7 +156,7 @@ Asyncz uses Python's `logging` module. The default logger namespaces are:
 
 If you need custom logger creation, pass your own `loggers_class` to the scheduler. That class only needs to implement the same dictionary-like contract used by `ClassicLogging`.
 
-The dashboard also ships with a log capture layer for the `asyncz` logger namespace. It can filter by task id, run id, level, and message text. Run history entries include the scheduler identity and write lifecycle log records, so operators can open a specific run and inspect the logs attached to that run.
+The dashboard also ships with a log capture layer for the `asyncz` logger namespace. It can filter by task id, run id, level, and message text. Run history entries include the scheduler identity, coalesced run count, and lifecycle log records, so operators can open a specific run and inspect the logs attached to that run.
 
 ## ASGI integration
 

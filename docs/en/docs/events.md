@@ -24,6 +24,8 @@ Extends `SchedulerEvent` with task-specific data:
 Extends `TaskEvent` with:
 
 - `scheduled_run_times`: the run times the scheduler submitted to an executor
+- `coalesced_run_count`: due run times omitted because `coalesce=True`
+- `source`: `manual`, `scheduled`, or `unknown`
 
 ### `TaskExecutionEvent`
 

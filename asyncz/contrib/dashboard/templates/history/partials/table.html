@@ -42,6 +42,9 @@
             {% else %}
               <span class="az-badge az-badge--warning">{{ r.source_label }}</span>
             {% endif %}
+            {% if r.coalesced_run_count %}
+              <div class="az-muted">{{ r.coalesced_run_count }} coalesced</div>
+            {% endif %}
           </td>
           <td class="az-mono">{{ r.scheduler_identity or "-" }}</td>
           <td>

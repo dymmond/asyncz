@@ -33,6 +33,7 @@ class RunRecord:
     callable_reference: str | None = None
     executor: str | None = None
     scheduler_identity: str | None = None
+    coalesced_run_count: int = 0
     source: str = "unknown"
     status: str = "running"
     submitted_at: datetime | None = None
@@ -125,6 +126,7 @@ class MemoryRunHistoryStorage:
                         record.task_name,
                         record.callable_reference,
                         record.scheduler_identity,
+                        "coalesced" if record.coalesced_run_count else "",
                         record.status,
                         record.source,
                         record.run_id,
@@ -172,6 +174,10 @@ class MemoryRunHistoryStorage:
             )
             was_terminal = record.status in TERMINAL_STATUSES
             record.source = source
+            record.coalesced_run_count = max(
+                record.coalesced_run_count,
+                event.coalesced_run_count,
+            )
             record.submitted_at = record.submitted_at or (record.finished_at or now)
             if record.status not in TERMINAL_STATUSES:
                 record.status = status
@@ -481,6 +487,7 @@ def _append_run_log(
                 "status": record.status,
                 "source": record.source,
                 "scheduler_identity": record.scheduler_identity,
+                "coalesced_run_count": record.coalesced_run_count,
                 "scheduled_run_time": (
                     record.scheduled_run_time.isoformat()
                     if isinstance(record.scheduled_run_time, datetime)

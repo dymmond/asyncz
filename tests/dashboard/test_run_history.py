@@ -10,6 +10,8 @@ from lilya.testclient import TestClient
 from asyncz.contrib.dashboard.admin import AsynczAdmin
 from asyncz.contrib.dashboard.history import MemoryRunHistoryStorage
 from asyncz.contrib.dashboard.logs.storage import MemoryLogStorage
+from asyncz.events.base import TaskSubmissionEvent
+from asyncz.events.constants import TASK_SUBMITTED
 from asyncz.executors.debug import DebugExecutor
 from asyncz.schedulers.asyncio import AsyncIOScheduler
 
@@ -143,3 +145,35 @@ def test_failed_manual_run_preserves_exception_detail(
     assert "Failed" in detail.text
     assert "RuntimeError" in detail.text
     assert "history boom" in detail.text
+
+
+def test_run_history_surfaces_coalesced_run_count(
+    client: TestClient,
+    scheduler: AsyncIOScheduler,
+    history_storage: MemoryRunHistoryStorage,
+    log_storage: MemoryLogStorage,
+) -> None:
+    run_time = datetime.now(timezone.utc)
+    event = TaskSubmissionEvent(
+        code=TASK_SUBMITTED,
+        task_id="coalesced-history",
+        store="default",
+        scheduled_run_times=[run_time],
+        source="scheduled",
+        coalesced_run_count=2,
+    )
+
+    history_storage.record_submission(event, scheduler=scheduler, log_storage=log_storage)
+
+    record = history_storage.latest_for_task("coalesced-history")
+    assert record is not None
+    assert record.coalesced_run_count == 2
+
+    history = client.get(f"{DASH_PREFIX}/history/partials/table?task_id=coalesced-history")
+    assert history.status_code == 200
+    assert "2 coalesced" in history.text
+
+    detail = client.get(f"{DASH_PREFIX}/history/{record.run_id}")
+    assert detail.status_code == 200
+    assert "Coalesced Runs" in detail.text
+    assert ">2<" in detail.text

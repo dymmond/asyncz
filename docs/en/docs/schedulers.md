@@ -152,6 +152,7 @@ Important behavior:
 
 - `run_task()` uses the task's configured executor
 - it dispatches `TASK_SUBMITTED` (or `TASK_MAX_INSTANCES`) just like the main scheduler loop
+- it honors `coalesce=True` and reports omitted due run times on the submission event
 - it recomputes and persists the next run time after submission
 - if the trigger is exhausted, `remove_finished=True` removes the task while `False` keeps it paused
 

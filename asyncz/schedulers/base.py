@@ -767,10 +767,13 @@ class BaseScheduler(SchedulerType):
         task, store_alias = self.lookup_task(task_id, store)
         now = datetime.now(self.timezone)
         run_times = task.get_run_times(self.timezone, now)
+        coalesced_run_count = 0
         if not run_times:
             if not force:
                 return task
             run_times = [now]
+        else:
+            run_times, coalesced_run_count = self._coalesce_run_times(task, run_times)
 
         assert task.executor is not None, "Task has no executor configured."
         executor = self.lookup_executor(task.executor)
@@ -790,6 +793,7 @@ class BaseScheduler(SchedulerType):
                     store=store_alias,
                     scheduled_run_times=run_times,
                     source="manual",
+                    coalesced_run_count=coalesced_run_count,
                 )
             )
             raise
@@ -808,6 +812,7 @@ class BaseScheduler(SchedulerType):
                     store=store_alias,
                     scheduled_run_times=run_times,
                     source="manual",
+                    coalesced_run_count=coalesced_run_count,
                 )
             )
 
@@ -832,6 +837,13 @@ class BaseScheduler(SchedulerType):
                 self.lookup_store(store_alias).update_task(task)
 
         return task
+
+    def _coalesce_run_times(
+        self, task: TaskType, run_times: list[datetime]
+    ) -> tuple[list[datetime], int]:
+        if run_times and task.coalesce:
+            return run_times[-1:], len(run_times) - 1
+        return run_times, 0
 
     def get_tasks(self, store: Optional[str] = None) -> list[TaskType]:
         """
@@ -1547,7 +1559,7 @@ class BaseScheduler(SchedulerType):
                     continue
 
                 run_times = task.get_run_times(self.timezone, now)
-                run_times = run_times[-1:] if run_times and task.coalesce else run_times
+                run_times, coalesced_run_count = self._coalesce_run_times(task, run_times)
 
                 if run_times:
                     try:
@@ -1563,6 +1575,7 @@ class BaseScheduler(SchedulerType):
                             store=store_alias,
                             scheduled_run_times=run_times,
                             source="scheduled",
+                            coalesced_run_count=coalesced_run_count,
                         )
                         events.append(event)
                     except Exception as exc:
@@ -1576,6 +1589,7 @@ class BaseScheduler(SchedulerType):
                             store=store_alias,
                             scheduled_run_times=run_times,
                             source="scheduled",
+                            coalesced_run_count=coalesced_run_count,
                         )
                         events.append(event)
 
