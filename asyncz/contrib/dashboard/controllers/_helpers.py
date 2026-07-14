@@ -10,6 +10,7 @@ from lilya.requests import Request
 from lilya.responses import HTMLResponse
 
 from asyncz.contrib.dashboard.engine import templates
+from asyncz.contrib.dashboard.history import RunRecord, get_run_history_storage
 from asyncz.tasks.inspection import TaskInfo
 from asyncz.triggers.cron import CronTrigger
 from asyncz.triggers.date import DateTrigger
@@ -18,8 +19,12 @@ from asyncz.triggers.interval import IntervalTrigger
 if TYPE_CHECKING:
     from asyncz.schedulers import AsyncIOScheduler
 
+TASK_PAGE_SIZE_OPTIONS = (25, 50, 100, 200)
+DEFAULT_TASK_PAGE_SIZE = 50
+MAX_TASK_PAGE_SIZE = 200
 
-def serialize(task: Any) -> dict[str, Any]:
+
+def serialize(task: Any, last_run: RunRecord | None = None) -> dict[str, Any]:
     """
     Convert a task or task snapshot into a dashboard-friendly dictionary.
 
@@ -38,6 +43,21 @@ def serialize(task: Any) -> dict[str, Any]:
         else (next_run_time or None)
     )
 
+    last_run_payload = None
+    if last_run is not None:
+        last_run_payload = {
+            "run_id": last_run.run_id,
+            "status": last_run.status,
+            "status_label": last_run.status_label,
+            "source": last_run.source,
+            "source_label": last_run.source_label,
+            "scheduler_identity": last_run.scheduler_identity,
+            "coalesced_run_count": last_run.coalesced_run_count,
+            "submitted_at": (last_run.submitted_at.isoformat() if last_run.submitted_at else None),
+            "finished_at": last_run.finished_at.isoformat() if last_run.finished_at else None,
+            "duration_ms": last_run.duration_ms,
+        }
+
     return {
         "id": info.id,
         "name": info.name or "",
@@ -53,6 +73,7 @@ def serialize(task: Any) -> dict[str, Any]:
         "state": info.schedule_state.value,
         "pending": info.pending,
         "paused": info.paused,
+        "last_run": last_run_payload,
     }
 
 
@@ -190,7 +211,7 @@ def _render_messages_oob(request: Request, context: dict[str, Any]) -> str:
                   border-l-4 border-{color}-500 text-{color}-700 shadow transition-opacity duration-200">
                     <i data-lucide="{icon}" class="w-5 h-5 mt-1 flex-shrink-0"></i>
                     <div class="flex-1 leading-relaxed">{text}</div>
-                    <button type="button" onclick="(function(id){{const el=document.getElementById(id); if(el){{el.classList.add('opacity-0'); setTimeout(()=>el.remove(),200);}}}})('flash-{i}');"
+                    <button type="button" data-dismiss-target="flash-{i}"
                       class="absolute top-5 right-6 text-xl font-bold leading-none text-{color}-700 hover:text-{color}-900 focus:outline-none"
                       aria-label="Dismiss">&times;</button>
                   </div>
@@ -216,6 +237,13 @@ def parse_task_filters(request: Request) -> dict[str, Any]:
     sort_by = (params.get("sort") or "next_run_time").strip() or "next_run_time"
     direction = (params.get("direction") or "asc").strip().lower() or "asc"
     descending = direction == "desc"
+    page = _bounded_int(params.get("page"), default=1, minimum=1, maximum=10_000)
+    per_page = _bounded_int(
+        params.get("per_page"),
+        default=DEFAULT_TASK_PAGE_SIZE,
+        minimum=1,
+        maximum=MAX_TASK_PAGE_SIZE,
+    )
     return {
         "q": q,
         "schedule_state": state,
@@ -223,6 +251,8 @@ def parse_task_filters(request: Request) -> dict[str, Any]:
         "trigger": trigger,
         "sort_by": sort_by,
         "descending": descending,
+        "page": page,
+        "per_page": per_page,
         "form": {
             "q": q or "",
             "state": state or "",
@@ -230,11 +260,25 @@ def parse_task_filters(request: Request) -> dict[str, Any]:
             "trigger": trigger or "",
             "sort": sort_by,
             "direction": "desc" if descending else "asc",
+            "page": page,
+            "per_page": per_page,
         },
     }
 
 
-def _build_task_query_suffix(filters: dict[str, str]) -> str:
+def _bounded_int(value: Any, *, default: int, minimum: int, maximum: int) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return default
+    return max(minimum, min(maximum, parsed))
+
+
+def _build_task_query_suffix(
+    filters: dict[str, Any],
+    *,
+    overrides: dict[str, Any] | None = None,
+) -> str:
     """
     Encode the active task filters into a reusable query-string suffix.
 
@@ -242,15 +286,45 @@ def _build_task_query_suffix(filters: dict[str, str]) -> str:
     keeps its current filters across partial refreshes and row/bulk actions.
     """
 
+    values = {**filters, **(overrides or {})}
     query_values = {
         key: value
-        for key, value in filters.items()
+        for key, value in values.items()
         if value
         and not (key == "sort" and value == "next_run_time")
         and not (key == "direction" and value == "asc")
+        and not (key == "page" and int(value) == 1)
+        and not (key == "per_page" and int(value) == DEFAULT_TASK_PAGE_SIZE)
     }
     query = urlencode(query_values)
     return f"?{query}" if query else ""
+
+
+def _paginate_task_infos(
+    visible_infos: list[TaskInfo],
+    *,
+    requested_page: int,
+    per_page: int,
+) -> tuple[list[TaskInfo], dict[str, Any]]:
+    total = len(visible_infos)
+    page_count = max(1, (total + per_page - 1) // per_page)
+    page = min(requested_page, page_count)
+    start = (page - 1) * per_page
+    end = start + per_page
+    page_infos = visible_infos[start:end]
+    return page_infos, {
+        "page": page,
+        "per_page": per_page,
+        "page_count": page_count,
+        "total": total,
+        "start": start + 1 if total else 0,
+        "end": min(end, total),
+        "has_previous": page > 1,
+        "has_next": page < page_count,
+        "previous_page": max(1, page - 1),
+        "next_page": min(page_count, page + 1),
+        "page_size_options": TASK_PAGE_SIZE_OPTIONS,
+    }
 
 
 def build_task_dashboard_context(scheduler: AsyncIOScheduler, request: Request) -> dict[str, Any]:
@@ -266,6 +340,7 @@ def build_task_dashboard_context(scheduler: AsyncIOScheduler, request: Request) 
     parsed = parse_task_filters(request)
     filters = parsed["form"]
     all_infos = scheduler.get_task_infos()
+    history = get_run_history_storage()
     visible_infos = scheduler.get_task_infos(
         schedule_state=parsed["schedule_state"],
         executor=parsed["executor"],
@@ -274,6 +349,13 @@ def build_task_dashboard_context(scheduler: AsyncIOScheduler, request: Request) 
         sort_by=parsed["sort_by"],
         descending=parsed["descending"],
     )
+    page_infos, pagination = _paginate_task_infos(
+        visible_infos,
+        requested_page=parsed["page"],
+        per_page=parsed["per_page"],
+    )
+    filters["page"] = pagination["page"]
+    filters["per_page"] = pagination["per_page"]
     available_executors = sorted(
         {info.executor or "default" for info in all_infos if info.executor}
     )
@@ -284,10 +366,19 @@ def build_task_dashboard_context(scheduler: AsyncIOScheduler, request: Request) 
             if info.trigger_alias or info.trigger_name
         }
     )
+    pagination["previous_query_suffix"] = _build_task_query_suffix(
+        filters,
+        overrides={"page": pagination["previous_page"]},
+    )
+    pagination["next_query_suffix"] = _build_task_query_suffix(
+        filters,
+        overrides={"page": pagination["next_page"]},
+    )
     return {
-        "tasks": [serialize(info) for info in visible_infos],
+        "tasks": [serialize(info, history.latest_for_task(info.id)) for info in page_infos],
         "filters": filters,
         "query_suffix": _build_task_query_suffix(filters),
+        "pagination": pagination,
         "available_executors": available_executors,
         "available_triggers": available_triggers,
         "visible_tasks": len(visible_infos),

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from collections.abc import Iterator
 
 import pytest
@@ -13,6 +14,10 @@ from asyncz.contrib.dashboard.admin import (
     SimpleUsernamePasswordBackend,
     User,
 )
+from asyncz.contrib.dashboard.audit import MemoryAuditTrailStorage, get_audit_storage
+from asyncz.contrib.dashboard.events import get_scheduler_event_storage
+from asyncz.contrib.dashboard.history import MemoryRunHistoryStorage
+from asyncz.contrib.dashboard.logs.storage import MemoryLogStorage
 from asyncz.schedulers.asyncio import AsyncIOScheduler
 
 DASH_PREFIX = "/dashboard"
@@ -37,7 +42,12 @@ def verify(u, p):
 @pytest.fixture()
 def client(scheduler: AsyncIOScheduler) -> Iterator[TestClient]:
     app = Lilya()
-    admin = AsynczAdmin(scheduler=scheduler)
+    admin = AsynczAdmin(
+        scheduler=scheduler,
+        log_storage=MemoryLogStorage(maxlen=1_000),
+        run_history_storage=MemoryRunHistoryStorage(maxlen=1_000),
+        audit_storage=MemoryAuditTrailStorage(maxlen=1_000),
+    )
     admin.include_in(app)
     with TestClient(app) as c:
         yield c
@@ -51,6 +61,9 @@ def client_login(scheduler: AsyncIOScheduler) -> Iterator[TestClient]:
         scheduler=scheduler,
         enable_login=True,
         backend=SimpleUsernamePasswordBackend(verify),
+        log_storage=MemoryLogStorage(maxlen=1_000),
+        run_history_storage=MemoryRunHistoryStorage(maxlen=1_000),
+        audit_storage=MemoryAuditTrailStorage(maxlen=1_000),
     )
     admin.include_in(app)
     with TestClient(app) as c:
@@ -96,12 +109,134 @@ def test_index_renders(client: TestClient):
     assert response.status_code == 200
     assert "Scheduler" in response.text
     assert "Total Tasks" in response.text
+    assert 'class="az-shell"' in response.text
+    assert 'x-data="asynczShell"' in response.text
+    assert "data-sidebar-toggle" in response.text
+    assert 'class="az-workspace"' in response.text
+    assert "Operate" in response.text
+    assert "Review" in response.text
+    assert "Events" in response.text
 
 
 def test_tasks_page_renders(client: TestClient):
     response = client.get(f"{DASH_PREFIX}/tasks/")
     assert response.status_code == 200
     assert "Tasks" in response.text  # header
+    assert 'x-data="asynczTasks"' in response.text
+    assert "az-task-toolbar" in response.text
+    assert "Table density" in response.text
+    assert 'x-on:click="toggleFilters"' in response.text
+    assert "az-table-wrap--resizable az-table-wrap--sticky-actions" in response.text
+
+
+def test_runtime_page_renders_scheduler_components(client: TestClient):
+    _create_task(client, "runtime-visible")
+
+    response = client.get(f"{DASH_PREFIX}/runtime/")
+
+    assert response.status_code == 200
+    assert "Scheduler Runtime" in response.text
+    assert "Runtime Profile" in response.text
+    assert "Scheduler ID" in response.text
+    assert "Started At" in response.text
+    assert "Uptime" in response.text
+    assert "MemoryStore" in response.text
+    assert "AsyncIOExecutor" in response.text
+    assert "runtime-visible" not in response.text
+    assert "asyncz.stores.default" in response.text
+    assert "asyncz.executors.default" in response.text
+    assert 'title="Runtime"' in response.text
+    assert 'aria-current="page"' in response.text
+
+
+def test_instances_page_renders_process_local_scheduler(client: TestClient):
+    _create_task(client, "instance-visible")
+
+    response = client.get(f"{DASH_PREFIX}/instances/")
+
+    assert response.status_code == 200
+    assert "Scheduler Instances" in response.text
+    assert "process-local" in response.text
+    assert "Active" in response.text
+    assert "instance-visible" not in response.text
+    assert "MemoryStore" not in response.text
+    assert 'title="Instances"' in response.text
+    assert 'aria-current="page"' in response.text
+
+
+def test_timeline_page_renders_upcoming_runs(client: TestClient):
+    _create_task(client, "timeline-interval", trigger_type="interval", trigger_value="5s")
+    _create_task(
+        client,
+        "timeline-date",
+        trigger_type="date",
+        trigger_value="2027-01-01T10:00:00+00:00",
+    )
+
+    response = client.get(f"{DASH_PREFIX}/timeline/?per_task=2&limit=10")
+
+    assert response.status_code == 200
+    assert "Run Timeline" in response.text
+    assert "Upcoming Run Times" in response.text
+    assert "timeline-interval" in response.text
+    assert "timeline-date" in response.text
+    assert "previewed run" in response.text
+    assert 'title="Timeline"' in response.text
+    assert 'aria-current="page"' in response.text
+
+
+def test_audit_page_tracks_task_management_actions(client: TestClient):
+    get_audit_storage().clear()
+    job_id = _create_task(client, "audited-task")
+
+    run_response = client.post(f"{DASH_PREFIX}/tasks/{job_id}/run")
+    assert run_response.status_code == 200
+
+    response = client.get(f"{DASH_PREFIX}/audit/")
+
+    assert response.status_code == 200
+    assert "Audit Trail" in response.text
+    assert "Task Create" in response.text
+    assert "Task Run" in response.text
+    assert job_id in response.text
+    assert "audited-task" in response.text
+    assert 'title="Audit"' in response.text
+    assert 'aria-current="page"' in response.text
+
+    filtered = client.get(f"{DASH_PREFIX}/audit/?action=task.run")
+    assert filtered.status_code == 200
+    assert "Task Run" in filtered.text
+
+
+def test_events_page_tracks_scheduler_events(client: TestClient):
+    get_scheduler_event_storage().clear()
+    job_id = _create_task(client, "event-visible")
+
+    response = client.get(f"{DASH_PREFIX}/events/?task_id={job_id}")
+
+    assert response.status_code == 200
+    assert "Scheduler Events" in response.text
+    assert "Task Added" in response.text
+    assert job_id in response.text
+    assert "Observed Events" in response.text
+
+    filtered = client.get(f"{DASH_PREFIX}/events/?name=task.added&task_id={job_id}")
+    assert filtered.status_code == 200
+    assert "Task Added" in filtered.text
+
+
+def test_events_page_tracks_task_submission_metadata(client: TestClient):
+    get_scheduler_event_storage().clear()
+    job_id = _create_task(client, "event-run")
+
+    response = client.post(f"{DASH_PREFIX}/tasks/{job_id}/run")
+    assert response.status_code == 200
+
+    events = client.get(f"{DASH_PREFIX}/events/?task_id={job_id}")
+
+    assert events.status_code == 200
+    assert "Task Submitted" in events.text
+    assert "scheduled_run_times" in events.text
 
 
 def test_tasks_partial_table_initial(client: TestClient):
@@ -152,6 +287,103 @@ def test_create_date_task_and_list(client: TestClient):
 
     assert response.status_code == 200
     assert "cli-dash-date" in response.text
+
+
+def test_task_table_links_to_edit_page(client: TestClient):
+    job_id = _create_task(client, "editable-row")
+
+    response = client.get(f"{DASH_PREFIX}/tasks/partials/table")
+
+    assert response.status_code == 200
+    assert f'href="{DASH_PREFIX}/tasks/{job_id}"' in response.text
+    assert f'href="{DASH_PREFIX}/tasks/{job_id}/edit"' in response.text
+    assert f'href="{DASH_PREFIX}/logs?task_id={job_id}"' in response.text
+    assert 'title="Details"' in response.text
+    assert 'title="Edit"' in response.text
+    assert 'title="Logs"' in response.text
+
+
+def test_task_detail_page_renders_task_context(client: TestClient):
+    job_id = _create_task(client, "detail-row")
+
+    run_response = client.post(f"{DASH_PREFIX}/tasks/{job_id}/run")
+    assert run_response.status_code == 200
+
+    response = client.get(f"{DASH_PREFIX}/tasks/{job_id}")
+    for _ in range(20):
+        if "Task run succeeded" in response.text:
+            break
+        time.sleep(0.01)
+        response = client.get(f"{DASH_PREFIX}/tasks/{job_id}")
+
+    assert response.status_code == 200
+    assert "Task Detail" in response.text
+    assert "detail-row" in response.text
+    assert job_id in response.text
+    assert "Upcoming Runs" in response.text
+    assert "Recent Runs" in response.text
+    assert "Recent Logs" in response.text
+    assert "Task run succeeded" in response.text
+    assert f'href="{DASH_PREFIX}/history?task_id={job_id}"' in response.text
+    assert f'href="{DASH_PREFIX}/logs?task_id={job_id}"' in response.text
+
+
+def test_task_detail_page_handles_missing_task(client: TestClient):
+    response = client.get(f"{DASH_PREFIX}/tasks/missing-task")
+
+    assert response.status_code == 404
+    assert "Task not found" in response.text
+
+
+def test_task_edit_previews_and_applies_update(client: TestClient, scheduler: AsyncIOScheduler):
+    get_audit_storage().clear()
+    job_id = _create_task(client, "edit-before")
+
+    response = client.get(f"{DASH_PREFIX}/tasks/{job_id}/edit")
+
+    assert response.status_code == 200
+    assert "Edit Task" in response.text
+    assert "edit-before" in response.text
+    assert "Task Metadata" in response.text
+
+    payload = {
+        "name": "edit-after",
+        "callable_path": "tests.fixtures:noop",
+        "executor": "default",
+        "coalesce": "false",
+        "max_instances": "4",
+        "mistrigger_grace_time": "",
+        "clear_mistrigger_grace_time": "1",
+        "args": "[]",
+        "kwargs": "{}",
+        "intent": "preview",
+    }
+    preview = client.post(f"{DASH_PREFIX}/tasks/{job_id}/edit", data=payload)
+
+    assert preview.status_code == 200
+    assert "Proposed Changes" in preview.text
+    assert "edit-after" in preview.text
+    task = scheduler.get_task(job_id)
+    assert task is not None
+    assert task.name == "edit-before"
+
+    payload["intent"] = "apply"
+    applied = client.post(f"{DASH_PREFIX}/tasks/{job_id}/edit", data=payload)
+
+    assert applied.status_code == 200
+    assert "Task update applied." in applied.text
+    assert "Applied Changes" in applied.text
+    task = scheduler.get_task(job_id)
+    assert task is not None
+    assert task.name == "edit-after"
+    assert task.coalesce is False
+    assert task.max_instances == 4
+    assert task.mistrigger_grace_time is None
+
+    audit = client.get(f"{DASH_PREFIX}/audit/?action=task.update")
+    assert audit.status_code == 200
+    assert "Task Update" in audit.text
+    assert job_id in audit.text
 
 
 def test_dashboard_index_shows_recent_task_metadata(client: TestClient):
@@ -388,10 +620,43 @@ def test_tasks_filter_by_state_and_executor(client: TestClient):
 def test_tasks_partial_preserves_active_filters(client: TestClient):
     _create_task(client, "filter-me")
 
-    response = client.get(f"{DASH_PREFIX}/tasks/partials/table?q=filter&state=scheduled")
+    response = client.get(
+        f"{DASH_PREFIX}/tasks/partials/table?q=filter&state=scheduled&page=2&per_page=25"
+    )
 
     assert response.status_code == 200
-    assert "q=filter&amp;state=scheduled" in response.text
+    assert "q=filter&amp;state=scheduled&amp;per_page=25" in response.text
+
+
+def test_tasks_table_paginates_full_page(client: TestClient):
+    _create_task(client, "alpha-page")
+    _create_task(client, "bravo-page")
+    _create_task(client, "charlie-page")
+
+    response = client.get(f"{DASH_PREFIX}/tasks/?sort=name&per_page=2")
+
+    assert response.status_code == 200
+    assert "Showing 1-2 of 3 matching tasks" in response.text
+    assert "Page 1 of 2" in response.text
+    assert "alpha-page" in response.text
+    assert "bravo-page" in response.text
+    assert "charlie-page" not in response.text
+    assert "page=2&amp;per_page=2" in response.text
+
+
+def test_tasks_table_paginates_partial_page(client: TestClient):
+    _create_task(client, "alpha-partial")
+    _create_task(client, "bravo-partial")
+    _create_task(client, "charlie-partial")
+
+    response = client.get(f"{DASH_PREFIX}/tasks/partials/table?sort=name&per_page=2&page=2")
+
+    assert response.status_code == 200
+    assert "Showing 3-3 of 3 matching tasks" in response.text
+    assert "Page 2 of 2" in response.text
+    assert "charlie-partial" in response.text
+    assert "alpha-partial" not in response.text
+    assert "bravo-partial" not in response.text
 
 
 def test_tasks_search_reset_link_clears_query(client: TestClient):

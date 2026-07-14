@@ -1,199 +1,194 @@
 {% extends "layout.html" %}
 {% block content %}
-<div class="bg-white border rounded-xl shadow-sm overflow-hidden">
-  <!-- Header / Toolbar -->
-  <div class="px-5 py-4 border-b flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-    <div class="flex items-center gap-3">
-      <div class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[#f06824]/10 text-[#f06824]">
-        <!-- List icon -->
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10" />
-        </svg>
-      </div>
+<div class="az-page az-task-page" x-data="asynczTasks">
+  <section class="az-stat-grid">
+    <article class="az-stat-card az-stat-card--accent">
+      <div class="az-stat-label">Visible</div>
+      <div class="az-stat-value">{{ visible_tasks }}</div>
+      <div class="az-stat-detail">{{ total_tasks }} total tasks</div>
+    </article>
+    <article class="az-stat-card az-stat-card--success">
+      <div class="az-stat-label">Scheduled</div>
+      <div class="az-stat-value">{{ scheduled_tasks }}</div>
+      <div class="az-stat-detail">Normal trigger execution</div>
+    </article>
+    <article class="az-stat-card az-stat-card--warning">
+      <div class="az-stat-label">Paused</div>
+      <div class="az-stat-value">{{ paused_tasks }}</div>
+      <div class="az-stat-detail">Can be resumed or manually run</div>
+    </article>
+    <article class="az-stat-card">
+      <div class="az-stat-label">Pending</div>
+      <div class="az-stat-value">{{ pending_tasks }}</div>
+      <div class="az-stat-detail">Waiting for store commit</div>
+    </article>
+  </section>
+
+  <section class="az-panel">
+    <div class="az-panel-header">
       <div>
-        <h2 class="text-lg font-semibold leading-tight">Tasks</h2>
-        <p class="text-sm text-gray-500">{{ visible_tasks }} visible / {{ total_tasks }} total</p>
+        <h2 class="az-panel-title">Tasks</h2>
+        <div class="az-panel-meta">Inspect, filter, pause, resume, remove, or run a task immediately.</div>
+      </div>
+      <div class="az-task-toolbar">
+        <div class="az-segmented" role="group" aria-label="Table density">
+          <button type="button" class="az-segment-button" x-bind:aria-pressed="comfortableDensity" x-on:click="setDensityComfortable">Comfort</button>
+          <button type="button" class="az-segment-button" x-bind:aria-pressed="compactDensity" x-on:click="setDensityCompact">Compact</button>
+        </div>
+        <div class="az-actions">
+          <button type="button" class="az-button" x-on:click="toggleFilters" x-bind:aria-expanded="filtersOpen">Filters</button>
+          <a href="{{ url_for('dashboard:tasks:index') }}" class="az-button">Reset</a>
+          <button type="button" class="az-button az-button--primary" x-on:click="openAddTask">
+            Add Task
+          </button>
+        </div>
       </div>
     </div>
 
-    <div class="flex gap-2 items-center">
-      <form action="" method="get" class="hidden xl:flex xl:flex-wrap xl:items-center xl:justify-end xl:gap-2">
+    <form action="" method="get" class="az-filter-bar" x-show="filtersOpen">
+      <label class="az-field az-field--search">
+        <span>Search</span>
         <input
           name="q"
           value="{{ filters.q }}"
-          placeholder="Search id, name, callable, trigger…"
-          class="w-64 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#f06824]/40"
+          placeholder="id, name, callable, trigger..."
+          class="az-input"
         />
-        <select name="state" class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
+      </label>
+      <label class="az-field">
+        <span>State</span>
+        <select name="state" class="az-select">
           <option value="">Any state</option>
           <option value="scheduled" {% if filters.state == "scheduled" %}selected{% endif %}>Scheduled</option>
           <option value="paused" {% if filters.state == "paused" %}selected{% endif %}>Paused</option>
           <option value="pending" {% if filters.state == "pending" %}selected{% endif %}>Pending</option>
         </select>
-        <select name="executor" class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
+      </label>
+      <label class="az-field">
+        <span>Executor</span>
+        <select name="executor" class="az-select">
           <option value="">Any executor</option>
           {% for executor in available_executors %}
             <option value="{{ executor }}" {% if filters.executor == executor %}selected{% endif %}>{{ executor }}</option>
           {% endfor %}
         </select>
-        <select name="trigger" class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
+      </label>
+      <label class="az-field">
+        <span>Trigger</span>
+        <select name="trigger" class="az-select">
           <option value="">Any trigger</option>
           {% for trigger in available_triggers %}
             <option value="{{ trigger }}" {% if filters.trigger == trigger %}selected{% endif %}>{{ trigger }}</option>
           {% endfor %}
         </select>
-        <select name="sort" class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
-          <option value="next_run_time" {% if filters.sort == "next_run_time" %}selected{% endif %}>Sort: next run</option>
-          <option value="name" {% if filters.sort == "name" %}selected{% endif %}>Sort: name</option>
-          <option value="schedule_state" {% if filters.sort == "schedule_state" %}selected{% endif %}>Sort: state</option>
-          <option value="trigger" {% if filters.sort == "trigger" %}selected{% endif %}>Sort: trigger</option>
+      </label>
+      <label class="az-field">
+        <span>Sort</span>
+        <select name="sort" class="az-select">
+          <option value="next_run_time" {% if filters.sort == "next_run_time" %}selected{% endif %}>Next run</option>
+          <option value="name" {% if filters.sort == "name" %}selected{% endif %}>Name</option>
+          <option value="schedule_state" {% if filters.sort == "schedule_state" %}selected{% endif %}>State</option>
+          <option value="trigger" {% if filters.sort == "trigger" %}selected{% endif %}>Trigger</option>
         </select>
-        <select name="direction" class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
+      </label>
+      <label class="az-field">
+        <span>Direction</span>
+        <select name="direction" class="az-select">
           <option value="asc" {% if filters.direction == "asc" %}selected{% endif %}>Ascending</option>
           <option value="desc" {% if filters.direction == "desc" %}selected{% endif %}>Descending</option>
         </select>
-        <button class="rounded-lg bg-[#f06824] px-3 py-2 text-sm font-medium text-white hover:bg-[#e35d1e]">Apply</button>
-      </form>
-
-      <button type="button"
-              class="inline-flex items-center gap-2 rounded-lg bg-[#f06824] px-3 py-2 text-sm font-medium text-white hover:bg-[#e35d1e]"
-              onclick="document.getElementById('add-modal').showModal()">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-        </svg>
-        Add Task
-      </button>
-
-      <a href="{{ url_for('dashboard:tasks:index') }}"
-         class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm hover:bg-gray-50">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12h15" />
-        </svg>
-        Reset
-      </a>
-    </div>
-  </div>
-
-  <div class="px-5 py-3 border-b bg-white">
-    <div class="flex flex-wrap items-center gap-2 text-sm">
-      <span class="inline-flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-green-700">
-        <span class="h-2 w-2 rounded-full bg-green-500"></span> {{ scheduled_tasks }} scheduled
-      </span>
-      <span class="inline-flex items-center gap-2 rounded-full border border-yellow-200 bg-yellow-50 px-3 py-1 text-yellow-700">
-        <span class="h-2 w-2 rounded-full bg-yellow-500"></span> {{ paused_tasks }} paused
-      </span>
-      <span class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700">
-        <span class="h-2 w-2 rounded-full bg-blue-500"></span> {{ pending_tasks }} pending
-      </span>
-    </div>
-  </div>
-
-  <!-- Bulk actions (acts on checked rows inside the table partial) -->
-  <div class="px-5 py-3 border-b bg-gray-50">
-    <form id="bulk-form" class="flex flex-wrap gap-2 items-center"
-          hx-post="hx/bulk/pause{{ query_suffix }}" hx-target="#tasks-table" hx-swap="innerHTML">
-      <input type="hidden" name="ids" id="bulk-ids" value="" />
-      <span class="text-sm text-gray-600 mr-2">With selected:</span>
-
-      <button type="submit" class="inline-flex items-center gap-1 rounded-md border border-yellow-300 bg-yellow-50 px-3 py-1.5 text-sm font-medium text-yellow-800 hover:bg-yellow-100">Pause</button>
-
-      <button type="button" class="inline-flex items-center gap-1 rounded-md border border-blue-300 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-800 hover:bg-blue-100"
-              onclick="submitBulk('hx/bulk/run{{ query_suffix }}')">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M8 5v14l11-7z" />
-        </svg>
-        Run
-      </button>
-
-      <button type="button" class="inline-flex items-center gap-1 rounded-md border border-green-300 bg-green-50 px-3 py-1.5 text-sm font-medium text-green-800 hover:bg-green-100"
-              onclick="submitBulk('hx/bulk/resume{{ query_suffix }}')">Resume</button>
-
-      <button type="button" class="inline-flex items-center gap-1 rounded-md border border-red-300 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-800 hover:bg-red-100"
-              onclick="if(confirm('Remove selected tasks?')) submitBulk('hx/bulk/remove{{ query_suffix }}')">Remove</button>
+      </label>
+      <label class="az-field">
+        <span>Rows</span>
+        <select name="per_page" class="az-select">
+          {% for option in pagination.page_size_options %}
+            <option value="{{ option }}" {% if filters.per_page == option %}selected{% endif %}>{{ option }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <button class="az-button az-button--primary">Apply</button>
     </form>
-  </div>
 
-  <!-- HTMX table container: auto-load + auto-refresh + target for swaps -->
-  <div id="tasks-table" class="overflow-x-auto"
-       hx-get="partials/table{{ query_suffix }}"
-       hx-trigger="load once, every 60s"
-       hx-request="queue:last"
-       hx-swap="innerHTML">
-    {% include "tasks/_table.html" %}
-  </div>
+    <div class="az-filter-bar az-bulk-bar">
+      <div id="bulk-form" class="az-actions">
+        <input type="hidden" name="ids" id="bulk-ids" x-bind:value="selectedPayload" />
+        <span class="az-bulk-selection" x-text="selectedLabel">0 selected</span>
+        <button type="button" class="az-button az-button--primary"
+                hx-post="hx/bulk/run{{ query_suffix }}" hx-target="#tasks-table" hx-swap="innerHTML"
+                hx-include="#bulk-ids" x-on:click="refreshSelection" x-bind:disabled="noSelection">Run now</button>
+        <button type="button" class="az-button az-button--warning"
+                hx-post="hx/bulk/pause{{ query_suffix }}" hx-target="#tasks-table" hx-swap="innerHTML"
+                hx-include="#bulk-ids" x-on:click="refreshSelection" x-bind:disabled="noSelection">Pause</button>
+        <button type="button" class="az-button az-button--success"
+                hx-post="hx/bulk/resume{{ query_suffix }}" hx-target="#tasks-table" hx-swap="innerHTML"
+                hx-include="#bulk-ids" x-on:click="refreshSelection" x-bind:disabled="noSelection">Resume</button>
+        <button type="button" class="az-button az-button--danger"
+                hx-post="hx/bulk/remove{{ query_suffix }}" hx-target="#tasks-table" hx-swap="innerHTML"
+                hx-include="#bulk-ids" hx-confirm="Remove selected tasks?"
+                x-on:click="refreshSelection" x-bind:disabled="noSelection">Remove</button>
+      </div>
+    </div>
+
+    <div id="tasks-table" class="az-table-wrap az-table-wrap--resizable az-table-wrap--sticky-actions"
+         hx-get="partials/table{{ query_suffix }}"
+         hx-trigger="load once, every 60s"
+         hx-sync="this:replace"
+         hx-swap="innerHTML">
+      {% include "tasks/_table.html" %}
+    </div>
+  </section>
+
+  <dialog id="add-modal" class="az-modal">
+    <div class="az-modal-header">
+      <div>
+        <h3 class="az-panel-title">Add task</h3>
+        <div class="az-panel-meta">Create a scheduled callable using Asyncz triggers.</div>
+      </div>
+      <button type="button" class="az-icon-button" aria-label="Close" title="Close" x-on:click="closeAddTask">x</button>
+    </div>
+    <form hx-post="create" hx-target="#tasks-table" hx-swap="outerHTML" x-on:submit="closeAddTask">
+      <div class="az-modal-body">
+        <label class="az-field">
+          <span>Callable</span>
+          <input name="callable_path" required placeholder="myapp.jobs:ping" class="az-input" />
+        </label>
+
+        <div class="az-form-grid az-form-grid--spaced">
+          <label class="az-field">
+            <span>Name</span>
+            <input name="name" placeholder="Human-readable name" class="az-input" />
+          </label>
+          <label class="az-field">
+            <span>Store alias</span>
+            <input name="store" placeholder="default" class="az-input" />
+          </label>
+          <label class="az-field">
+            <span>Trigger type</span>
+            <select name="trigger_type" class="az-select">
+              <option value="interval">interval</option>
+              <option value="cron">cron</option>
+              <option value="date">date</option>
+            </select>
+          </label>
+          <label class="az-field">
+            <span>Trigger value</span>
+            <input name="trigger_value" placeholder="10s | */5 * * * * | 2026-01-01T10:00:00" class="az-input" />
+          </label>
+          <label class="az-field">
+            <span>*args (JSON)</span>
+            <input name="args" placeholder='["a", 123]' class="az-input" />
+          </label>
+          <label class="az-field">
+            <span>**kwargs (JSON)</span>
+            <input name="kwargs" placeholder='{"flag": true, "x": 7}' class="az-input" />
+          </label>
+        </div>
+      </div>
+      <div class="az-form-actions">
+        <button type="button" class="az-button" x-on:click="closeAddTask">Cancel</button>
+        <button type="submit" class="az-button az-button--primary">Create</button>
+      </div>
+    </form>
+  </dialog>
 </div>
-
-<!-- Add Task Modal -->
-<dialog id="add-modal" class="rounded-xl p-0 backdrop:bg-black/30">
-  <form method="dialog" class="absolute right-3 top-2">
-    <button class="rounded-md border bg-white px-2 py-1 text-xs">Close</button>
-  </form>
-  <div class="w-[64rem] max-w-[90vw] p-5">
-    <h3 class="text-lg font-semibold mb-3">Add task</h3>
-    <form hx-post="create" hx-target="#tasks-table" hx-swap="outerHTML" onsubmit="document.getElementById('add-modal').close()">
-      <label class="block text-sm text-gray-600 mb-1">Callable (pkg.mod:func)</label>
-      <input name="callable_path" required placeholder="myapp.jobs:ping"
-             class="w-full rounded-lg border border-gray-200 px-3 py-2 mb-3" />
-
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="block text-sm text-gray-600 mb-1">Name</label>
-          <input name="name" placeholder="human-readable name" class="w-full rounded-lg border border-gray-200 px-3 py-2" />
-        </div>
-        <div>
-          <label class="block text-sm text-gray-600 mb-1">Store alias</label>
-          <input name="store" placeholder="default" class="w-full rounded-lg border border-gray-200 px-3 py-2" />
-        </div>
-      </div>
-
-      <div class="grid grid-cols-2 gap-3 mt-3">
-        <div>
-          <label class="block text-sm text-gray-600 mb-1">Trigger type</label>
-          <select name="trigger_type" class="w-full rounded-lg border border-gray-200 px-3 py-2">
-            <option value="interval">interval</option>
-            <option value="cron">cron</option>
-            <option value="date">date</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm text-gray-600 mb-1">Trigger value</label>
-          <input name="trigger_value" placeholder="10s | */5 * * * * | 2026-01-01T10:00:00" class="w-full rounded-lg border border-gray-200 px-3 py-2" />
-        </div>
-      </div>
-
-      <div class="grid grid-cols-2 gap-3 mt-3">
-        <div>
-          <label class="block text-sm text-gray-600 mb-1">*args (JSON)</label>
-          <input name="args" placeholder='["a", 123]' class="w-full rounded-lg border border-gray-200 px-3 py-2" />
-        </div>
-        <div>
-          <label class="block text-sm text-gray-600 mb-1">**kwargs (JSON)</label>
-          <input name="kwargs" placeholder='{"flag": true, "x": 7}' class="w-full rounded-lg border border-gray-200 px-3 py-2" />
-        </div>
-      </div>
-
-      <div class="mt-4 flex justify-end gap-2">
-        <button type="button" class="rounded-lg border px-3 py-2 text-sm" onclick="document.getElementById('add-modal').close()">Cancel</button>
-        <button type="submit" class="rounded-lg bg-[#f06824] px-3 py-2 text-sm font-medium text-white hover:bg-[#e35d1e]">Create</button>
-      </div>
-    </form>
-  </div>
-</dialog>
-
-<script>
-  // Collect selected rows into the hidden bulk input
-  function gatherSelected() {
-    const ids = Array.from(document.querySelectorAll('input[name="row"]:checked')).map(x => x.value);
-    const el = document.getElementById('bulk-ids');
-    if (el) el.value = JSON.stringify(ids);
-    return ids;
-  }
-  function submitBulk(url) {
-    const ids = gatherSelected();
-    if (!ids.length) return;
-    const form = document.getElementById('bulk-form');
-    form.setAttribute('hx-post', url);
-    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-  }
-</script>
 {% endblock %}

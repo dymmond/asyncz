@@ -36,9 +36,7 @@ class DashboardConfig:
     description: str = "A simple dashboard for monitoring Asyncz tasks."
     """A brief description of the dashboard's purpose."""
 
-    favicon: str = (
-        "https://raw.githubusercontent.com/dymmond/asyncz/refs/heads/main/docs/statics/favicon.ico"
-    )
+    favicon: str = "/static/favicon.ico"
     """URL path or external URL for the favicon."""
 
     dashboard_url_prefix: str = "/dashboard"
@@ -107,6 +105,20 @@ def _normalize_prefix(value: str | None) -> str:
     return v if v == "/" else v.rstrip("/")
 
 
+def _combine_prefixes(external_prefix: str, configured_prefix: str) -> str:
+    """Join a proxy prefix and dashboard prefix without double-prefixing."""
+    external = _normalize_prefix(external_prefix)
+    configured = _normalize_prefix(configured_prefix)
+
+    if external == "/":
+        return configured
+    if configured == "/":
+        return external
+    if external == configured or external.endswith(configured):
+        return external
+    return f"{external}{configured}"
+
+
 def get_effective_prefix(request: Request | None = None) -> str:
     """Compute the effective base URL prefix for the dashboard.
 
@@ -120,14 +132,13 @@ def get_effective_prefix(request: Request | None = None) -> str:
         getattr(monkay.settings.dashboard_config, "dashboard_url_prefix", "/")
     )
 
-    # Prefer the configured prefix when it's meaningful (not '/')
-    if configured_prefix != "/":
-        return configured_prefix
-
-    # Only when configured is '/' do we consider the mount root
     if request is not None:
         scope = getattr(request, "scope", {}) or {}
-        mount_prefix = _normalize_prefix(scope.get("root_path") or "/")
-        return mount_prefix
+        external_prefix = _normalize_prefix(scope.get("app_root_path") or "/")
+        if external_prefix != "/":
+            return _combine_prefixes(external_prefix, configured_prefix)
 
-    return "/"
+        if configured_prefix == "/":
+            return _normalize_prefix(scope.get("root_path") or "/")
+
+    return configured_prefix

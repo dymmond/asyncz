@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from asyncz.enums import SchedulerState, TaskScheduleState
-from asyncz.events.base import SchedulerEvent
+from asyncz.events.base import SchedulerEvent, TaskEvent
 from asyncz.events.constants import (
     ALL_EVENTS,
     ALL_TASKS_REMOVED,
@@ -757,6 +757,101 @@ class TestBaseScheduler:
         with pytest.raises(ValueError):
             scheduler.get_task_infos(sort_by="unsupported")
 
+    def test_get_scheduler_info_summarizes_runtime_state(self, freeze_time):
+        scheduler = DummyScheduler(identity="worker-a", executors={"io": DebugExecutor()})
+        scheduler.start(paused=True)
+        started_at = freeze_time.current
+        freeze_time.set(started_at + timedelta(seconds=42))
+        scheduler.add_task(
+            lambda: None,
+            "date",
+            id="scheduled",
+            name="Scheduled",
+            run_at=freeze_time.current + timedelta(minutes=1),
+        )
+        scheduler.add_task(lambda: None, "interval", seconds=30, id="paused", name="Paused")
+        scheduler.pause_task("paused")
+
+        snapshot = scheduler.get_scheduler_info()
+
+        assert snapshot.identity == "worker-a"
+        assert snapshot.state is SchedulerState.STATE_PAUSED
+        assert snapshot.state_label == "paused"
+        assert snapshot.running is True
+        assert snapshot.started_at == started_at
+        assert snapshot.uptime_seconds == 42
+        assert snapshot.timezone == str(scheduler.timezone)
+        assert snapshot.executor_aliases == ("default", "io")
+        assert snapshot.store_aliases == ("default",)
+        assert snapshot.task_count == 2
+        assert snapshot.scheduled_task_count == 1
+        assert snapshot.paused_task_count == 1
+        assert snapshot.pending_task_count == 0
+        assert snapshot.submitted_task_count == 2
+
+        instance_snapshots = scheduler.get_scheduler_instance_infos()
+        assert len(instance_snapshots) == 1
+        instance = instance_snapshots[0]
+        assert instance.identity == "worker-a"
+        assert instance.scope == "process-local"
+        assert instance.state is SchedulerState.STATE_PAUSED
+        assert instance.active is True
+        assert instance.stale is False
+        assert instance.started_at == started_at
+        assert instance.last_seen_at == freeze_time.current
+        assert instance.uptime_seconds == 42
+        assert instance.heartbeat_age_seconds == 0
+        assert instance.stale_after_seconds == 30
+        assert instance.task_count == 2
+
+        scheduler.shutdown()
+        stopped_snapshot = scheduler.get_scheduler_info()
+        assert stopped_snapshot.started_at is None
+        assert stopped_snapshot.uptime_seconds is None
+        stopped_instance = scheduler.get_scheduler_instance_infos()[0]
+        assert stopped_instance.active is False
+        assert stopped_instance.stale is True
+
+    def test_scheduler_identity_is_generated_when_omitted(self):
+        first = DummyScheduler()
+        second = DummyScheduler(identity="")
+
+        assert first.identity.startswith("DummyScheduler-")
+        assert second.identity.startswith("DummyScheduler-")
+        assert first.identity != second.identity
+
+    def test_preview_task_runs_does_not_mutate_task(self, freeze_time):
+        scheduler = DummyScheduler(executors={"default": DebugExecutor()})
+        scheduler.start(paused=True)
+        task = scheduler.add_task(
+            lambda: None,
+            "interval",
+            seconds=30,
+            id="preview",
+            name="Preview",
+            start_at=freeze_time.current + timedelta(minutes=1),
+        )
+        original_next_run_time = task.next_run_time
+
+        preview = scheduler.preview_task_runs("preview", count=3, now=freeze_time.current)
+
+        assert preview is not None
+        assert preview.task.id == "preview"
+        assert preview.requested_count == 3
+        assert preview.run_times == (
+            original_next_run_time,
+            original_next_run_time + timedelta(seconds=30),
+            original_next_run_time + timedelta(seconds=60),
+        )
+        assert preview.exhausted is False
+        assert task.next_run_time == original_next_run_time
+
+    def test_preview_task_runs_validates_count(self):
+        scheduler = DummyScheduler()
+
+        with pytest.raises(ValueError, match="count must be between 1 and 50"):
+            scheduler.preview_task_runs("missing", count=0)
+
     @pytest.mark.parametrize("scheduler_started", [True, False], ids=["running", "stopped"])
     @pytest.mark.parametrize("store", [None, "other"], ids=["all stores", "specific store"])
     def test_get_tasks(self, scheduler, scheduler_started, store):
@@ -940,6 +1035,16 @@ class TestBaseScheduler:
         assert not scheduler.listeners[0][0].called
         scheduler.listeners[1][0].assert_called_once_with(event)
 
+    def test_dispatch_task_event_adds_scheduler_identity(self, scheduler):
+        event = TaskEvent(code=TASK_SUBMITTED, task_id="task-a")
+        listener = MagicMock()
+        scheduler.listeners = [(listener, TASK_SUBMITTED)]
+
+        scheduler.dispatch_event(event)
+
+        assert event.scheduler_identity == scheduler.identity
+        listener.assert_called_once_with(event)
+
     @pytest.mark.parametrize("load_plugin", [True, False], ids=["load plugin", "plugin loaded"])
     @patch("asyncz.schedulers.base.BaseScheduler.resolve_load_plugin")
     def test_create_trigger(self, mocked_plugin, scheduler, load_plugin):
@@ -1006,6 +1111,25 @@ class TestBaseScheduler:
 
         assert len(events) == 1
         assert events[0].scheduled_run_times == [freeze_time.get(scheduler.timezone)]
+
+    def test_task_submitted_event_reports_coalesced_run_times(self, scheduler):
+        events = []
+        now = datetime.now(scheduler.timezone)
+        first_due_time = now - timedelta(minutes=3)
+        scheduler.add_task(
+            lambda: None,
+            "interval",
+            minutes=1,
+            next_run_time=first_due_time,
+            coalesce=True,
+        )
+        scheduler.add_listener(events.append, TASK_SUBMITTED)
+        scheduler.start()
+        scheduler.process_tasks()
+
+        assert len(events) == 1
+        assert events[0].scheduled_run_times == [now]
+        assert events[0].coalesced_run_count == 3
 
     @pytest.mark.parametrize(
         "scheduler_events", [TASK_MAX_INSTANCES], indirect=["scheduler_events"]

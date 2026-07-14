@@ -152,6 +152,7 @@ Important behavior:
 
 - `run_task()` uses the task's configured executor
 - it dispatches `TASK_SUBMITTED` (or `TASK_MAX_INSTANCES`) just like the main scheduler loop
+- it honors `coalesce=True` and reports omitted due run times on the submission event
 - it recomputes and persists the next run time after submission
 - if the trigger is exhausted, `remove_finished=True` removes the task while `False` keeps it paused
 
@@ -213,6 +214,41 @@ Available placeholders:
 - `{pgrp}`: the process group id
 
 When `lock_path` is set, Asyncz also defaults `startup_delay` to `1` second so multiple workers do not immediately stampede the same persisted tasks on startup.
+
+## Scheduler identity
+
+Every scheduler has an `identity` used by runtime inspection, the CLI, and the
+dashboard to distinguish the active process. Asyncz generates one automatically
+from the scheduler class and a short random suffix, or you can set a stable value
+when constructing the scheduler:
+
+```python
+from asyncz.schedulers import AsyncIOScheduler
+
+scheduler = AsyncIOScheduler(identity="billing-worker-a")
+```
+
+The identity is reported by `scheduler.get_scheduler_info()`, `asyncz status`,
+`asyncz instances`, and the dashboard runtime and instances pages together with
+`started_at` and `uptime_seconds`.
+
+## Scheduler instance inspection
+
+Use `scheduler.get_scheduler_instance_infos()` to inspect scheduler instances
+visible to the current runtime:
+
+```python
+instances = scheduler.get_scheduler_instance_infos()
+for instance in instances:
+    print(instance.identity, instance.active, instance.last_seen_at)
+```
+
+This contract is process-local. It reports the scheduler object that the current
+process can reach, including identity, active/stale state, last-seen time,
+heartbeat age, store aliases, executor aliases, and task counts.
+The local inspection call refreshes `last_seen_at` for the reachable scheduler;
+`stale` marks a stopped local runtime. It does not reconstruct distributed
+scheduler membership from task stores.
 
 ## ASGI integration and context managers
 

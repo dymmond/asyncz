@@ -5,6 +5,7 @@ import contextlib
 import inspect
 import logging
 import sys
+import uuid
 import warnings
 from abc import abstractmethod
 from collections import defaultdict
@@ -48,14 +49,15 @@ from asyncz.executors.types import ExecutorType
 from asyncz.locks import RLockProtected
 from asyncz.schedulers import defaults
 from asyncz.schedulers.datastructures import TaskDefaultStruct
+from asyncz.schedulers.inspection import SchedulerInfo, SchedulerInstanceInfo
 from asyncz.schedulers.types import LoggersType, SchedulerType
 from asyncz.stores.memory import MemoryStore
 from asyncz.stores.types import StoreType
-from asyncz.tasks.inspection import TaskInfo
+from asyncz.tasks.inspection import TaskInfo, TaskRunPreview
 from asyncz.tasks.types import TaskType
 from asyncz.triggers.types import TriggerType
 from asyncz.typing import Undefined, undefined
-from asyncz.utils import maybe_ref, timedelta_seconds, to_timezone_with_fallback
+from asyncz.utils import maybe_ref, timedelta_seconds, to_datetime, to_timezone_with_fallback
 
 if TYPE_CHECKING:
     from asyncz.protocols import LockProtectedProtocol
@@ -76,6 +78,7 @@ class BaseScheduler(SchedulerType):
     Takes the following keyword arguments:
 
     Args:
+        identity: Stable identifier for this scheduler process. Generated when omitted.
         logger_name: suffix added to the scheduler logger namespace.
         timezone: The default time zone (defaults to the local timezone).
         store_retry_interval: The minimum number of seconds to wait between
@@ -108,6 +111,10 @@ class BaseScheduler(SchedulerType):
         self.listeners_lock: RLock = self.create_lock()
         self.pending_tasks: list[tuple[TaskType, bool, bool]] = []
         self.state: Union[SchedulerState, Any] = SchedulerState.STATE_STOPPED
+        self.identity = ""
+        self.started_at: datetime | None = None
+        self.last_seen_at: datetime | None = None
+        self.heartbeat_stale_after: float = 30.0
 
         self.ref_counter: int = 0
         self.ref_lock: Lock = Lock()
@@ -217,6 +224,8 @@ class BaseScheduler(SchedulerType):
             del self.pending_tasks[:]
 
         self.state = SchedulerState.STATE_PAUSED if paused else SchedulerState.STATE_RUNNING
+        self.started_at = datetime.now(self.timezone)
+        self.last_seen_at = self.started_at
         self.loggers[self.logger_name].info("Scheduler started.")
         self.dispatch_event(SchedulerEvent(code=SCHEDULER_START))
 
@@ -265,6 +274,8 @@ class BaseScheduler(SchedulerType):
             raise SchedulerNotRunningError()
 
         self.state = SchedulerState.STATE_STOPPED
+        self.last_seen_at = datetime.now(self.timezone)
+        self.started_at = None
 
         with self.executor_lock, self.store_lock:
             for executor in self.executors.values():
@@ -756,10 +767,13 @@ class BaseScheduler(SchedulerType):
         task, store_alias = self.lookup_task(task_id, store)
         now = datetime.now(self.timezone)
         run_times = task.get_run_times(self.timezone, now)
+        coalesced_run_count = 0
         if not run_times:
             if not force:
                 return task
             run_times = [now]
+        else:
+            run_times, coalesced_run_count = self._coalesce_run_times(task, run_times)
 
         assert task.executor is not None, "Task has no executor configured."
         executor = self.lookup_executor(task.executor)
@@ -778,6 +792,8 @@ class BaseScheduler(SchedulerType):
                     task_id=task_id,
                     store=store_alias,
                     scheduled_run_times=run_times,
+                    source="manual",
+                    coalesced_run_count=coalesced_run_count,
                 )
             )
             raise
@@ -795,6 +811,8 @@ class BaseScheduler(SchedulerType):
                     task_id=task_id,
                     store=store_alias,
                     scheduled_run_times=run_times,
+                    source="manual",
+                    coalesced_run_count=coalesced_run_count,
                 )
             )
 
@@ -819,6 +837,13 @@ class BaseScheduler(SchedulerType):
                 self.lookup_store(store_alias).update_task(task)
 
         return task
+
+    def _coalesce_run_times(
+        self, task: TaskType, run_times: list[datetime]
+    ) -> tuple[list[datetime], int]:
+        if run_times and task.coalesce:
+            return run_times[-1:], len(run_times) - 1
+        return run_times, 0
 
     def get_tasks(self, store: Optional[str] = None) -> list[TaskType]:
         """
@@ -882,7 +907,7 @@ class BaseScheduler(SchedulerType):
         descending: bool = False,
     ) -> list[TaskInfo]:
         """
-        Return task snapshots with scheduler-native filtering and sorting.
+        Return task snapshots with scheduler filtering and sorting.
 
         This API is meant for read-oriented operational tooling. Instead of every
         consumer re-implementing its own serialization, filtering, and ordering
@@ -975,6 +1000,154 @@ class BaseScheduler(SchedulerType):
 
         return sorted(infos, key=key, reverse=descending)
 
+    def preview_task_runs(
+        self,
+        task_id: str,
+        store: Optional[str] = None,
+        *,
+        count: int = 5,
+        now: datetime | None = None,
+    ) -> Union[TaskRunPreview, None]:
+        """
+        Return upcoming run times for a task without mutating scheduler state.
+
+        Previewing is deliberately bounded because trigger calculations can be
+        expensive for complex cron expressions or combination triggers.
+        """
+
+        if not 1 <= count <= 50:
+            raise ValueError("count must be between 1 and 50.")
+
+        task = self.get_task(task_id, store)
+        if task is None:
+            return None
+
+        preview_now = to_datetime(now or datetime.now(self.timezone), self.timezone, "now")
+        assert preview_now is not None
+        trigger = task.trigger
+        if trigger is None:
+            return TaskRunPreview(
+                task=task.snapshot(),
+                timezone=str(self.timezone),
+                generated_at=preview_now,
+                requested_count=count,
+                run_times=(),
+                exhausted=True,
+            )
+
+        run_times: list[datetime] = []
+        next_run_time = task.next_run_time or trigger.get_next_trigger_time(
+            self.timezone, None, preview_now
+        )
+        exhausted = next_run_time is None
+
+        while next_run_time is not None and len(run_times) < count:
+            run_times.append(next_run_time)
+            previous_time = next_run_time
+            next_run_time = trigger.get_next_trigger_time(
+                self.timezone, previous_time, previous_time
+            )
+            exhausted = next_run_time is None
+
+        return TaskRunPreview(
+            task=task.snapshot(),
+            timezone=str(self.timezone),
+            generated_at=preview_now,
+            requested_count=count,
+            run_times=tuple(run_times),
+            exhausted=exhausted,
+        )
+
+    def get_scheduler_info(self) -> SchedulerInfo:
+        """
+        Return an immutable scheduler-level inspection snapshot.
+
+        The snapshot combines lifecycle state owned by the scheduler with task
+        counts derived from the scheduler task inspection API. Consumers
+        should prefer this over reading ``state``, ``stores``, or ``executors``
+        directly.
+        """
+
+        state = SchedulerState(self.state)
+        task_infos = self.get_task_infos()
+        started_at = self.started_at if state != SchedulerState.STATE_STOPPED else None
+        uptime_seconds = (
+            max(0.0, (datetime.now(self.timezone) - started_at).total_seconds())
+            if started_at is not None
+            else None
+        )
+
+        with self.executor_lock:
+            executor_aliases = tuple(sorted(self.executors))
+        with self.store_lock:
+            store_aliases = tuple(sorted(self.stores))
+
+        return SchedulerInfo(
+            identity=self.identity,
+            state=state,
+            state_label=state.name.removeprefix("STATE_").lower(),
+            running=self.running,
+            started_at=started_at,
+            uptime_seconds=uptime_seconds,
+            timezone=str(self.timezone),
+            executor_aliases=executor_aliases,
+            store_aliases=store_aliases,
+            task_count=len(task_infos),
+            scheduled_task_count=sum(
+                1 for info in task_infos if info.schedule_state is TaskScheduleState.SCHEDULED
+            ),
+            paused_task_count=sum(
+                1 for info in task_infos if info.schedule_state is TaskScheduleState.PAUSED
+            ),
+            pending_task_count=sum(
+                1 for info in task_infos if info.schedule_state is TaskScheduleState.PENDING
+            ),
+            submitted_task_count=sum(1 for info in task_infos if info.submitted),
+            store_retry_interval=float(self.store_retry_interval),
+            startup_delay=float(self.startup_delay),
+        )
+
+    def get_scheduler_instance_infos(self) -> tuple[SchedulerInstanceInfo, ...]:
+        """
+        Return process-local scheduler instance inspection snapshots.
+
+        Asyncz does not yet persist distributed scheduler heartbeats in stores, so
+        this method reports the scheduler instance represented by this runtime
+        object. The tuple return shape is intentionally list-friendly for future
+        instance registries persisted in stores.
+        """
+
+        now = datetime.now(self.timezone)
+        self.last_seen_at = now
+        snapshot = self.get_scheduler_info()
+        last_seen_at = now
+        heartbeat_age_seconds = max(0.0, (now - last_seen_at).total_seconds())
+        stale = not snapshot.running
+
+        return (
+            SchedulerInstanceInfo(
+                identity=snapshot.identity,
+                scope="process-local",
+                state=snapshot.state,
+                state_label=snapshot.state_label,
+                active=snapshot.running and not stale,
+                stale=stale,
+                started_at=snapshot.started_at,
+                last_seen_at=last_seen_at,
+                uptime_seconds=snapshot.uptime_seconds,
+                heartbeat_age_seconds=heartbeat_age_seconds,
+                stale_after_seconds=float(self.heartbeat_stale_after),
+                timezone=snapshot.timezone,
+                executor_aliases=snapshot.executor_aliases,
+                store_aliases=snapshot.store_aliases,
+                task_count=snapshot.task_count,
+                scheduled_task_count=snapshot.scheduled_task_count,
+                paused_task_count=snapshot.paused_task_count,
+                pending_task_count=snapshot.pending_task_count,
+                submitted_task_count=snapshot.submitted_task_count,
+            ),
+        )
+
     def delete_task(
         self, task_id: Union[TaskType, str, None], store: Optional[str] = None
     ) -> None:
@@ -1048,6 +1221,14 @@ class BaseScheduler(SchedulerType):
         """
         Applies initial configurations called by the Base constructor.
         """
+        self.identity = str(
+            config.pop("identity", None)
+            or self.identity
+            or f"{self.__class__.__name__}-{uuid.uuid4().hex[:12]}"
+        )
+        self.started_at = None
+        self.last_seen_at = None
+        self.heartbeat_stale_after = float(config.pop("heartbeat_stale_after", 30))
         self.timezone = to_timezone_with_fallback(config.pop("timezone", None))
         self.lock_path = str(config.pop("lock_path", "") or "")
         self.store_retry_interval = float(config.pop("store_retry_interval", 10))
@@ -1181,6 +1362,9 @@ class BaseScheduler(SchedulerType):
         Args:
             event: The SchedulerEvent to be sent.
         """
+        if isinstance(event, TaskEvent) and event.scheduler_identity is None:
+            event.scheduler_identity = self.identity or None
+
         with self.listeners_lock:
             listeners = tuple(self.listeners)
 
@@ -1375,7 +1559,7 @@ class BaseScheduler(SchedulerType):
                     continue
 
                 run_times = task.get_run_times(self.timezone, now)
-                run_times = run_times[-1:] if run_times and task.coalesce else run_times
+                run_times, coalesced_run_count = self._coalesce_run_times(task, run_times)
 
                 if run_times:
                     try:
@@ -1390,6 +1574,8 @@ class BaseScheduler(SchedulerType):
                             task_id=task.id,
                             store=store_alias,
                             scheduled_run_times=run_times,
+                            source="scheduled",
+                            coalesced_run_count=coalesced_run_count,
                         )
                         events.append(event)
                     except Exception as exc:
@@ -1402,6 +1588,8 @@ class BaseScheduler(SchedulerType):
                             task_id=task.id,
                             store=store_alias,
                             scheduled_run_times=run_times,
+                            source="scheduled",
+                            coalesced_run_count=coalesced_run_count,
                         )
                         events.append(event)
 

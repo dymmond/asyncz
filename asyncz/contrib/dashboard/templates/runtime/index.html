@@ -1,0 +1,158 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="az-page">
+  <section class="az-stat-grid">
+    <article class="az-stat-card {% if scheduler_running %}az-stat-card--success{% else %}az-stat-card--danger{% endif %}">
+      <div class="az-stat-label">Scheduler</div>
+      <div class="az-stat-value">{% if scheduler_running %}Running{% else %}Stopped{% endif %}</div>
+      <div class="az-stat-detail">State: {{ scheduler_state }} · code {{ scheduler_state_code }}</div>
+    </article>
+
+    <article class="az-stat-card az-stat-card--accent">
+      <div class="az-stat-label">Task Inventory</div>
+      <div class="az-stat-value">{{ total_tasks }}</div>
+      <div class="az-stat-detail">{{ scheduled_tasks }} scheduled, {{ paused_tasks }} paused, {{ pending_tasks }} pending</div>
+    </article>
+
+    <article class="az-stat-card az-stat-card--info">
+      <div class="az-stat-label">Registered</div>
+      <div class="az-stat-value">{{ submitted_tasks }}</div>
+      <div class="az-stat-detail">Tasks accepted into the scheduler lifecycle</div>
+    </article>
+
+    <article class="az-stat-card az-stat-card--warning">
+      <div class="az-stat-label">Components</div>
+      <div class="az-stat-value">{{ stores|length }} / {{ executors|length }}</div>
+      <div class="az-stat-detail">Stores / executors registered on this scheduler</div>
+    </article>
+  </section>
+
+  <section class="az-panel">
+    <div class="az-panel-header">
+      <div>
+        <h2 class="az-panel-title">Runtime Profile</h2>
+        <div class="az-panel-meta">Read-only scheduler metadata from the active runtime</div>
+      </div>
+      <span class="az-badge {% if scheduler_running %}az-badge--success{% else %}az-badge--danger{% endif %}">
+        {{ scheduler_state|title }}
+      </span>
+    </div>
+    <div class="az-panel-body">
+      <div class="az-kv-grid">
+        <div class="az-kv">
+          <span>Scheduler ID</span>
+          <strong class="az-mono">{{ scheduler_identity }}</strong>
+        </div>
+        <div class="az-kv">
+          <span>Started At</span>
+          <strong>{{ started_at }}</strong>
+        </div>
+        <div class="az-kv">
+          <span>Uptime</span>
+          <strong>{{ uptime_seconds }}{% if uptime_seconds != "-" %}s{% endif %}</strong>
+        </div>
+        <div class="az-kv">
+          <span>Timezone</span>
+          <strong>{{ timezone }}</strong>
+        </div>
+        <div class="az-kv">
+          <span>Store Retry</span>
+          <strong>{{ store_retry_interval }}s</strong>
+        </div>
+        <div class="az-kv">
+          <span>Startup Delay</span>
+          <strong>{{ startup_delay }}s</strong>
+        </div>
+        <div class="az-kv">
+          <span>Snapshot Time</span>
+          <strong>{{ generated_at }}</strong>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="az-panel-grid">
+    <section class="az-panel">
+      <div class="az-panel-header">
+        <div>
+          <h2 class="az-panel-title">Stores</h2>
+          <div class="az-panel-meta">Persistence backends registered by alias</div>
+        </div>
+        <span class="az-badge az-badge--neutral">{{ stores|length }} total</span>
+      </div>
+
+      <div class="az-table-wrap">
+        <table class="az-table az-table--compact">
+          <thead>
+            <tr>
+              <th>Alias</th>
+              <th>Implementation</th>
+              <th>Tasks</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if not stores %}
+              <tr>
+                <td colspan="3"><div class="az-table-empty">No stores registered.</div></td>
+              </tr>
+            {% else %}
+              {% for store in stores %}
+                <tr>
+                  <td><span class="az-badge az-badge--neutral">{{ store.alias }}</span></td>
+                  <td>
+                    <strong>{{ store.class_name }}</strong>
+                    <div class="az-muted az-mono">{{ store.module }}</div>
+                    <div class="az-muted az-mono">{{ store.logger_name or '-' }}</div>
+                  </td>
+                  <td>{{ store.task_count }}</td>
+                </tr>
+              {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="az-panel">
+      <div class="az-panel-header">
+        <div>
+          <h2 class="az-panel-title">Executors</h2>
+          <div class="az-panel-meta">Execution backends and task assignment counts</div>
+        </div>
+        <span class="az-badge az-badge--neutral">{{ executors|length }} total</span>
+      </div>
+
+      <div class="az-table-wrap">
+        <table class="az-table az-table--compact">
+          <thead>
+            <tr>
+              <th>Alias</th>
+              <th>Implementation</th>
+              <th>Tasks</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if not executors %}
+              <tr>
+                <td colspan="3"><div class="az-table-empty">No executors registered.</div></td>
+              </tr>
+            {% else %}
+              {% for executor in executors %}
+                <tr>
+                  <td><span class="az-badge az-badge--neutral">{{ executor.alias }}</span></td>
+                  <td>
+                    <strong>{{ executor.class_name }}</strong>
+                    <div class="az-muted az-mono">{{ executor.module }}</div>
+                    <div class="az-muted az-mono">{{ executor.logger_name or '-' }}</div>
+                  </td>
+                  <td>{{ executor.task_count }}</td>
+                </tr>
+              {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </section>
+</div>
+{% endblock %}

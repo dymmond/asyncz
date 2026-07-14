@@ -4,18 +4,30 @@ from typing import Any
 from lilya.routing import Include, RoutePath, Router
 from lilya.staticfiles import StaticFiles
 
+from asyncz.contrib.dashboard.audit import MemoryAuditTrailStorage, get_audit_storage
 from asyncz.contrib.dashboard.controllers import home
+from asyncz.contrib.dashboard.controllers.audit import AuditPageController
+from asyncz.contrib.dashboard.controllers.events import EventsPageController
+from asyncz.contrib.dashboard.controllers.history import (
+    HistoryDetailController,
+    HistoryPageController,
+    HistoryTablePartialController,
+)
+from asyncz.contrib.dashboard.controllers.instances import InstancesPageController
 from asyncz.contrib.dashboard.controllers.logs import (
     LogsPageController,
     LogsTablePartialController,
     get_log_storage,
 )
+from asyncz.contrib.dashboard.controllers.runtime import RuntimePageController
 from asyncz.contrib.dashboard.controllers.tasks import (
     TaskBulkPauseController,
     TaskBulkRemoveController,
     TaskBulkResumeController,
     TaskBulkRunController,
     TaskCreateController,
+    TaskDetailController,
+    TaskEditController,
     TaskHXPauseController,
     TaskHXRemoveController,
     TaskHXResumeController,
@@ -23,16 +35,35 @@ from asyncz.contrib.dashboard.controllers.tasks import (
     TasklistController,
     TaskTablePartialController,
 )
+from asyncz.contrib.dashboard.controllers.timeline import TimelinePageController
+from asyncz.contrib.dashboard.events import install_scheduler_event_listener
+from asyncz.contrib.dashboard.history import (
+    MemoryRunHistoryStorage,
+    install_run_history_listener,
+)
 from asyncz.contrib.dashboard.logs.handler import install_task_log_handler
 from asyncz.contrib.dashboard.logs.storage import LogStorage
 
 
-def create_dashboard_app(scheduler: Any, log_storage: LogStorage | None = None) -> Router:
+def create_dashboard_app(
+    scheduler: Any,
+    log_storage: LogStorage | None = None,
+    run_history_storage: MemoryRunHistoryStorage | None = None,
+    audit_storage: MemoryAuditTrailStorage | None = None,
+) -> Router:
     """
     Build a Lilya sub-application wired to an Asyncz AsyncIOScheduler.
     The scheduler must be a live scheduler instance owned by the host app.
     """
-    install_task_log_handler(storage=get_log_storage(storage=log_storage))
+    resolved_log_storage = get_log_storage(storage=log_storage)
+    get_audit_storage(storage=audit_storage)
+    install_task_log_handler(storage=resolved_log_storage)
+    install_run_history_listener(
+        scheduler,
+        storage=run_history_storage,
+        log_storage=resolved_log_storage,
+    )
+    install_scheduler_event_listener(scheduler)
 
     # Ensure stdlib logs on the namespaced logger bubble up to our handler.
     # Our TaskLogHandler is installed by install_task_log_handler() on a parent logger.
@@ -42,6 +73,62 @@ def create_dashboard_app(scheduler: Any, log_storage: LogStorage | None = None) 
 
     app = Router(
         routes=[
+            Include(
+                path="/audit",
+                routes=[
+                    RoutePath("/", AuditPageController, name="index"),
+                ],
+                name="audit",
+            ),
+            Include(
+                path="/runtime",
+                routes=[
+                    RoutePath(
+                        "/",
+                        RuntimePageController.with_init(scheduler=scheduler),
+                        name="index",
+                    ),
+                ],
+                name="runtime",
+            ),
+            Include(
+                path="/instances",
+                routes=[
+                    RoutePath(
+                        "/",
+                        InstancesPageController.with_init(scheduler=scheduler),
+                        name="index",
+                    ),
+                ],
+                name="instances",
+            ),
+            Include(
+                path="/timeline",
+                routes=[
+                    RoutePath(
+                        "/",
+                        TimelinePageController.with_init(scheduler=scheduler),
+                        name="index",
+                    ),
+                ],
+                name="timeline",
+            ),
+            Include(
+                path="/history",
+                routes=[
+                    RoutePath("/", HistoryPageController, name="index"),
+                    RoutePath("/partials/table", HistoryTablePartialController, name="table"),
+                    RoutePath("/{run_id:str}", HistoryDetailController, name="detail"),
+                ],
+                name="history",
+            ),
+            Include(
+                path="/events",
+                routes=[
+                    RoutePath("/", EventsPageController, name="index"),
+                ],
+                name="events",
+            ),
             Include(
                 path="/logs",
                 routes=[
@@ -67,6 +154,16 @@ def create_dashboard_app(scheduler: Any, log_storage: LogStorage | None = None) 
                         "/create",
                         TaskCreateController.with_init(scheduler=scheduler),
                         name="create",
+                    ),
+                    RoutePath(
+                        "/{task_id:str}/edit",
+                        TaskEditController.with_init(scheduler=scheduler),
+                        name="edit",
+                    ),
+                    RoutePath(
+                        "/{task_id:str}",
+                        TaskDetailController.with_init(scheduler=scheduler),
+                        name="detail",
                     ),
                     RoutePath(
                         "/hx/bulk/pause",

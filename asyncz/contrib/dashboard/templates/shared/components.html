@@ -1,0 +1,76 @@
+{% macro icon(name, class_name="az-icon") -%}
+  <svg class="{{ class_name }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    {% if name == "dashboard" %}
+      <path d="M4 5.5h6.5v6.5H4z"/>
+      <path d="M13.5 5.5H20V12h-6.5z"/>
+      <path d="M4 15h6.5v3.5H4z"/>
+      <path d="M13.5 15H20v3.5h-6.5z"/>
+    {% elif name == "tasks" %}
+      <path d="M4 6.5h16"/>
+      <path d="M4 12h16"/>
+      <path d="M4 17.5h10"/>
+      <path d="M17 16l2 2 3-4"/>
+    {% elif name == "logs" %}
+      <path d="M5 4.5h14v15H5z"/>
+      <path d="M8 8h8"/>
+      <path d="M8 12h8"/>
+      <path d="M8 16h5"/>
+    {% elif name == "history" %}
+      <path d="M4 12a8 8 0 1 0 2.35-5.65"/>
+      <path d="M4 5v5h5"/>
+      <path d="M12 8v4l3 2"/>
+    {% elif name == "events" %}
+      <path d="M6 5h12"/>
+      <path d="M6 12h12"/>
+      <path d="M6 19h12"/>
+      <circle cx="6" cy="5" r="2"/>
+      <circle cx="18" cy="12" r="2"/>
+      <circle cx="6" cy="19" r="2"/>
+    {% elif name == "runtime" %}
+      <path d="M4 12h4l2-6 4 12 2-6h4"/>
+      <path d="M4 19h16"/>
+      <path d="M4 5h16"/>
+    {% elif name == "instances" %}
+      <path d="M6 4h12v5H6z"/>
+      <path d="M6 10.5h12v5H6z"/>
+      <path d="M6 17h12v3H6z"/>
+      <path d="M9 6.5h.01"/>
+      <path d="M9 13h.01"/>
+    {% elif name == "timeline" %}
+      <path d="M5 6h14"/>
+      <path d="M5 12h10"/>
+      <path d="M5 18h7"/>
+      <path d="M18 12v6"/>
+      <path d="M15 15h6"/>
+    {% elif name == "audit" %}
+      <path d="M6 4h12v16H6z"/>
+      <path d="M9 8h6"/>
+      <path d="M9 12h6"/>
+      <path d="M9 16h3"/>
+    {% elif name == "logout" %}
+      <path d="M10 5H5v14h5"/>
+      <path d="M14 8l4 4-4 4"/>
+      <path d="M18 12H8"/>
+    {% elif name == "menu" %}
+      <path d="M4 7h16"/>
+      <path d="M4 12h16"/>
+      <path d="M4 17h16"/>
+    {% elif name == "collapse" %}
+      <path d="M15 6l-6 6 6 6"/>
+      <path d="M20 4v16"/>
+    {% elif name == "clock" %}
+      <circle cx="12" cy="12" r="8"/>
+      <path d="M12 8v4l3 2"/>
+    {% else %}
+      <circle cx="12" cy="12" r="8"/>
+      <path d="M12 8v4l3 2"/>
+    {% endif %}
+  </svg>
+{%- endmacro %}
+
+{% macro nav_link(href, label, active=False, icon_name="dashboard") -%}
+  <a href="{{ href }}" class="az-nav-link{% if active %} is-active{% endif %}" {% if active %}aria-current="page"{% endif %} title="{{ label }}">
+    {{ icon(icon_name) }}
+    <span class="az-sidebar-label">{{ label }}</span>
+  </a>
+{%- endmacro %}

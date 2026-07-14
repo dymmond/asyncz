@@ -1,0 +1,107 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="az-page">
+  {% if record is none %}
+    <section class="az-panel">
+      <div class="az-empty">
+        <strong>Run not found.</strong>
+      </div>
+    </section>
+  {% else %}
+    <section class="az-panel">
+      <div class="az-panel-header">
+        <div>
+          <h2 class="az-panel-title">{{ record.task_label }}</h2>
+          <div class="az-panel-meta">Run {{ record.run_id }}</div>
+        </div>
+        <div class="az-actions">
+          <a href="{{ url_prefix }}/history" class="az-button">Back</a>
+          <a href="{{ url_prefix }}/logs?run_id={{ record.run_id }}" class="az-button az-button--primary">Open Logs</a>
+        </div>
+      </div>
+
+      <div class="az-panel-body">
+        <div class="az-kv-grid">
+          <div class="az-kv">
+            <span>Status</span>
+            <strong>{{ record.status_label }}</strong>
+          </div>
+          <div class="az-kv">
+            <span>Source</span>
+            <strong>{{ record.source_label }}</strong>
+          </div>
+          <div class="az-kv">
+            <span>Submitted</span>
+            <strong>{% if record.submitted_at %}{{ record.submitted_at.strftime("%Y-%m-%d %H:%M:%S") }} UTC{% else %}-{% endif %}</strong>
+          </div>
+          <div class="az-kv">
+            <span>Finished</span>
+            <strong>{% if record.finished_at %}{{ record.finished_at.strftime("%Y-%m-%d %H:%M:%S") }} UTC{% else %}-{% endif %}</strong>
+          </div>
+          <div class="az-kv">
+            <span>Duration</span>
+            <strong>{% if record.duration_ms is not none %}{{ record.duration_ms }} ms{% else %}-{% endif %}</strong>
+          </div>
+          <div class="az-kv">
+            <span>Scheduler ID</span>
+            <strong class="az-mono">{{ record.scheduler_identity or "-" }}</strong>
+          </div>
+          <div class="az-kv">
+            <span>Store / Executor</span>
+            <strong>{{ record.store or "-" }} / {{ record.executor or "-" }}</strong>
+          </div>
+          <div class="az-kv">
+            <span>Coalesced Runs</span>
+            <strong>{{ record.coalesced_run_count }}</strong>
+          </div>
+          <div class="az-kv">
+            <span>Task ID</span>
+            <strong>{{ record.task_id }}</strong>
+          </div>
+          <div class="az-kv">
+            <span>Callable</span>
+            <strong>{{ record.callable_reference or "-" }}</strong>
+          </div>
+          {% if record.exception_type %}
+            <div class="az-kv">
+              <span>Exception Type</span>
+              <strong class="az-mono">{{ record.exception_type }}</strong>
+            </div>
+          {% endif %}
+          {% if record.exception_message %}
+            <div class="az-kv">
+              <span>Exception Message</span>
+              <strong>{{ record.exception_message }}</strong>
+            </div>
+          {% endif %}
+        </div>
+
+        {% if record.exception %}
+          <div class="az-code-block">
+            <div class="az-section-meta">Exception</div>
+            <pre>{{ record.exception }}</pre>
+          </div>
+        {% endif %}
+        {% if record.traceback %}
+          <div class="az-code-block">
+            <div class="az-section-meta">Traceback</div>
+            <pre>{{ record.traceback }}</pre>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="az-panel">
+      <div class="az-panel-header">
+        <div>
+          <h2 class="az-panel-title">Run Logs</h2>
+          <div class="az-panel-meta">Direct run lifecycle logs plus task logs from the run window.</div>
+        </div>
+      </div>
+      <div class="az-table-wrap">
+        {% include "logs/partials/table.html" %}
+      </div>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}

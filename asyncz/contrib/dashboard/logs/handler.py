@@ -11,6 +11,8 @@ from asyncz.contrib.dashboard.logs.storage import LogStorage
 _TASK_ID_KEYS: tuple[str, ...] = ("task_id", "job_id", "asyncz_task_id")
 """Tuple of attribute keys checked on a LogRecord to extract the associated task ID."""
 
+_STANDARD_LOG_RECORD_KEYS = set(logging.makeLogRecord({}).__dict__)
+
 
 def _extract_task_id(record: logging.LogRecord) -> str | None:
     for key in _TASK_ID_KEYS:
@@ -20,6 +22,15 @@ def _extract_task_id(record: logging.LogRecord) -> str | None:
         if value:
             return str(value)
     return None
+
+
+def _extract_extra(record: logging.LogRecord) -> dict[str, Any] | None:
+    extra: dict[str, Any] = {}
+    for key, value in record.__dict__.items():
+        if key in _STANDARD_LOG_RECORD_KEYS or key.startswith("_"):
+            continue
+        extra[key] = value
+    return extra or None
 
 
 class TaskLogHandler(logging.Handler):
@@ -56,6 +67,7 @@ class TaskLogHandler(logging.Handler):
                     "task_id": task_id,
                     "logger": record.name,
                     "message": record.getMessage(),
+                    "extra": _extract_extra(record),
                 }
             )
 

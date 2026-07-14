@@ -1,0 +1,84 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="az-page">
+  <section class="az-stat-grid">
+    <article class="az-stat-card az-stat-card--accent">
+      <div class="az-stat-label">Recorded Runs</div>
+      <div class="az-stat-value">{{ summary.total }}</div>
+      <div class="az-stat-detail">Runtime event history captured in this process</div>
+    </article>
+    <article class="az-stat-card az-stat-card--info">
+      <div class="az-stat-label">Running</div>
+      <div class="az-stat-value">{{ summary.running }}</div>
+      <div class="az-stat-detail">Submitted and waiting for completion</div>
+    </article>
+    <article class="az-stat-card az-stat-card--success">
+      <div class="az-stat-label">Succeeded</div>
+      <div class="az-stat-value">{{ summary.succeeded }}</div>
+      <div class="az-stat-detail">Completed without an exception</div>
+    </article>
+    <article class="az-stat-card az-stat-card--danger">
+      <div class="az-stat-label">Failed / Missed</div>
+      <div class="az-stat-value">{{ summary.failed + summary.missed + summary.max_instances }}</div>
+      <div class="az-stat-detail">Errors, missed windows, or max-instance skips</div>
+    </article>
+  </section>
+
+  <section class="az-panel">
+    <div class="az-panel-header">
+      <div>
+        <h2 class="az-panel-title">Run History</h2>
+        <div class="az-panel-meta">Inspect manual and scheduled task runs with correlated log records.</div>
+      </div>
+      <a href="{{ url_for('dashboard:history:index') }}" class="az-button">Reset</a>
+    </div>
+
+    <form id="history-filters" class="az-filter-bar"
+          hx-get="partials/table" hx-target="#history-table" hx-swap="innerHTML"
+          hx-trigger="change, submit from:#history-filters">
+      <label class="az-field az-field--search">
+        <span>Task ID</span>
+        <input name="task_id" value="{{ filters.task_id }}" placeholder="task id" class="az-input" />
+      </label>
+      <label class="az-field">
+        <span>Status</span>
+        <select name="status" class="az-select">
+          <option value="">Any status</option>
+          <option value="running" {% if filters.status == "running" %}selected{% endif %}>Running</option>
+          <option value="succeeded" {% if filters.status == "succeeded" %}selected{% endif %}>Succeeded</option>
+          <option value="failed" {% if filters.status == "failed" %}selected{% endif %}>Failed</option>
+          <option value="missed" {% if filters.status == "missed" %}selected{% endif %}>Missed</option>
+          <option value="max_instances" {% if filters.status == "max_instances" %}selected{% endif %}>Max instances</option>
+        </select>
+      </label>
+      <label class="az-field">
+        <span>Source</span>
+        <select name="source" class="az-select">
+          <option value="">Any source</option>
+          <option value="manual" {% if filters.source == "manual" %}selected{% endif %}>Manual</option>
+          <option value="scheduled" {% if filters.source == "scheduled" %}selected{% endif %}>Scheduled</option>
+          <option value="unknown" {% if filters.source == "unknown" %}selected{% endif %}>Unknown</option>
+        </select>
+      </label>
+      <label class="az-field az-field--search">
+        <span>Search</span>
+        <input name="q" value="{{ filters.q }}" placeholder="task, callable, run id..." class="az-input" />
+      </label>
+      <label class="az-field">
+        <span>Limit</span>
+        <input name="limit" value="{{ filters.limit }}" class="az-input az-input--compact" />
+      </label>
+      <button class="az-button az-button--primary">Filter</button>
+    </form>
+
+    <div id="history-table"
+         hx-get="partials/table"
+         hx-include="#history-filters"
+         hx-trigger="load once, every 10s"
+         hx-swap="innerHTML"
+         class="az-table-wrap">
+      {% include "history/partials/table.html" %}
+    </div>
+  </section>
+</div>
+{% endblock %}

@@ -42,3 +42,21 @@ class TaskInfo(BaseModel):
     pending: bool
     paused: bool
     submitted: bool
+
+
+class TaskRunPreview(BaseModel):
+    """
+    Immutable preview of upcoming run times for a task.
+
+    The scheduler builds this projection from the task's real trigger without
+    updating the task or advancing its stored ``next_run_time``.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    task: TaskInfo
+    timezone: str
+    generated_at: datetime
+    requested_count: int
+    run_times: tuple[datetime, ...]
+    exhausted: bool

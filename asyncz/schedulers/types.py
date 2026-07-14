@@ -17,8 +17,9 @@ if TYPE_CHECKING:
 
     from asyncz.events.base import SchedulerEvent
     from asyncz.executors.types import ExecutorType
+    from asyncz.schedulers.inspection import SchedulerInfo, SchedulerInstanceInfo
     from asyncz.stores.types import StoreType
-    from asyncz.tasks.inspection import TaskInfo
+    from asyncz.tasks.inspection import TaskInfo, TaskRunPreview
     from asyncz.tasks.types import TaskType
     from asyncz.triggers.types import TriggerType
 
@@ -38,6 +39,8 @@ class LoggersType(ABC):
 
 class SchedulerType(ABC):
     event_loop: Any = None
+    identity: str
+    started_at: datetime | None
     loggers: LoggersType
     instances: dict[str, int]
 
@@ -315,8 +318,33 @@ class SchedulerType(ABC):
         """
         Return task inspection snapshots with optional filtering and sorting.
 
-        This is the scheduler-native query surface used by the CLI, dashboard,
+        This is the scheduler task query surface used by the CLI, dashboard,
         and any custom operational tooling built on top of Asyncz.
+        """
+
+    @abstractmethod
+    def preview_task_runs(
+        self,
+        task_id: str,
+        store: Optional[str] = None,
+        *,
+        count: int = 5,
+        now: datetime | None = None,
+    ) -> Union[TaskRunPreview, None]:
+        """
+        Return upcoming run times for a task without mutating scheduler state.
+        """
+
+    @abstractmethod
+    def get_scheduler_info(self) -> SchedulerInfo:
+        """
+        Return an immutable scheduler-level inspection snapshot.
+        """
+
+    @abstractmethod
+    def get_scheduler_instance_infos(self) -> tuple[SchedulerInstanceInfo, ...]:
+        """
+        Return immutable process-local scheduler instance snapshots.
         """
 
     @abstractmethod

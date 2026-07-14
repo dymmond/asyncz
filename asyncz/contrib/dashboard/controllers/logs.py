@@ -37,10 +37,47 @@ def append_log(entry: dict) -> None:
 
 
 def query_logs(
-    *, task_id: str | None = None, level: str | None = None, q: str | None = None
+    *,
+    task_id: str | None = None,
+    run_id: str | None = None,
+    level: str | None = None,
+    q: str | None = None,
 ) -> Iterable[dict]:
     # delegate to your storage’s query/filter API
-    return get_log_storage().query(task_id=task_id, level=level, q=q)  # type: ignore
+    return get_log_storage().query(task_id=task_id, run_id=run_id, level=level, q=q)  # type: ignore
+
+
+def _log_filters(request: Request) -> dict[str, str]:
+    params: Mapping[str, Any] = request.query_params
+    return {
+        "task_id": (params.get("task_id") or "").strip(),
+        "run_id": (params.get("run_id") or "").strip(),
+        "level": (params.get("level") or "").strip().upper(),
+        "q": (params.get("q") or "").strip(),
+        "limit": (params.get("limit") or "200").strip() or "200",
+    }
+
+
+def _limit(value: str) -> int:
+    try:
+        return max(1, min(int(value), 1000))
+    except ValueError:
+        return 200
+
+
+def build_log_context(request: Request) -> dict[str, Any]:
+    filters = _log_filters(request)
+    storage = get_log_storage()
+    rows = list(
+        storage.query(
+            task_id=filters["task_id"] or None,
+            run_id=filters["run_id"] or None,
+            level=filters["level"] or None,
+            q=filters["q"] or None,
+            limit=_limit(filters["limit"]),
+        )
+    )
+    return {"filters": filters, "rows": rows}
 
 
 class LogsPageController(DashboardMixin, TemplateController):
@@ -63,7 +100,13 @@ class LogsPageController(DashboardMixin, TemplateController):
         Returns:
             Response: The rendered HTML response for the log index page.
         """
-        context: dict[str, Any] = await self.get_context_data(request=request)
+        context: dict[str, Any] = await self.get_context_data(
+            request=request,
+            title="Logs",
+            page_header="Logs",
+            active_page="logs",
+        )
+        context.update(build_log_context(request))
         return await self.render_template(request, context=context)
 
 
@@ -90,24 +133,5 @@ class LogsTablePartialController(DashboardMixin, TemplateController):
         """
         context: dict[str, Any] = await self.get_context_data(request=request)
 
-        storage: LogStorage = get_log_storage()
-        params: Mapping[str, Any] = request.query_params
-
-        # Extract and type-hint query parameters
-        task_id: str | None = params.get("task_id")
-        level: str | None = params.get("level")
-        q: str | None = params.get("q")
-
-        # Safely parse limit, defaulting to 200
-        limit: int
-        try:
-            limit = int(params.get("limit", "200") or 200)
-        except ValueError:
-            limit = 200
-
-        # Query the storage
-        # The storage.query() method is expected to return a filtered, ordered list of log records
-        rows: list[Any] = list(storage.query(task_id=task_id, level=level, q=q, limit=limit))
-
-        context.update({"rows": rows})
+        context.update(build_log_context(request))
         return await self.render_template(request, context=context)

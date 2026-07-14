@@ -1,11 +1,80 @@
 # Release Notes
 
+## 0.16.0
+
+### Highlights
+
+- The dashboard is now a stronger operations console for tasks, runs, logs,
+  events, audit records, runtime details, and scheduler instances visible to the
+  current process.
+- Operators can trigger tasks manually, preview upcoming run times, inspect run
+  history, open correlated logs, and review supported task edits before applying
+  them.
+- The CLI adds practical inspection and intervention commands while delegating
+  behavior to the scheduler instead of duplicating runtime logic.
+- Dashboard browser assets are packaged locally and load without runtime CDNs.
+
+### Added
+
+- Scheduler inspection APIs for status, identity, uptime, stores, executors,
+  task counts, and process-local instance data.
+- `asyncz status`, `asyncz instances`, `asyncz doctor`, `asyncz preview`,
+  `asyncz timeline`, `asyncz inspect`, `asyncz update`, and `asyncz version`.
+- `scheduler.preview_task_runs()`, `scheduler.run_task(...)`, and
+  `scheduler.update_task(...)` for shared CLI, dashboard, and application
+  behavior.
+- Dashboard pages for runtime state, instances, timeline, events, audit records,
+  run history, run detail, logs, task detail, and task edits.
+- Stable task identifiers through `asyncz add --id`.
+- Scheduler identity on task events, run history, run detail pages, and
+  lifecycle log records.
+- Coalesced run counts on submission events and dashboard run history.
+- Default dashboard security headers, including a CSP for same-origin packaged
+  scripts.
+
+### Improved
+
+- The dashboard shell now has fixed navigation, grouped menu sections,
+  responsive mobile navigation, denser tables, Alpine.js interaction state,
+  clearer action placement, table density controls, collapsible filters, sticky
+  row actions, and a resizable task table region.
+- Task tables now render a bounded page of rows and preserve filters during
+  pagination, refreshes, and task actions.
+- Task lists now show last run status and link directly to run history and logs.
+- The overview page includes recent run history alongside scheduler and task
+  summaries.
+- Failed run details show exception type and message separately from traceback
+  content.
+
+### Fixed
+
+- Fixed proxy prefix dashboard rendering so `X-Forwarded-Prefix` updates
+  generated links and static asset URLs without breaking route matching.
+- Forwarded prefix headers are now honored only from configured proxy clients.
+- Removed inline dashboard click handlers so the packaged JavaScript can satisfy
+  the default script CSP.
+- Dashboards with auth now allow prefixed static assets such as
+  `/dashboard/static/...` through the authentication gate so login pages can load
+  packaged CSS and JavaScript.
+- Replaced invalid HTMX request attributes in task refresh/action flows with
+  valid synchronization behavior.
+
+### Documentation
+
+- Expanded dashboard, CLI, schedulers, events, vendors, README, and operations
+  guidance for the new inspection and control workflows.
+
+### Compatibility
+
+- Supports Python 3.10 through 3.14.
+- Install `asyncz[dashboard]` when the optional Lilya dashboard is needed.
+
 ## 0.15.0
 
 ### Added
 
-- Added scheduler-native task inspection APIs through `Task.schedule_state`, `Task.paused`, `Task.snapshot()`, `scheduler.get_task_info()`, and `scheduler.get_task_infos(...)`.
-- Added `scheduler.run_task(...)` as the canonical Asyncz-native "run now" operation for administrative and dashboard flows.
+- Added task inspection APIs through `Task.schedule_state`, `Task.paused`, `Task.snapshot()`, `scheduler.get_task_info()`, and `scheduler.get_task_infos(...)`.
+- Added `scheduler.run_task(...)` as the shared "run now" operation for administrative and dashboard flows.
 - Added richer task filtering and sorting to the CLI `list` command, including task state, executor, trigger, and free-text query support.
 - Expanded the dashboard task view with state-aware filtering, richer task metadata, and overview summaries for scheduled, paused, and pending tasks.
 
@@ -47,11 +116,11 @@ to the `from future import __annotations__`.
 
 ### Changed
 
-- Replaced `ChildLilya` sub‑app mounting with `Router`‑based composition for a cleaner and more maintainable architecture.
+- Replaced `ChildLilya` sub-app mounting with composition built on `Router`.
 - `AsynczAdmin` now uses a single composed Lilya app that mounts `/login` and `/logout` at root while serving the dashboard under its prefix.
-- Simplified `include_in()` method — mounts the composed app at `/` for proper reverse‑proxy behavior.
+- Simplified `include_in()` so it mounts the composed app at `/` for reverse proxy behavior.
 - Improved `url_prefix` normalization to avoid double slashes and ensure consistent route generation.
-- `Asyncz Dashboard` is now fully reverse-proxy agnostic and works seamlessly behind Nginx or ASGI mounts.
+- `Asyncz Dashboard` now handles forwarded prefixes and ASGI mounts more consistently.
 
 ## 0.14.1
 
@@ -63,9 +132,9 @@ to the `from future import __annotations__`.
 ### Changed
 
 - `get_effective_prefix()` now prefers the configured `dashboard_url_prefix` and falls back to `root_path` only when configured as `/`.
-- All HTMX and action URLs in the dashboard are now relative to the current path for reverse-proxy compatibility.
+- All HTMX and action URLs in the dashboard are now relative to the current path for reverse proxy compatibility.
 - Updated templates to remove hardcoded `/dashboard` from links and actions.
-- Asyncz Dashboard is now fully **reverse-proxy ready** (works with `X-Forwarded-Prefix` and ASGI mounts).
+- Asyncz Dashboard now supports `X-Forwarded-Prefix` and ASGI mounts more reliably.
 
 ## 0.14.0
 

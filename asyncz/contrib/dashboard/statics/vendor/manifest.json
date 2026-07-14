@@ -1,0 +1,63 @@
+{
+  "alpinejs": {
+    "artifact": "vendor/alpinejs/alpine-csp-3.15.12.min.js",
+    "artifact_sha256": "566167134bb2347110904e2ced6e816d2e8d837200c158f98b72372b3bb0b9a6",
+    "homepage": "https://github.com/alpinejs/alpine#readme",
+    "license": "MIT",
+    "license_file": "vendor/licenses/alpinejs-MIT.txt",
+    "npm_integrity": "sha512-9jielHzVPqMlO9zQ6K1WtdhSHVX5OZfq5ZDUSVZfY10VnXRoRBx8nOadWjsG1xev/kz4EPaNN9eDFWtZSvJHxA==",
+    "package": "@alpinejs/csp",
+    "tarball_sha256": "323a1c203133a456aca37057b663a32bd7bdb2233e395cd0d0dfb76057f7dc3b",
+    "upstream": "https://registry.npmjs.org/@alpinejs/csp/-/csp-3.15.12.tgz",
+    "version": "3.15.12"
+  },
+  "htmx": {
+    "artifact": "vendor/htmx/htmx-1.9.12.min.js",
+    "artifact_sha256": "73eabc44d978b226a667c62ca3c40e99236d11aa6f8fc8a27be6f0b36a73b42d",
+    "homepage": "https://htmx.org/",
+    "license": "0BSD",
+    "license_file": "vendor/licenses/htmx-0BSD.txt",
+    "npm_integrity": "sha512-VZAohXyF7xPGS52IM8d1T1283y+X4D+Owf3qY1NZ9RuBypyu9l8cGsxUMAG5fEAb/DhT7rDoJ9Hpu5/HxFD3cw==",
+    "package": "htmx.org",
+    "tarball_sha256": "3f8db1903223c249c20e18b09d1bc268776e59c851424f525285d0b93d825cd0",
+    "upstream": "https://registry.npmjs.org/htmx.org/-/htmx.org-1.9.12.tgz",
+    "version": "1.9.12"
+  },
+  "tailwindcss": {
+    "artifact": "css/tailwind-4.3.2.min.css",
+    "artifact_sha256": "7b49a02ab3ef267270548de70154ad61937e31168b4f2e1455210ac816e97c33",
+    "cli_npm_integrity": "sha512-Fzt+HrIZHDlkRYKdLMBeufaroaPvwCBG70sMLdmurdeadNMO/LxbmT8Sbb+P83ep0iAlAImettb7Y+rO+37rXw==",
+    "cli_package": "@tailwindcss/cli",
+    "cli_tarball_sha256": "b1da208095ba8886d4d6f4ff055cd402bdefd218359a195d7ecd2dd608e14bf2",
+    "cli_upstream": "https://registry.npmjs.org/@tailwindcss/cli/-/cli-4.3.2.tgz",
+    "cli_version": "4.3.2",
+    "homepage": "https://tailwindcss.com",
+    "license": "MIT",
+    "license_file": "vendor/licenses/tailwindcss-MIT.txt",
+    "npm_integrity": "sha512-WtctNNSH8A9jlMIqxzuYumOHU5uGZyRv0Q5svQl+oEPy5w84YpBxdb7MdqyiSPQge5jTJ6zFQLq0PFygdccSBA==",
+    "package": "tailwindcss",
+    "source": "css/asyncz-tailwind.input.css",
+    "source_sha256": "c68a1cb54f539875977bc13e92b4c384268e37cc685cdcb54f37685b1d304bda",
+    "tarball_sha256": "3673da9004404d12d4672bb5d002945319c2b3dea8c13ea022fdd33a3e260e62",
+    "upstream": "https://registry.npmjs.org/tailwindcss/-/tailwindcss-4.3.2.tgz",
+    "version": "4.3.2"
+  },
+  "toastify": {
+    "artifact_sha256": {
+      "css/toastify.min.css": "8aba42fa573121518c73b0921efa4e2722cb795f52d5d85160e2b73afe3fd62d",
+      "js/toastify.min.js": "aff7630dfa719dcdfab1952574c893e904d06d41f6722dabf293e8f990af2be6"
+    },
+    "artifacts": [
+      "js/toastify.min.js",
+      "css/toastify.min.css"
+    ],
+    "homepage": "https://github.com/apvarun/toastify-js#readme",
+    "license": "MIT",
+    "license_file": "vendor/licenses/toastify-js-MIT.txt",
+    "npm_integrity": "sha512-yosiXPEdr3B9KL1rF7M/IMdw8d8Z69UJe2JsvxbfdpaL2/olqSB8tvp7/N6gkT9G46y6nqR2e62CCnf0LxeIBQ==",
+    "package": "toastify-js",
+    "tarball_sha256": "b64bd0a4e40d8966204d917e3883d3e891cf4db2c4dc240750e603fb4e55b977",
+    "upstream": "https://registry.npmjs.org/toastify-js/-/toastify-js-1.6.1.tgz",
+    "version": "1.6.1"
+  }
+}

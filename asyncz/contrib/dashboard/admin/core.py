@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from functools import cached_property
 from typing import Any, cast
 
@@ -13,12 +14,14 @@ from lilya.types import ASGIApp
 
 from asyncz import monkay
 from asyncz.contrib.dashboard import create_dashboard_app
-from asyncz.contrib.dashboard.admin.middleware import AuthGateMiddleware
+from asyncz.contrib.dashboard.admin.middleware import AuthGateMiddleware, SecurityHeadersMiddleware
 from asyncz.contrib.dashboard.admin.middleware.forward_root_path import (
     ForwardedPrefixMiddleware,
 )
 from asyncz.contrib.dashboard.admin.protocols import AuthBackend
+from asyncz.contrib.dashboard.audit import MemoryAuditTrailStorage
 from asyncz.contrib.dashboard.engine import templates
+from asyncz.contrib.dashboard.history import MemoryRunHistoryStorage
 from asyncz.contrib.dashboard.logs.storage import LogStorage
 from asyncz.schedulers.asyncio import AsyncIOScheduler
 
@@ -49,6 +52,7 @@ class AsynczAdmin:
         enable_login: bool = False,
         backend: AuthBackend | None = None,
         enable_forward_middleware: bool = False,
+        trusted_forwarded_hosts: Iterable[str] = ("127.0.0.1", "::1", "localhost"),
         url_prefix: str | None = None,
         scheduler: AsyncIOScheduler | None = None,
         include_session: bool = True,
@@ -56,6 +60,8 @@ class AsynczAdmin:
         login_path: str = "/login",
         allowlist: tuple[str, ...] = ("/login", "/logout", "/static", "/assets"),
         log_storage: LogStorage | None = None,
+        run_history_storage: MemoryRunHistoryStorage | None = None,
+        audit_storage: MemoryAuditTrailStorage | None = None,
     ) -> None:
         """
         Initializes the Asyncz Admin dashboard instance.
@@ -86,6 +92,7 @@ class AsynczAdmin:
         self.enable_login: bool = enable_login
         self.backend: AuthBackend = backend  # type: ignore[assignment]
         self.enable_forward_middleware = enable_forward_middleware
+        self.trusted_forwarded_hosts = tuple(trusted_forwarded_hosts)
 
         # Extras
         self.include_session = include_session
@@ -95,6 +102,8 @@ class AsynczAdmin:
 
         # Build the internal dashboard routing application immediately
         self.log_storage: LogStorage | None = log_storage
+        self.run_history_storage: MemoryRunHistoryStorage | None = run_history_storage
+        self.audit_storage: MemoryAuditTrailStorage | None = audit_storage
         self.child_app: Router = self.assemble_dashboard_router()
 
     def add_sign_in_pages(self) -> list[Path | Include]:
@@ -177,11 +186,20 @@ class AsynczAdmin:
         Returns:
             DefineMiddleware: The fully configured authentication gate middleware definition.
         """
+        allowlist = self.allowlist
+        prefix = self.url_prefix.rstrip("/")
+        if prefix and prefix != "/":
+            allowlist = (
+                *allowlist,
+                f"{prefix}/static",
+                f"{prefix}/assets",
+            )
+
         return DefineMiddleware(
             AuthGateMiddleware,
             authenticate=self.backend.authenticate,
             login_path=self.login_path,
-            allowlist=self.allowlist,
+            allowlist=allowlist,
         )
 
     def assemble_dashboard_router(self) -> Router:
@@ -198,7 +216,10 @@ class AsynczAdmin:
                 Include(
                     "/",
                     app=create_dashboard_app(
-                        scheduler=self.scheduler, log_storage=self.log_storage
+                        scheduler=self.scheduler,
+                        log_storage=self.log_storage,
+                        run_history_storage=self.run_history_storage,
+                        audit_storage=self.audit_storage,
                     ),
                 ),
             ],
@@ -255,11 +276,18 @@ class AsynczAdmin:
 
         if self.enable_forward_middleware:
             # X-Forwarded-Prefix handling (useful if mounted via proxy)
-            middlewares.append(DefineMiddleware(ForwardedPrefixMiddleware))
+            middlewares.append(
+                DefineMiddleware(
+                    ForwardedPrefixMiddleware,
+                    trusted_hosts=self.trusted_forwarded_hosts,
+                )
+            )
 
         if self.include_cors:
             # CORS handling
             middlewares.append(self.cors_middleware)
+
+        middlewares.append(DefineMiddleware(SecurityHeadersMiddleware))
 
         if self.include_session:
             # Session handling (required for SimpleUsernamePasswordBackend)

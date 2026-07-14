@@ -2,13 +2,17 @@
 
 The dashboard log viewer is built on top of Python's standard `logging` module. It captures records from the `asyncz` logger namespace and stores them in a pluggable log storage backend.
 
+Logs are also used by run history. Run lifecycle records include a structured
+`run_id`, and the Logs page can filter directly by that id.
+
 ## Default behavior
 
 When the dashboard is mounted, Asyncz:
 
 1. creates or reuses a log storage backend
 2. installs `TaskLogHandler` on the `asyncz` logger namespace
-3. renders log rows through `/dashboard/logs/` and `/dashboard/logs/partials/table`
+3. records structured extras from log records when present
+4. renders log rows through `/dashboard/logs/` and `/dashboard/logs/partials/table`
 
 ## Logging from tasks
 
@@ -41,6 +45,7 @@ All storage backends implement this interface:
 
 ```python
 from collections.abc import Iterable
+from datetime import datetime
 
 from asyncz.contrib.dashboard.logs.storage import LogEntry
 
@@ -53,8 +58,11 @@ class LogStorage:
         self,
         *,
         task_id: str | None = None,
+        run_id: str | None = None,
         level: str | None = None,
         q: str | None = None,
+        since: datetime | None = None,
+        until: datetime | None = None,
         limit: int = 200,
     ) -> Iterable[LogEntry]:
         ...
@@ -81,6 +89,7 @@ admin = AsynczAdmin(scheduler=scheduler, log_storage=storage)
 The table partial accepts:
 
 - `task_id`
+- `run_id`
 - `level`
 - `q`
 - `limit`
@@ -89,4 +98,16 @@ Example:
 
 ```text
 /dashboard/logs/partials/table?task_id=task-123&level=ERROR&q=timeout
+/dashboard/logs/partials/table?run_id=4f0efcc6c8a3d1b112aa
 ```
+
+## Run-history correlation
+
+Run-history detail pages query logs in two passes:
+
+1. direct records with `extra["run_id"] == <run_id>`
+2. task-scoped records for the same task id in the run window
+
+This means lifecycle records are always available for a recorded run. Task
+application logs become visible when they use `task_id`, `job_id`, or
+`asyncz_task_id` in standard-library logging extras.

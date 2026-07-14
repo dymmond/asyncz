@@ -17,12 +17,15 @@ Extends `SchedulerEvent` with task-specific data:
 
 - `task_id`
 - `store`
+- `scheduler_identity`: set by the scheduler before listeners receive the event
 
 ### `TaskSubmissionEvent`
 
 Extends `TaskEvent` with:
 
 - `scheduled_run_times`: the run times the scheduler submitted to an executor
+- `coalesced_run_count`: due run times omitted because `coalesce=True`
+- `source`: `manual`, `scheduled`, or `unknown`
 
 ### `TaskExecutionEvent`
 
@@ -53,3 +56,11 @@ Typical codes include:
 ```python
 {!> ../../../docs_src/schedulers/add_event.py !}
 ```
+
+## Dashboard event history
+
+When the optional dashboard is mounted, it records scheduler events observed in
+that process. The Events page can filter by event category, event name, task id,
+search text, and limit.
+
+This is process-local history. It does not replace a distributed event broker.

@@ -28,10 +28,12 @@ class TaskEvent(SchedulerEvent):
     Args:
         task_id: The identifier given to a task.
         store: The alias given to a store.
+        scheduler_identity: The scheduler identity assigned before listener dispatch.
     """
 
     task_id: str
     store: Optional[str] = None
+    scheduler_identity: Optional[str] = None
 
 
 class TaskSubmissionEvent(TaskEvent):
@@ -40,9 +42,13 @@ class TaskSubmissionEvent(TaskEvent):
 
     Args:
         scheduled_run_times: List of datetimes when the task is supposed to run.
+        source: Optional origin of the submission, such as ``manual`` or ``scheduled``.
+        coalesced_run_count: Number of due run times omitted by coalescing.
     """
 
     scheduled_run_times: list[datetime]
+    source: Optional[str] = None
+    coalesced_run_count: int = 0
 
 
 class TaskExecutionEvent(TaskEvent):

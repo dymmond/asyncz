@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 from sayer.testing import SayerTestClient
 
+from asyncz import __version__
 from asyncz.cli.app import asyncz_cli
 from asyncz.cli.utils import parse_store
 
@@ -46,6 +47,148 @@ def _list_json(client: SayerTestClient, store: str):
     return json.loads(m.group(1))
 
 
+def _status_json(client: SayerTestClient, store: str):
+    r = client.invoke(["status", "--json", "--store", store])
+    assert r.exit_code == 0, r.stderr
+
+    if isinstance(r.return_value, dict):
+        return r.return_value
+
+    out = (r.stdout or "").strip() or (r.stderr or "").strip()
+    if out.startswith("ℹ"):
+        out = out.lstrip("ℹ️ ").lstrip()
+
+    m = re.search(r"(\{.*\})", out, re.S)
+    assert m, f"Expected JSON in output, got: {out!r}"
+    return json.loads(m.group(1))
+
+
+def _doctor_json(client: SayerTestClient, store: str):
+    r = client.invoke(["doctor", "--json", "--store", store])
+    assert r.exit_code == 0, r.stderr
+
+    if isinstance(r.return_value, dict):
+        return r.return_value
+
+    out = (r.stdout or "").strip() or (r.stderr or "").strip()
+    if out.startswith("ℹ"):
+        out = out.lstrip("ℹ️ ").lstrip()
+
+    m = re.search(r"(\{.*\})", out, re.S)
+    assert m, f"Expected JSON in output, got: {out!r}"
+    return json.loads(m.group(1))
+
+
+def _instances_json(client: SayerTestClient, store: str):
+    r = client.invoke(["instances", "--json", "--store", store])
+    assert r.exit_code == 0, r.stderr
+
+    if isinstance(r.return_value, dict):
+        return r.return_value
+
+    out = (r.stdout or "").strip() or (r.stderr or "").strip()
+    if out.startswith("ℹ"):
+        out = out.lstrip("ℹ️ ").lstrip()
+
+    m = re.search(r"(\{.*\})", out, re.S)
+    assert m, f"Expected JSON in output, got: {out!r}"
+    return json.loads(m.group(1))
+
+
+def _preview_json(client: SayerTestClient, job_id: str, store: str, count: int = 3):
+    r = client.invoke(["preview", job_id, "--json", "--count", str(count), "--store", store])
+    assert r.exit_code == 0, r.stderr
+
+    if isinstance(r.return_value, dict):
+        return r.return_value
+
+    out = (r.stdout or "").strip() or (r.stderr or "").strip()
+    if out.startswith("ℹ"):
+        out = out.lstrip("ℹ️ ").lstrip()
+
+    m = re.search(r"(\{.*\})", out, re.S)
+    assert m, f"Expected JSON in output, got: {out!r}"
+    return json.loads(m.group(1))
+
+
+def _inspect_json(client: SayerTestClient, job_id: str, store: str, count: int = 3):
+    r = client.invoke(["inspect", job_id, "--json", "--count", str(count), "--store", store])
+    assert r.exit_code == 0, r.stderr
+
+    if isinstance(r.return_value, dict):
+        return r.return_value
+
+    out = (r.stdout or "").strip() or (r.stderr or "").strip()
+    if out.startswith("ℹ"):
+        out = out.lstrip("ℹ️ ").lstrip()
+
+    m = re.search(r"(\{.*\})", out, re.S)
+    assert m, f"Expected JSON in output, got: {out!r}"
+    return json.loads(m.group(1))
+
+
+def _update_json(client: SayerTestClient, args: list[str]):
+    r = client.invoke(["update", *args, "--json"])
+    assert r.exit_code == 0, r.stderr
+
+    if isinstance(r.return_value, dict):
+        return r.return_value
+
+    out = (r.stdout or "").strip() or (r.stderr or "").strip()
+    if out.startswith("ℹ"):
+        out = out.lstrip("ℹ️ ").lstrip()
+
+    m = re.search(r"(\{.*\})", out, re.S)
+    assert m, f"Expected JSON in output, got: {out!r}"
+    return json.loads(m.group(1))
+
+
+def _timeline_json(client: SayerTestClient, store: str, per_task: int = 3, limit: int = 10):
+    r = client.invoke(
+        [
+            "timeline",
+            "--json",
+            "--per-task",
+            str(per_task),
+            "--limit",
+            str(limit),
+            "--store",
+            store,
+        ]
+    )
+    assert r.exit_code == 0, r.stderr
+
+    if isinstance(r.return_value, dict):
+        return r.return_value
+
+    out = (r.stdout or "").strip() or (r.stderr or "").strip()
+    if out.startswith("ℹ"):
+        out = out.lstrip("ℹ️ ").lstrip()
+
+    m = re.search(r"(\{.*\})", out, re.S)
+    assert m, f"Expected JSON in output, got: {out!r}"
+    return json.loads(m.group(1))
+
+
+def _as_datetime(value):
+    return value if isinstance(value, datetime) else datetime.fromisoformat(str(value))
+
+
+def test_version_json_reports_package_version(client: SayerTestClient):
+    result = client.invoke(["version", "--json"])
+    assert result.exit_code == 0, result.stderr
+
+    if isinstance(result.return_value, dict):
+        payload = result.return_value
+    else:
+        out = (result.stdout or "").strip() or (result.stderr or "").strip()
+        match = re.search(r"(\{.*\})", out, re.S)
+        assert match, f"Expected JSON in output, got: {out!r}"
+        payload = json.loads(match.group(1))
+
+    assert payload == {"version": __version__}
+
+
 def test_add_and_list_with_sqlite_store(client: SayerTestClient, sqlite_url: str):
     # add a job with an interval trigger
     r = client.invoke(
@@ -78,6 +221,316 @@ def test_add_and_list_with_sqlite_store(client: SayerTestClient, sqlite_url: str
 
     assert "test-noop" in out
     assert "IntervalTrigger" in out
+
+
+def test_status_json_reports_scheduler_snapshot(client: SayerTestClient, sqlite_url: str):
+    r = client.invoke(
+        [
+            "add",
+            "tests.fixtures:noop",
+            "--name",
+            "status-noop",
+            "--interval",
+            "5s",
+            "--store",
+            f"durable={sqlite_url}",
+        ]
+    )
+    assert r.exit_code == 0, r.stderr
+
+    payload = _status_json(client, f"durable={sqlite_url}")
+
+    assert payload["identity"].startswith("AsyncIOScheduler-")
+    assert payload["state"] == "running"
+    assert payload["running"] is True
+    assert payload["started_at"]
+    assert payload["uptime_seconds"] >= 0
+    assert payload["task_count"] == 1
+    assert payload["scheduled_task_count"] == 1
+    assert payload["paused_task_count"] == 0
+    assert payload["pending_task_count"] == 0
+    assert payload["stores"] == ["default", "durable"]
+    assert payload["executors"] == ["default"]
+
+
+def test_doctor_json_reports_scheduler_diagnostics(client: SayerTestClient, sqlite_url: str):
+    r = client.invoke(
+        [
+            "add",
+            "tests.fixtures:noop",
+            "--name",
+            "doctor-noop",
+            "--interval",
+            "5s",
+            "--store",
+            f"durable={sqlite_url}",
+        ]
+    )
+    assert r.exit_code == 0, r.stderr
+
+    payload = _doctor_json(client, f"durable={sqlite_url}")
+
+    assert payload["health"] == "ok"
+    assert payload["ready"] is True
+    assert payload["scheduler"]["task_count"] == 1
+    assert payload["scheduler"]["stores"] == ["default", "durable"]
+    assert payload["scheduler"]["executors"] == ["default"]
+    assert {check["name"] for check in payload["checks"]} == {
+        "scheduler_running",
+        "stores_registered",
+        "executors_registered",
+        "task_inventory",
+        "lifecycle_clock",
+    }
+    assert all(check["status"] == "ok" for check in payload["checks"])
+
+
+def test_doctor_human_output_reports_health(client: SayerTestClient):
+    result = client.invoke(["doctor"])
+
+    assert result.exit_code == 0, result.stderr
+    assert "health=ok" in result.stdout
+    assert "scheduler_running" in result.stdout
+
+
+def test_instances_json_reports_process_local_scheduler(client: SayerTestClient, sqlite_url: str):
+    r = client.invoke(
+        [
+            "add",
+            "tests.fixtures:noop",
+            "--name",
+            "instances-noop",
+            "--interval",
+            "5s",
+            "--store",
+            f"durable={sqlite_url}",
+        ]
+    )
+    assert r.exit_code == 0, r.stderr
+
+    payload = _instances_json(client, f"durable={sqlite_url}")
+
+    assert payload["scope"] == "process-local"
+    assert payload["count"] == 1
+    instance = payload["instances"][0]
+    assert instance["identity"].startswith("AsyncIOScheduler-")
+    assert instance["scope"] == "process-local"
+    assert instance["state"] == "running"
+    assert instance["active"] is True
+    assert instance["stale"] is False
+    assert instance["last_seen_at"]
+    assert instance["heartbeat_age_seconds"] == 0
+    assert instance["task_count"] == 1
+    assert instance["stores"] == ["default", "durable"]
+    assert instance["executors"] == ["default"]
+
+
+def test_instances_human_output_reports_scope(client: SayerTestClient):
+    result = client.invoke(["instances"])
+
+    assert result.exit_code == 0, result.stderr
+    assert "scope=process-local" in result.stdout
+    assert "active=True" in result.stdout
+
+
+def test_preview_json_reports_upcoming_run_times(client: SayerTestClient, sqlite_url: str):
+    r = client.invoke(
+        [
+            "add",
+            "tests.fixtures:noop",
+            "--name",
+            "preview-noop",
+            "--interval",
+            "5s",
+            "--store",
+            f"durable={sqlite_url}",
+        ]
+    )
+    assert r.exit_code == 0, r.stderr
+    job_id = re.search(r"Added job\s+(\S+)", r.stdout).group(1)
+
+    payload = _preview_json(client, job_id, f"durable={sqlite_url}", count=3)
+    run_times = [_as_datetime(value) for value in payload["run_times"]]
+
+    assert payload["task"]["id"] == job_id
+    assert payload["task"]["name"] == "preview-noop"
+    assert payload["task"]["trigger"] == "IntervalTrigger"
+    assert payload["task"]["store"] == "durable"
+    assert payload["requested_count"] == 3
+    assert payload["returned_count"] == 3
+    assert len(run_times) == 3
+    assert run_times[1] - run_times[0] == timedelta(seconds=5)
+    assert run_times[2] - run_times[1] == timedelta(seconds=5)
+
+
+def test_timeline_json_reports_upcoming_runs_across_tasks(
+    client: SayerTestClient, sqlite_url: str
+):
+    job_id = "timeline-noop"
+    r = client.invoke(
+        [
+            "add",
+            "tests.fixtures:noop",
+            "--id",
+            job_id,
+            "--name",
+            "timeline-noop",
+            "--interval",
+            "5s",
+            "--store",
+            f"durable={sqlite_url}",
+        ]
+    )
+    assert r.exit_code == 0, r.stderr
+
+    payload = _timeline_json(client, f"durable={sqlite_url}", per_task=3, limit=10)
+    rows = payload["rows"]
+    run_times = [_as_datetime(row["run_time"]) for row in rows]
+
+    assert payload["requested_per_task"] == 3
+    assert payload["limit"] == 10
+    assert payload["task_count"] == 1
+    assert payload["total_count"] == 3
+    assert payload["returned_count"] == 3
+    assert [row["task"]["id"] for row in rows] == [job_id, job_id, job_id]
+    assert run_times[1] - run_times[0] == timedelta(seconds=5)
+    assert run_times[2] - run_times[1] == timedelta(seconds=5)
+
+
+def test_inspect_json_reports_task_state_and_upcoming_runs(
+    client: SayerTestClient, sqlite_url: str
+):
+    job_id = "inspect-noop"
+    r = client.invoke(
+        [
+            "add",
+            "tests.fixtures:noop",
+            "--id",
+            job_id,
+            "--name",
+            "inspectable",
+            "--interval",
+            "7s",
+            "--store",
+            f"durable={sqlite_url}",
+        ]
+    )
+    assert r.exit_code == 0, r.stderr
+
+    payload = _inspect_json(client, job_id, f"durable={sqlite_url}", count=2)
+    run_times = [_as_datetime(value) for value in payload["run_times"]]
+
+    assert payload["task"]["id"] == job_id
+    assert payload["task"]["name"] == "inspectable"
+    assert payload["task"]["state"] == "scheduled"
+    assert payload["task"]["store"] == "durable"
+    assert payload["task"]["coalesce"] is True
+    assert payload["task"]["max_instances"] == 1
+    assert payload["task"]["mistrigger_grace_time"] == 1
+    assert payload["returned_count"] == 2
+    assert run_times[1] - run_times[0] == timedelta(seconds=7)
+
+
+def test_update_dry_run_reports_diff_without_persisting(client: SayerTestClient, sqlite_url: str):
+    job_id = "update-dry-run"
+    r = client.invoke(
+        [
+            "add",
+            "tests.fixtures:noop",
+            "--id",
+            job_id,
+            "--name",
+            "before-dry-run",
+            "--interval",
+            "7s",
+            "--store",
+            f"durable={sqlite_url}",
+        ]
+    )
+    assert r.exit_code == 0, r.stderr
+
+    payload = _update_json(
+        client,
+        [
+            job_id,
+            "--name",
+            "after-dry-run",
+            "--dry-run",
+            "--store",
+            f"durable={sqlite_url}",
+        ],
+    )
+
+    assert payload["applied"] is False
+    assert payload["changed"] is True
+    assert payload["diff"]["name"] == {
+        "before": "before-dry-run",
+        "after": "after-dry-run",
+    }
+
+    inspected = _inspect_json(client, job_id, f"durable={sqlite_url}")
+    assert inspected["task"]["name"] == "before-dry-run"
+
+
+def test_update_json_applies_supported_task_fields(client: SayerTestClient, sqlite_url: str):
+    job_id = "update-noop"
+    r = client.invoke(
+        [
+            "add",
+            "tests.fixtures:echo",
+            "--id",
+            job_id,
+            "--name",
+            "update-before",
+            "--interval",
+            "10s",
+            "--args",
+            '["old"]',
+            "--kwargs",
+            '{"flag": false}',
+            "--store",
+            f"durable={sqlite_url}",
+        ]
+    )
+    assert r.exit_code == 0, r.stderr
+
+    payload = _update_json(
+        client,
+        [
+            job_id,
+            "--name",
+            "update-after",
+            "--args",
+            '["new", 7]',
+            "--kwargs",
+            '{"flag": true}',
+            "--executor",
+            "default",
+            "--coalesce",
+            "false",
+            "--max-instances",
+            "3",
+            "--clear-mistrigger-grace-time",
+            "--yes",
+            "--store",
+            f"durable={sqlite_url}",
+        ],
+    )
+
+    assert payload["applied"] is True
+    assert payload["changed"] is True
+    assert payload["diff"]["name"] == {"before": "update-before", "after": "update-after"}
+    assert payload["diff"]["coalesce"] == {"before": True, "after": False}
+    assert payload["diff"]["max_instances"] == {"before": 1, "after": 3}
+    assert payload["diff"]["mistrigger_grace_time"] == {"before": 1, "after": None}
+    assert payload["after"]["args"] == ["new", 7]
+    assert payload["after"]["kwargs"] == {"flag": True}
+
+    inspected = _inspect_json(client, job_id, f"durable={sqlite_url}")
+    assert inspected["task"]["name"] == "update-after"
+    assert inspected["task"]["coalesce"] is False
+    assert inspected["task"]["max_instances"] == 3
+    assert inspected["task"]["mistrigger_grace_time"] is None
 
 
 def test_add_run_pause_resume_remove_flow(client: SayerTestClient, sqlite_url: str):
@@ -163,6 +616,7 @@ def test_add_uses_explicit_store_alias(client: SayerTestClient, sqlite_url: str)
     jobs = _list_json(client, f"durable={sqlite_url}")
 
     assert any(j["name"] == "aliased" for j in jobs)
+    assert all(j["store"] == "durable" for j in jobs if j["name"] == "aliased")
 
 
 def test_add_with_args_kwargs_and_json_list(client: SayerTestClient, sqlite_url: str):
