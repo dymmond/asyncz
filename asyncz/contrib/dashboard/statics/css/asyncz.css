@@ -290,6 +290,12 @@ html {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.az-panel-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .az-stat-card,
 .az-panel,
 .az-table-wrap {
@@ -433,6 +439,10 @@ html {
   min-width: 1040px;
   border-collapse: separate;
   border-spacing: 0;
+}
+
+.az-table--compact {
+  min-width: 520px;
 }
 
 .az-table th {
@@ -907,6 +917,14 @@ html {
 }
 
 @media (max-width: 900px) {
+  .az-stat-grid,
+  .az-stat-grid--three,
+  .az-panel-grid,
+  .az-kv-grid,
+  .az-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .az-shell,
   .az-sidebar-collapsed .az-shell {
     grid-template-columns: minmax(0, 1fr);

@@ -119,6 +119,7 @@ def test_templates_reference_local_assets_without_public_cdns(client: TestClient
     for path in (
         f"{DASH_PREFIX}/",
         f"{DASH_PREFIX}/tasks",
+        f"{DASH_PREFIX}/runtime",
         f"{DASH_PREFIX}/logs",
         "/missing-page",
     ):

@@ -35,6 +35,8 @@
 - Added run-detail pages that correlate lifecycle logs and task-scoped logs for
   a specific run id.
 - Added dashboard log filtering by `run_id` and structured log extras.
+- Added a dashboard runtime page for scheduler timing metadata, stores,
+  executors, and per-component task distribution.
 
 ### Fixed
 

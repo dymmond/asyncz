@@ -109,6 +109,23 @@ def test_tasks_page_renders(client: TestClient):
     assert 'x-data="asynczTasks"' in response.text
 
 
+def test_runtime_page_renders_scheduler_components(client: TestClient):
+    _create_task(client, "runtime-visible")
+
+    response = client.get(f"{DASH_PREFIX}/runtime/")
+
+    assert response.status_code == 200
+    assert "Scheduler Runtime" in response.text
+    assert "Runtime Profile" in response.text
+    assert "MemoryStore" in response.text
+    assert "AsyncIOExecutor" in response.text
+    assert "runtime-visible" not in response.text
+    assert "asyncz.stores.default" in response.text
+    assert "asyncz.executors.default" in response.text
+    assert 'title="Runtime"' in response.text
+    assert 'aria-current="page"' in response.text
+
+
 def test_tasks_partial_table_initial(client: TestClient):
     response = client.get(f"{DASH_PREFIX}/tasks/partials/table")
 

@@ -15,6 +15,7 @@ from asyncz.contrib.dashboard.controllers.logs import (
     LogsTablePartialController,
     get_log_storage,
 )
+from asyncz.contrib.dashboard.controllers.runtime import RuntimePageController
 from asyncz.contrib.dashboard.controllers.tasks import (
     TaskBulkPauseController,
     TaskBulkRemoveController,
@@ -61,6 +62,17 @@ def create_dashboard_app(
 
     app = Router(
         routes=[
+            Include(
+                path="/runtime",
+                routes=[
+                    RoutePath(
+                        "/",
+                        RuntimePageController.with_init(scheduler=scheduler),
+                        name="index",
+                    ),
+                ],
+                name="runtime",
+            ),
             Include(
                 path="/history",
                 routes=[
