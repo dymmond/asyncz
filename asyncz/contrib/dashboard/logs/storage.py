@@ -49,8 +49,11 @@ class LogStorage:
         self,
         *,
         task_id: str | None = None,
+        run_id: str | None = None,
         level: str | None = None,
         q: str | None = None,
+        since: datetime | None = None,
+        until: datetime | None = None,
         limit: int = 200,
     ) -> Iterable[LogEntry]:  # pragma: no cover - interface
         """
@@ -58,8 +61,11 @@ class LogStorage:
 
         Args:
             task_id: Optional. Filters logs to those originating from this specific task ID.
+            run_id: Optional. Filters logs tagged with a specific run ID.
             level: Optional. Filters logs to match this logging level (case-insensitive).
             q: Optional. Filters logs where the message contains this substring (case-insensitive).
+            since: Optional. Filters logs emitted at or after this timestamp.
+            until: Optional. Filters logs emitted at or before this timestamp.
             limit: The maximum number of log entries to return.
 
         Returns:
@@ -154,8 +160,11 @@ class MemoryLogStorage(LogStorage):
         self,
         *,
         task_id: str | None = None,
+        run_id: str | None = None,
         level: str | None = None,
         q: str | None = None,
+        since: datetime | None = None,
+        until: datetime | None = None,
         limit: int = 200,
     ) -> Iterable[LogEntry]:
         """
@@ -165,8 +174,11 @@ class MemoryLogStorage(LogStorage):
 
         Args:
             task_id: Filters by task ID.
+            run_id: Filters by run ID stored in entry extras.
             level: Filters by logging level (case-insensitive).
             q: Filters by substring in the message (case-insensitive).
+            since: Filters by lower timestamp bound.
+            until: Filters by upper timestamp bound.
             limit: Maximum number of entries to return.
 
         Returns:
@@ -183,10 +195,18 @@ class MemoryLogStorage(LogStorage):
                 # Filter 1: task_id
                 if task_id and e.task_id != task_id:
                     continue
-                # Filter 2: level
+                # Filter 2: run_id
+                if run_id and (not e.extra or str(e.extra.get("run_id")) != run_id):
+                    continue
+                # Filter 3: timestamp window
+                if since and e.ts < since:
+                    continue
+                if until and e.ts > until:
+                    continue
+                # Filter 4: level
                 if level_upper and e.level.upper() != level_upper:
                     continue
-                # Filter 3: search query (q)
+                # Filter 5: search query (q)
                 if needle and needle not in e.message.lower():
                     continue
 
@@ -198,3 +218,7 @@ class MemoryLogStorage(LogStorage):
 
         # Returns a list, which is a common pattern for returning a finite result set from a query
         return out
+
+    def clear(self) -> None:
+        with self.mutex:
+            self.buffer.clear()

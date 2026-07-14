@@ -5,6 +5,11 @@ from lilya.routing import Include, RoutePath, Router
 from lilya.staticfiles import StaticFiles
 
 from asyncz.contrib.dashboard.controllers import home
+from asyncz.contrib.dashboard.controllers.history import (
+    HistoryDetailController,
+    HistoryPageController,
+    HistoryTablePartialController,
+)
 from asyncz.contrib.dashboard.controllers.logs import (
     LogsPageController,
     LogsTablePartialController,
@@ -23,16 +28,30 @@ from asyncz.contrib.dashboard.controllers.tasks import (
     TasklistController,
     TaskTablePartialController,
 )
+from asyncz.contrib.dashboard.history import (
+    MemoryRunHistoryStorage,
+    install_run_history_listener,
+)
 from asyncz.contrib.dashboard.logs.handler import install_task_log_handler
 from asyncz.contrib.dashboard.logs.storage import LogStorage
 
 
-def create_dashboard_app(scheduler: Any, log_storage: LogStorage | None = None) -> Router:
+def create_dashboard_app(
+    scheduler: Any,
+    log_storage: LogStorage | None = None,
+    run_history_storage: MemoryRunHistoryStorage | None = None,
+) -> Router:
     """
     Build a Lilya sub-application wired to an Asyncz AsyncIOScheduler.
     The scheduler must be a live scheduler instance owned by the host app.
     """
-    install_task_log_handler(storage=get_log_storage(storage=log_storage))
+    resolved_log_storage = get_log_storage(storage=log_storage)
+    install_task_log_handler(storage=resolved_log_storage)
+    install_run_history_listener(
+        scheduler,
+        storage=run_history_storage,
+        log_storage=resolved_log_storage,
+    )
 
     # Ensure stdlib logs on the namespaced logger bubble up to our handler.
     # Our TaskLogHandler is installed by install_task_log_handler() on a parent logger.
@@ -42,6 +61,15 @@ def create_dashboard_app(scheduler: Any, log_storage: LogStorage | None = None) 
 
     app = Router(
         routes=[
+            Include(
+                path="/history",
+                routes=[
+                    RoutePath("/", HistoryPageController, name="index"),
+                    RoutePath("/partials/table", HistoryTablePartialController, name="table"),
+                    RoutePath("/{run_id:str}", HistoryDetailController, name="detail"),
+                ],
+                name="history",
+            ),
             Include(
                 path="/logs",
                 routes=[

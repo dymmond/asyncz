@@ -31,7 +31,7 @@
     </article>
   </section>
 
-  <section class="az-stat-grid az-stat-grid--three">
+  <section class="az-stat-grid">
     <article class="az-stat-card">
       <div class="az-stat-label">Paused</div>
       <div class="az-stat-value">{{ paused_tasks }}</div>
@@ -46,6 +46,11 @@
       <div class="az-stat-label">Timezone</div>
       <div class="az-stat-value" style="font-size: 1.45rem">{{ timezone }}</div>
       <div class="az-stat-detail">Used for trigger calculations</div>
+    </article>
+    <article class="az-stat-card az-stat-card--info">
+      <div class="az-stat-label">Runs</div>
+      <div class="az-stat-value">{{ run_summary.total }}</div>
+      <div class="az-stat-detail">{{ run_summary.succeeded }} succeeded, {{ run_summary.failed }} failed</div>
     </article>
   </section>
 
@@ -67,6 +72,7 @@
             <th>Task</th>
             <th>Trigger</th>
             <th>Next Run</th>
+            <th>Last Run</th>
             <th>Store / Executor</th>
             <th>Status</th>
           </tr>
@@ -74,7 +80,7 @@
         <tbody>
           {% if not tasks or tasks|length == 0 %}
             <tr>
-              <td colspan="5">
+              <td colspan="6">
                 <div class="az-empty">
                   <strong>No tasks yet.</strong>
                 </div>
@@ -94,6 +100,14 @@
                 </td>
                 <td>{{ t.next_run_time or '-' }}</td>
                 <td>
+                  {% if t.last_run %}
+                    <a href="{{ url_prefix }}/history/{{ t.last_run.run_id }}" class="az-mono">{{ t.last_run.finished_at or t.last_run.submitted_at }}</a>
+                    <div class="az-muted">{{ t.last_run.status_label }}</div>
+                  {% else %}
+                    <span class="az-muted">Never</span>
+                  {% endif %}
+                </td>
+                <td>
                   <div class="az-mono">{{ t.store or '-' }}</div>
                   <div class="az-muted">{{ t.executor or '-' }}</div>
                 </td>
@@ -111,6 +125,24 @@
           {% endif %}
         </tbody>
       </table>
+    </div>
+  </section>
+
+  <section class="az-panel">
+    <div class="az-panel-header">
+      <div>
+        <h2 class="az-panel-title">Recent Runs</h2>
+        <div class="az-panel-meta">Latest task execution records captured from scheduler events</div>
+      </div>
+      <a href="{{ url_for('dashboard:history:index') }}" class="az-button az-button--primary">
+        View History
+      </a>
+    </div>
+
+    <div class="az-table-wrap">
+      {% with rows=recent_runs %}
+        {% include "history/partials/table.html" %}
+      {% endwith %}
     </div>
   </section>
 </div>

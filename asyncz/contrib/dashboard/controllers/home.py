@@ -4,6 +4,7 @@ from lilya.requests import Request
 from lilya.templating.controllers import TemplateController
 
 from asyncz.contrib.dashboard.controllers._helpers import serialize
+from asyncz.contrib.dashboard.history import get_run_history_storage
 from asyncz.contrib.dashboard.mixins import DashboardMixin
 
 
@@ -27,7 +28,13 @@ class DashboardController(DashboardMixin, TemplateController):
     async def get(self, request: Request) -> Any:
         scheduler_info = self.scheduler.get_scheduler_info()
         task_infos = self.scheduler.get_task_infos()
-        recent_tasks = [serialize(task_info) for task_info in task_infos[:10]]
+        history = get_run_history_storage()
+        recent_tasks = [
+            serialize(task_info, history.latest_for_task(task_info.id))
+            for task_info in task_infos[:10]
+        ]
+        run_summary = history.summary()
+        recent_runs = history.query(limit=6)
 
         context = await self.get_context_data(
             request,
@@ -44,5 +51,7 @@ class DashboardController(DashboardMixin, TemplateController):
             store_count=len(scheduler_info.store_aliases),
             executor_count=len(scheduler_info.executor_aliases),
             tasks=recent_tasks,
+            run_summary=run_summary,
+            recent_runs=recent_runs,
         )
         return await self.render_template(request, context=context)

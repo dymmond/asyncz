@@ -19,6 +19,7 @@ from asyncz.contrib.dashboard.admin.middleware.forward_root_path import (
 )
 from asyncz.contrib.dashboard.admin.protocols import AuthBackend
 from asyncz.contrib.dashboard.engine import templates
+from asyncz.contrib.dashboard.history import MemoryRunHistoryStorage
 from asyncz.contrib.dashboard.logs.storage import LogStorage
 from asyncz.schedulers.asyncio import AsyncIOScheduler
 
@@ -56,6 +57,7 @@ class AsynczAdmin:
         login_path: str = "/login",
         allowlist: tuple[str, ...] = ("/login", "/logout", "/static", "/assets"),
         log_storage: LogStorage | None = None,
+        run_history_storage: MemoryRunHistoryStorage | None = None,
     ) -> None:
         """
         Initializes the Asyncz Admin dashboard instance.
@@ -95,6 +97,7 @@ class AsynczAdmin:
 
         # Build the internal dashboard routing application immediately
         self.log_storage: LogStorage | None = log_storage
+        self.run_history_storage: MemoryRunHistoryStorage | None = run_history_storage
         self.child_app: Router = self.assemble_dashboard_router()
 
     def add_sign_in_pages(self) -> list[Path | Include]:
@@ -207,7 +210,9 @@ class AsynczAdmin:
                 Include(
                     "/",
                     app=create_dashboard_app(
-                        scheduler=self.scheduler, log_storage=self.log_storage
+                        scheduler=self.scheduler,
+                        log_storage=self.log_storage,
+                        run_history_storage=self.run_history_storage,
                     ),
                 ),
             ],

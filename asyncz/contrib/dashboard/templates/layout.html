@@ -35,6 +35,7 @@
       <nav class="az-nav" aria-label="Dashboard">
         {{ nav_link(home_url, "Overview", current_page == "dashboard", "dashboard") }}
         {{ nav_link(url_for('dashboard:tasks:index'), "Tasks", current_page == "tasks", "tasks") }}
+        {{ nav_link(url_for('dashboard:history:index'), "History", current_page == "history", "history") }}
         {{ nav_link(url_for('dashboard:logs:index'), "Logs", current_page == "logs", "logs") }}
       </nav>
 
@@ -87,6 +88,7 @@
           <div id="az-mobile-menu" class="az-mobile-menu" x-show="mobileMenuOpen" x-cloak x-on:click="closeMobileMenu">
             {{ nav_link(home_url, "Overview", current_page == "dashboard", "dashboard") }}
             {{ nav_link(url_for('dashboard:tasks:index'), "Tasks", current_page == "tasks", "tasks") }}
+            {{ nav_link(url_for('dashboard:history:index'), "History", current_page == "history", "history") }}
             {{ nav_link(url_for('dashboard:logs:index'), "Logs", current_page == "logs", "logs") }}
             {% if logout_url %}
               <a href="{{ logout_url }}" class="az-nav-link">

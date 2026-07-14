@@ -15,34 +15,39 @@
     <form id="log-filters" class="az-filter-bar"
           hx-get="partials/table" hx-target="#logs-table" hx-swap="innerHTML"
           hx-trigger="change, submit from:#log-filters">
-      <label class="az-field" style="min-width: min(22rem, 100%); flex: 1 1 16rem">
+      <label class="az-field az-field--search">
         <span>Task ID</span>
-        <input name="task_id" placeholder="task id" class="az-input" />
+        <input name="task_id" value="{{ filters.task_id }}" placeholder="task id" class="az-input" />
+      </label>
+      <label class="az-field az-field--search">
+        <span>Run ID</span>
+        <input name="run_id" value="{{ filters.run_id }}" placeholder="run id" class="az-input" />
       </label>
       <label class="az-field">
         <span>Level</span>
         <select name="level" class="az-select">
           <option value="">Any level</option>
-          <option>DEBUG</option>
-          <option>INFO</option>
-          <option>WARNING</option>
-          <option>ERROR</option>
-          <option>CRITICAL</option>
+          <option {% if filters.level == "DEBUG" %}selected{% endif %}>DEBUG</option>
+          <option {% if filters.level == "INFO" %}selected{% endif %}>INFO</option>
+          <option {% if filters.level == "WARNING" %}selected{% endif %}>WARNING</option>
+          <option {% if filters.level == "ERROR" %}selected{% endif %}>ERROR</option>
+          <option {% if filters.level == "CRITICAL" %}selected{% endif %}>CRITICAL</option>
         </select>
       </label>
-      <label class="az-field" style="min-width: min(22rem, 100%); flex: 1 1 16rem">
+      <label class="az-field az-field--search">
         <span>Search</span>
-        <input name="q" placeholder="message text" class="az-input" />
+        <input name="q" value="{{ filters.q }}" placeholder="message text" class="az-input" />
       </label>
       <label class="az-field">
         <span>Limit</span>
-        <input name="limit" value="200" class="az-input" style="width: 7rem" />
+        <input name="limit" value="{{ filters.limit }}" class="az-input az-input--compact" />
       </label>
       <button class="az-button az-button--primary">Filter</button>
     </form>
 
     <div id="logs-table"
          hx-get="partials/table"
+         hx-include="#log-filters"
          hx-trigger="load once, every 10s"
          hx-swap="innerHTML"
          class="az-table-wrap">

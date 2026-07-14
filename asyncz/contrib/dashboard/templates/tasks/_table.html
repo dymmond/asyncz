@@ -13,6 +13,7 @@
         <th>Task</th>
         <th>Trigger</th>
         <th>Next Run</th>
+        <th>Last Run</th>
         <th>Store / Executor</th>
         <th style="width: 188px; text-align: right">Actions</th>
       </tr>
@@ -21,7 +22,7 @@
     <tbody>
       {% if not tasks %}
         <tr>
-          <td colspan="6">
+          <td colspan="7">
             <div class="az-empty">
               <strong>No tasks match the current filters.</strong>
             </div>
@@ -46,6 +47,25 @@
             </td>
 
             <td>{{ t.next_run_time or '-' }}</td>
+
+            <td>
+              {% if t.last_run %}
+                <a href="{{ url_prefix }}/history/{{ t.last_run.run_id }}" class="az-mono">{{ t.last_run.finished_at or t.last_run.submitted_at }}</a>
+                <div>
+                  {% if t.last_run.status == "succeeded" %}
+                    <span class="az-badge az-badge--success">{{ t.last_run.status_label }}</span>
+                  {% elif t.last_run.status == "running" %}
+                    <span class="az-badge az-badge--info">{{ t.last_run.status_label }}</span>
+                  {% elif t.last_run.status == "missed" or t.last_run.status == "max_instances" %}
+                    <span class="az-badge az-badge--warning">{{ t.last_run.status_label }}</span>
+                  {% else %}
+                    <span class="az-badge az-badge--danger">{{ t.last_run.status_label }}</span>
+                  {% endif %}
+                </div>
+              {% else %}
+                <span class="az-muted">Never</span>
+              {% endif %}
+            </td>
 
             <td>
               <div class="az-mono">{{ t.store or '-' }}</div>

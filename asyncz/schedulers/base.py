@@ -779,6 +779,7 @@ class BaseScheduler(SchedulerType):
                     task_id=task_id,
                     store=store_alias,
                     scheduled_run_times=run_times,
+                    source="manual",
                 )
             )
             raise
@@ -796,6 +797,7 @@ class BaseScheduler(SchedulerType):
                     task_id=task_id,
                     store=store_alias,
                     scheduled_run_times=run_times,
+                    source="manual",
                 )
             )
 
@@ -1489,6 +1491,7 @@ class BaseScheduler(SchedulerType):
                             task_id=task.id,
                             store=store_alias,
                             scheduled_run_times=run_times,
+                            source="scheduled",
                         )
                         events.append(event)
                     except Exception as exc:
@@ -1501,6 +1504,7 @@ class BaseScheduler(SchedulerType):
                             task_id=task.id,
                             store=store_alias,
                             scheduled_run_times=run_times,
+                            source="scheduled",
                         )
                         events.append(event)
 

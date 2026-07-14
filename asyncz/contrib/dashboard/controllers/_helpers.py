@@ -10,6 +10,7 @@ from lilya.requests import Request
 from lilya.responses import HTMLResponse
 
 from asyncz.contrib.dashboard.engine import templates
+from asyncz.contrib.dashboard.history import RunRecord, get_run_history_storage
 from asyncz.tasks.inspection import TaskInfo
 from asyncz.triggers.cron import CronTrigger
 from asyncz.triggers.date import DateTrigger
@@ -19,7 +20,7 @@ if TYPE_CHECKING:
     from asyncz.schedulers import AsyncIOScheduler
 
 
-def serialize(task: Any) -> dict[str, Any]:
+def serialize(task: Any, last_run: RunRecord | None = None) -> dict[str, Any]:
     """
     Convert a task or task snapshot into a dashboard-friendly dictionary.
 
@@ -38,6 +39,19 @@ def serialize(task: Any) -> dict[str, Any]:
         else (next_run_time or None)
     )
 
+    last_run_payload = None
+    if last_run is not None:
+        last_run_payload = {
+            "run_id": last_run.run_id,
+            "status": last_run.status,
+            "status_label": last_run.status_label,
+            "source": last_run.source,
+            "source_label": last_run.source_label,
+            "submitted_at": (last_run.submitted_at.isoformat() if last_run.submitted_at else None),
+            "finished_at": last_run.finished_at.isoformat() if last_run.finished_at else None,
+            "duration_ms": last_run.duration_ms,
+        }
+
     return {
         "id": info.id,
         "name": info.name or "",
@@ -53,6 +67,7 @@ def serialize(task: Any) -> dict[str, Any]:
         "state": info.schedule_state.value,
         "pending": info.pending,
         "paused": info.paused,
+        "last_run": last_run_payload,
     }
 
 
@@ -266,6 +281,7 @@ def build_task_dashboard_context(scheduler: AsyncIOScheduler, request: Request) 
     parsed = parse_task_filters(request)
     filters = parsed["form"]
     all_infos = scheduler.get_task_infos()
+    history = get_run_history_storage()
     visible_infos = scheduler.get_task_infos(
         schedule_state=parsed["schedule_state"],
         executor=parsed["executor"],
@@ -285,7 +301,7 @@ def build_task_dashboard_context(scheduler: AsyncIOScheduler, request: Request) 
         }
     )
     return {
-        "tasks": [serialize(info) for info in visible_infos],
+        "tasks": [serialize(info, history.latest_for_task(info.id)) for info in visible_infos],
         "filters": filters,
         "query_suffix": _build_task_query_suffix(filters),
         "available_executors": available_executors,

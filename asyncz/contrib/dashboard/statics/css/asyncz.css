@@ -323,6 +323,10 @@ html {
   background: #d99012;
 }
 
+.az-stat-card--info::before {
+  background: var(--az-blue);
+}
+
 .az-stat-card--danger::before {
   background: var(--az-red);
 }
@@ -409,6 +413,10 @@ html {
   border-radius: var(--az-radius);
 }
 
+.az-input--compact {
+  width: 7rem;
+}
+
 .az-input:focus,
 .az-select:focus {
   border-color: rgba(240, 104, 36, .76);
@@ -422,7 +430,7 @@ html {
 
 .az-table {
   width: 100%;
-  min-width: 860px;
+  min-width: 1040px;
   border-collapse: separate;
   border-spacing: 0;
 }
@@ -743,6 +751,26 @@ html {
   padding: 14px 16px;
   background: var(--az-surface-muted);
   border-top: 1px solid var(--az-border);
+}
+
+.az-code-block {
+  margin-top: 14px;
+  padding: 12px;
+  background: #0f172a;
+  border-radius: var(--az-radius);
+}
+
+.az-code-block .az-section-meta {
+  color: #cbd5e1;
+}
+
+.az-code-block pre {
+  margin: 8px 0 0;
+  overflow: auto;
+  color: #f8fafc;
+  font-size: .82rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
 }
 
 .az-mobile-nav {

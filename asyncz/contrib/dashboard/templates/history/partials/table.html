@@ -1,0 +1,70 @@
+<table class="az-table">
+  <thead>
+    <tr>
+      <th style="width: 160px">Submitted</th>
+      <th>Task</th>
+      <th style="width: 120px">Source</th>
+      <th style="width: 132px">Status</th>
+      <th style="width: 112px">Duration</th>
+      <th style="width: 132px; text-align: right">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% if rows|length == 0 %}
+      <tr>
+        <td colspan="6">
+          <div class="az-empty">
+            <strong>No runs match the current filters.</strong>
+          </div>
+        </td>
+      </tr>
+    {% else %}
+      {% for r in rows %}
+        <tr>
+          <td>
+            <div class="az-mono">
+              {% if r.submitted_at %}{{ r.submitted_at.strftime("%Y-%m-%d %H:%M:%S") }}{% else %}-{% endif %}
+            </div>
+            <div class="az-muted">UTC</div>
+          </td>
+          <td>
+            <div class="az-mono">{{ r.task_id }}</div>
+            <div><strong>{{ r.task_name or "-" }}</strong></div>
+            <div class="az-muted">{{ r.callable_reference or "-" }}</div>
+            <div class="az-muted">Run {{ r.run_id }}</div>
+          </td>
+          <td>
+            {% if r.source == "manual" %}
+              <span class="az-badge az-badge--info">{{ r.source_label }}</span>
+            {% elif r.source == "scheduled" %}
+              <span class="az-badge az-badge--neutral">{{ r.source_label }}</span>
+            {% else %}
+              <span class="az-badge az-badge--warning">{{ r.source_label }}</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if r.status == "succeeded" %}
+              <span class="az-badge az-badge--success">{{ r.status_label }}</span>
+            {% elif r.status == "running" %}
+              <span class="az-badge az-badge--info">{{ r.status_label }}</span>
+            {% elif r.status == "missed" or r.status == "max_instances" %}
+              <span class="az-badge az-badge--warning">{{ r.status_label }}</span>
+            {% else %}
+              <span class="az-badge az-badge--danger">{{ r.status_label }}</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if r.duration_ms is not none %}
+              {{ r.duration_ms }} ms
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td style="text-align: right">
+            <a href="{{ url_prefix }}/history/{{ r.run_id }}" class="az-button">Inspect Logs</a>
+          </td>
+        </tr>
+      {% endfor %}
+    {% endif %}
+  </tbody>
+</table>

@@ -40,9 +40,11 @@ class TaskSubmissionEvent(TaskEvent):
 
     Args:
         scheduled_run_times: List of datetimes when the task is supposed to run.
+        source: Optional origin of the submission, such as ``manual`` or ``scheduled``.
     """
 
     scheduled_run_times: list[datetime]
+    source: Optional[str] = None
 
 
 class TaskExecutionEvent(TaskEvent):

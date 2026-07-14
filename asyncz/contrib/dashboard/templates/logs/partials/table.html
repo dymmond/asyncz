@@ -4,6 +4,7 @@
       <th style="width: 150px">Time (UTC)</th>
       <th style="width: 92px">Level</th>
       <th style="width: 160px">Task ID</th>
+      <th style="width: 150px">Run ID</th>
       <th style="width: 190px">Logger</th>
       <th>Message</th>
     </tr>
@@ -11,7 +12,7 @@
   <tbody>
     {% if rows|length == 0 %}
       <tr>
-        <td colspan="5">
+        <td colspan="6">
           <div class="az-empty">
             <strong>No logs match the current filters.</strong>
           </div>
@@ -33,6 +34,7 @@
             {% endif %}
           </td>
           <td class="az-mono">{{ r.task_id or "-" }}</td>
+          <td class="az-mono">{% if r.extra and r.extra.get("run_id") %}{{ r.extra.get("run_id") }}{% else %}-{% endif %}</td>
           <td class="az-mono">{{ r.logger }}</td>
           <td>{{ r.message }}</td>
         </tr>
