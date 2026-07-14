@@ -30,16 +30,18 @@
 
 ---
 
-Asyncz is an async-first production scheduler for Python applications and ASGI services. It keeps the familiar scheduler / trigger / store / executor model, but it is built around `asyncio`, explicit task objects, framework lifecycle integration, durable stores, predictable standard-library logging, and operator tooling that works from both the CLI and the dashboard.
+Asyncz is a production scheduler for async Python applications and ASGI services. It keeps the familiar scheduler / trigger / store / executor model, but it is built around `asyncio`, explicit task objects, framework lifecycle integration, durable stores, predictable Python logging, and operator tooling that works from both the CLI and the dashboard.
+
+Asyncz is designed for scheduled work that operators need to understand and control. You can inspect a task before changing it, preview future run times without mutating trigger state, trigger a task manually, review a diff before editing supported metadata, and inspect the run history and logs afterward.
 
 ## Why Asyncz
 
 - `AsyncIOScheduler` for regular async applications.
 - `NativeAsyncIOScheduler` for environments that already own the event loop.
-- Built-in triggers for one-off work, recurring intervals, cron expressions, combinations, and shutdown hooks.
+- Built-in triggers for one time work, recurring intervals, cron expressions, combinations, and shutdown hooks.
 - Multiple persistence options for local development and production deployments.
-- CLI tooling for version checks, diagnostics, process-local instances, add, update, list, inspect, preview, timeline, status, run, pause, resume, and remove workflows.
-- Dashboard tooling for task control, bulk actions, manual Run now, runtime identity, process-local instances, run history, and per-run log inspection.
+- CLI tooling for version checks, diagnostics, instances visible in the current process, add, update, list, inspect, preview, timeline, status, run, pause, resume, and remove workflows.
+- Dashboard tooling for task control, links to logs for each task, edit previews, bulk actions, manual Run now, runtime identity, instances visible in the current process, timeline previews, audit trail, run history, and log inspection for each run.
 - Packaged dashboard assets for Tailwind CSS, Alpine.js, HTMX, Toastify, and the favicon.
 
 ## Install
@@ -85,6 +87,7 @@ asyncz add myapp.tasks:cleanup \
   --store durable=sqlite:///scheduler.db
 
 asyncz inspect cleanup-task --count 5 --store durable=sqlite:///scheduler.db
+asyncz update cleanup-task --max-instances 2 --dry-run --store durable=sqlite:///scheduler.db
 asyncz run cleanup-task --store durable=sqlite:///scheduler.db
 ```
 
@@ -101,7 +104,7 @@ asyncz run cleanup-task --store durable=sqlite:///scheduler.db
 
 ## Logging
 
-Asyncz uses Python's built-in `logging` module. The default logger namespaces are:
+Asyncz uses Python's `logging` module. The default logger namespaces are:
 
 - `asyncz.schedulers`
 - `asyncz.executors.<alias>`

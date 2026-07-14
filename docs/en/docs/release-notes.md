@@ -4,59 +4,57 @@
 
 ### Changed
 
-- Updated the release version to `0.16.0`.
-- Pinned the dashboard extra to Lilya `0.27.0`.
-- Pinned the testing type checker dependency to `ty==0.0.59`.
 - Replaced dashboard runtime CDN dependencies with packaged Tailwind CSS,
   Alpine.js CSP, HTMX, Toastify, and favicon assets.
 - Rebuilt the dashboard as a modern admin surface with a fixed navigation shell,
-  responsive mobile navigation, denser operational tables, Alpine.js-backed
+  responsive mobile navigation, denser operational tables, Alpine.js
   interaction state, and clearer task action buttons.
 - Refined dashboard navigation and task ergonomics with grouped menu sections,
   persisted table density controls, collapsible filters, sticky row actions,
   and a resizable task table region.
-- The dashboard task table now shows last-run status and links directly to run
+- Added a Logs action to each task row so operators can open logs filtered by
+  task id.
+- The dashboard task table now shows last run status and links directly to run
   history details.
 - The overview page now includes recent run history alongside scheduler and task
   summaries.
 
 ### Added
 
-- Added dashboard static-asset tests that verify local serving, rendered
-  template references, and recorded checksum integrity.
-- Added scheduler-level status inspection through `scheduler.get_scheduler_info()`
+- Added scheduler status inspection through `scheduler.get_scheduler_info()`
   and the `asyncz status` CLI command.
-- Added scheduler identity, start-time, and uptime metadata to runtime
-  inspection snapshots, the dashboard runtime page, and `asyncz status --json`.
-- Added process-local scheduler instance inspection through
+- Added automatically generated scheduler identity, start time, and uptime
+  metadata to runtime inspection snapshots, the dashboard runtime page, and
+  `asyncz status --json`.
+- Added scheduler instance inspection for the current process through
   `scheduler.get_scheduler_instance_infos()`, `asyncz instances`, and the
   dashboard instances page.
 - Added default dashboard browser security headers, including a CSP that keeps
   scripts restricted to packaged same-origin assets.
 - Added the `asyncz doctor` CLI command for scheduler diagnostics, readiness
-  checks, and strict automation-friendly health validation.
-- Added scheduler-backed trigger previews through `scheduler.preview_task_runs()`
-  and the `asyncz preview` CLI command.
+  checks, and strict health validation for automation.
+- Added trigger previews through `scheduler.preview_task_runs()` and the
+  `asyncz preview` CLI command.
 - Added the `asyncz version` CLI command with JSON output for release and
   packaging smoke checks.
 - Added the `asyncz timeline` CLI command for upcoming run previews across all
   tasks.
-- Added the `asyncz inspect` CLI command for single-task inspection with
+- Added the `asyncz inspect` CLI command for single task inspection with
   upcoming run previews and JSON output.
 - Added the `asyncz update` CLI command for supported task metadata updates,
-  before/after diffs, dry runs, and `--yes` automation.
-- Expanded `asyncz inspect --json` task payloads with coalesce, max-instances,
+  diffs, dry runs, and `--yes` automation.
+- Expanded `asyncz inspect --json` task payloads with coalesce, max instances,
   and misfire grace metadata.
 - Added a dashboard task edit workflow with preview/apply diffs, scheduler
   validation, and `task.update` audit events.
-- Added `asyncz add --id` for stable operator-owned task identifiers.
+- Added `asyncz add --id` for stable task identifiers chosen by operators.
 - Added dashboard run history backed by scheduler submission and execution
-  events, including manual-vs-scheduled source tracking.
-- Added run-detail pages that correlate lifecycle logs and task-scoped logs for
+  events, including source tracking for manual and scheduled runs.
+- Added run detail pages that correlate lifecycle logs and task logs for
   a specific run id.
 - Added dashboard log filtering by `run_id` and structured log extras.
 - Added a dashboard runtime page for scheduler timing metadata, stores,
-  executors, and per-component task distribution.
+  executors, and task distribution by component.
 - Added a dashboard timeline page that previews upcoming run times across all
   tasks without mutating scheduler state.
 - Added a dashboard audit page for task create, run, pause, resume, and remove
@@ -64,11 +62,11 @@
 
 ### Fixed
 
-- Fixed forwarded-prefix dashboard rendering so `X-Forwarded-Prefix` updates
+- Fixed proxy prefix dashboard rendering so `X-Forwarded-Prefix` updates
   generated links and static asset URLs without breaking route matching.
 - Removed inline dashboard click handlers so the packaged JavaScript can satisfy
   the default script CSP.
-- Auth-enabled dashboards now allow prefixed static assets such as
+- Dashboards with auth now allow prefixed static assets such as
   `/dashboard/static/...` through the authentication gate so login pages can load
   packaged CSS and JavaScript.
 - Replaced invalid HTMX request attributes in task refresh/action flows with

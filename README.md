@@ -30,21 +30,23 @@
 
 ---
 
-Asyncz is an async-first production scheduler for Python applications and ASGI services. It keeps the familiar scheduler / trigger / store / executor model, but it is built around `asyncio`, explicit task objects, framework lifecycle integration, durable stores, standard-library logging, and operator tooling that works from both the CLI and the browser.
+Asyncz is a production scheduler for async Python applications and ASGI services. It keeps the familiar scheduler / trigger / store / executor model, but it is built around `asyncio`, explicit task objects, framework lifecycle integration, durable stores, Python standard logging, and operator tooling that works from both the CLI and the browser.
+
+Use Asyncz when scheduled work needs to be observable, editable, and safe to operate in production. Tasks can be inspected before they are changed, triggered manually when needed, previewed without advancing their triggers, and followed through history and logs after they run.
 
 Documentation: [https://asyncz.dymmond.com](https://asyncz.dymmond.com)
 
-## Highlights
+## What Asyncz gives you
 
-- `AsyncIOScheduler` and `NativeAsyncIOScheduler` for async runtimes.
-- Built-in triggers for `date`, `interval`, `cron`, `and`, `or`, and `shutdown`.
-- Built-in stores for `memory`, `file`, `mongodb`, `redis`, and `sqlalchemy`.
-- Executors for in-event-loop work, thread pools, process pools, and direct debug execution.
-- CLI commands for showing the installed version, diagnostics, scheduler instances, adding/updating tasks, inspecting one task, previewing upcoming timelines, triggering runs, and managing persisted tasks.
-- Scheduler-native inspection snapshots with process identity, process-local instance visibility, lifecycle timing, task counts, stores, and executors for dashboards, CLIs, and admin tooling.
-- Optional dashboard UI with a modern admin shell, task filters, row/bulk actions, manual Run now, runtime, instances, timeline, audit trail, run history, and per-run log inspection.
-- Packaged dashboard browser assets: no runtime dependency on public Tailwind, Alpine.js, HTMX, Toastify, or favicon CDNs.
-- Standard-library logging throughout the project.
+- Async runtimes: `AsyncIOScheduler` for regular async applications and `NativeAsyncIOScheduler` for environments that already own the event loop.
+- Scheduling primitives: `date`, `interval`, `cron`, `and`, `or`, and `shutdown` triggers.
+- Durable stores: `memory`, `file`, `mongodb`, `redis`, and `sqlalchemy`.
+- Executor choices: asyncio event loop execution, thread pools, process pools, and direct debug execution.
+- Safe task control for operators: stable task ids, manual Run now, pause, resume, remove, inspect, preview, and update workflows.
+- Scheduler inspection APIs: process identity, lifecycle timing, task counts, stores, executors, instances visible in the current process, and upcoming run previews.
+- Modern dashboard: task filters, row and bulk actions, links to logs for each task, task edit previews, runtime and instance pages, timeline, audit trail, run history, and log inspection for each run.
+- Packaged dashboard assets: no runtime dependency on public Tailwind, Alpine.js, HTMX, Toastify, or favicon CDNs.
+- Python standard logging throughout the project.
 
 ## Installation
 
@@ -98,11 +100,39 @@ asyncz inspect cleanup-task --count 5 --store durable=sqlite:///scheduler.db
 asyncz inspect cleanup-task --json --store durable=sqlite:///scheduler.db
 ```
 
+Preview a metadata change before writing it:
+
+```bash
+asyncz update cleanup-task \
+  --name cleanup-v2 \
+  --max-instances 2 \
+  --dry-run \
+  --store durable=sqlite:///scheduler.db
+```
+
+Apply it without a prompt when the diff is expected:
+
+```bash
+asyncz update cleanup-task \
+  --name cleanup-v2 \
+  --max-instances 2 \
+  --yes \
+  --store durable=sqlite:///scheduler.db
+```
+
 Trigger it immediately, then inspect its next scheduled run:
 
 ```bash
 asyncz run cleanup-task --store durable=sqlite:///scheduler.db
 asyncz preview cleanup-task --count 5 --store durable=sqlite:///scheduler.db
+```
+
+Check the active scheduler and upcoming schedule:
+
+```bash
+asyncz status --store durable=sqlite:///scheduler.db
+asyncz doctor --strict --store durable=sqlite:///scheduler.db
+asyncz timeline --per-task 3 --limit 50 --store durable=sqlite:///scheduler.db
 ```
 
 ## Core concepts
@@ -118,7 +148,7 @@ Tasks are the public unit of scheduling. A task combines a callable, a trigger, 
 
 ## Logging
 
-Asyncz uses Python's built-in `logging` module. The default logger namespaces are:
+Asyncz uses Python's `logging` module. The default logger namespaces are:
 
 - `asyncz.schedulers`
 - `asyncz.executors.<alias>`
@@ -126,7 +156,7 @@ Asyncz uses Python's built-in `logging` module. The default logger namespaces ar
 
 If you need custom logger creation, pass your own `loggers_class` to the scheduler. That class only needs to implement the same dictionary-like contract used by `ClassicLogging`.
 
-The dashboard also ships with a log capture layer for the `asyncz` logger namespace. It can filter by task id, run id, level, and message text. Run-history entries write lifecycle log records so operators can open a specific run and inspect the logs attached to that run.
+The dashboard also ships with a log capture layer for the `asyncz` logger namespace. It can filter by task id, run id, level, and message text. Run history entries write lifecycle log records so operators can open a specific run and inspect the logs attached to that run.
 
 ## ASGI integration
 
@@ -155,18 +185,67 @@ app = Lilya(
 
 The scheduler also supports synchronous and asynchronous context managers, which makes it easy to use inside lifespan handlers.
 
+## Dashboard quick mount
+
+Install the dashboard extra:
+
+```bash
+pip install "asyncz[dashboard]"
+```
+
+Mount the dashboard into a Lilya application:
+
+```python
+from lilya.apps import Lilya
+
+from asyncz.contrib.dashboard.admin import AsynczAdmin
+from asyncz.schedulers import AsyncIOScheduler
+
+scheduler = AsyncIOScheduler()
+app = Lilya(
+    routes=[...],
+    on_startup=[scheduler.start],
+    on_shutdown=[scheduler.shutdown],
+)
+
+admin = AsynczAdmin(url_prefix="/dashboard", scheduler=scheduler)
+admin.include_in(app)
+```
+
+The dashboard is an admin surface rendered by the server and enhanced by packaged Alpine.js and HTMX. It can:
+
+- filter, sort, and search tasks
+- trigger tasks manually without removing one time tasks from the table
+- open logs for a task directly from its row
+- preview and apply supported task metadata edits through `scheduler.update_task()`
+- pause, resume, remove, and control tasks in bulk
+- inspect scheduler runtime, instances visible in the current process, and upcoming timelines
+- follow runs through history records and correlated logs
+- audit dashboard management actions separately from execution history
+
 ## Persistent stores and encryption
 
-The default store is in-memory. For durable scheduling, configure a file, MongoDB, Redis, or SQLAlchemy store.
+The default store is in memory. For durable scheduling, configure a file, MongoDB, Redis, or SQLAlchemy store.
 
 Persistent stores support the `ASYNCZ_STORE_ENCRYPTION_KEY` environment variable. When it is set, task payloads are encrypted before they are written to the backing store.
+
+## Production checklist
+
+- Use stable task ids for scheduled work that operators may inspect, trigger, pause, resume, or update.
+- Use a durable store for tasks that must survive process restarts.
+- Run `asyncz doctor --strict` in deployment checks when the scheduler is expected to be ready.
+- Use `asyncz inspect`, `asyncz preview`, and `asyncz timeline` before manual interventions.
+- Use `asyncz update --dry-run` or the dashboard edit preview before changing task metadata.
+- Mount the dashboard behind your application authentication or enable the dashboard login backend.
+- Configure reverse proxy prefixes explicitly when serving the dashboard behind an external path.
+- Keep task logs on Python's `logging` module so the dashboard log viewer can correlate run records and task output.
 
 ## CLI and dashboard
 
 Asyncz ships with:
 
 - a CLI for `version`, `doctor`, `instances`, `start`, `add`, `update`, `list`, `inspect`, `preview`, `timeline`, `status`, `run`, `pause`, `resume`, and `remove`
-- a Lilya-based dashboard with a scheduler overview, task controls, bulk operations, runtime identity/instance/timeline views, audit trail, run history, and log inspection
+- a Lilya dashboard with a scheduler overview, task controls, edit previews, bulk operations, runtime, instances, timeline, audit trail, run history, and log inspection
 
 See the documentation for usage details:
 

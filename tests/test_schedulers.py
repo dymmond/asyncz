@@ -812,6 +812,14 @@ class TestBaseScheduler:
         assert stopped_instance.active is False
         assert stopped_instance.stale is True
 
+    def test_scheduler_identity_is_generated_when_omitted(self):
+        first = DummyScheduler()
+        second = DummyScheduler(identity="")
+
+        assert first.identity.startswith("DummyScheduler-")
+        assert second.identity.startswith("DummyScheduler-")
+        assert first.identity != second.identity
+
     def test_preview_task_runs_does_not_mutate_task(self, freeze_time):
         scheduler = DummyScheduler(executors={"default": DebugExecutor()})
         scheduler.start(paused=True)
