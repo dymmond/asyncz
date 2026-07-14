@@ -37,6 +37,8 @@
 - Added dashboard log filtering by `run_id` and structured log extras.
 - Added a dashboard runtime page for scheduler timing metadata, stores,
   executors, and per-component task distribution.
+- Added a dashboard timeline page that previews upcoming run times across all
+  tasks without mutating scheduler state.
 
 ### Fixed
 

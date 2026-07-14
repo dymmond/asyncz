@@ -29,6 +29,7 @@ from asyncz.contrib.dashboard.controllers.tasks import (
     TasklistController,
     TaskTablePartialController,
 )
+from asyncz.contrib.dashboard.controllers.timeline import TimelinePageController
 from asyncz.contrib.dashboard.history import (
     MemoryRunHistoryStorage,
     install_run_history_listener,
@@ -72,6 +73,17 @@ def create_dashboard_app(
                     ),
                 ],
                 name="runtime",
+            ),
+            Include(
+                path="/timeline",
+                routes=[
+                    RoutePath(
+                        "/",
+                        TimelinePageController.with_init(scheduler=scheduler),
+                        name="index",
+                    ),
+                ],
+                name="timeline",
             ),
             Include(
                 path="/history",

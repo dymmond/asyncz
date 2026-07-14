@@ -126,6 +126,27 @@ def test_runtime_page_renders_scheduler_components(client: TestClient):
     assert 'aria-current="page"' in response.text
 
 
+def test_timeline_page_renders_upcoming_runs(client: TestClient):
+    _create_task(client, "timeline-interval", trigger_type="interval", trigger_value="5s")
+    _create_task(
+        client,
+        "timeline-date",
+        trigger_type="date",
+        trigger_value="2027-01-01T10:00:00+00:00",
+    )
+
+    response = client.get(f"{DASH_PREFIX}/timeline/?per_task=2&limit=10")
+
+    assert response.status_code == 200
+    assert "Run Timeline" in response.text
+    assert "Upcoming Run Times" in response.text
+    assert "timeline-interval" in response.text
+    assert "timeline-date" in response.text
+    assert "previewed run" in response.text
+    assert 'title="Timeline"' in response.text
+    assert 'aria-current="page"' in response.text
+
+
 def test_tasks_partial_table_initial(client: TestClient):
     response = client.get(f"{DASH_PREFIX}/tasks/partials/table")
 

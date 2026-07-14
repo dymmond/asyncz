@@ -1,0 +1,118 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="az-page">
+  <section class="az-stat-grid">
+    <article class="az-stat-card az-stat-card--accent">
+      <div class="az-stat-label">Upcoming Runs</div>
+      <div class="az-stat-value">{{ total_rows }}</div>
+      <div class="az-stat-detail">{{ visible_rows }} visible with current limit</div>
+    </article>
+
+    <article class="az-stat-card {% if next_run %}az-stat-card--success{% else %}az-stat-card--warning{% endif %}">
+      <div class="az-stat-label">Next Due</div>
+      <div class="az-stat-value" style="font-size: 1.35rem">
+        {% if next_run %}{{ next_run.run_time_label }}{% else %}None{% endif %}
+      </div>
+      <div class="az-stat-detail">
+        {% if next_run %}{{ next_run.task_name }}{% else %}No upcoming run times were found{% endif %}
+      </div>
+    </article>
+
+    <article class="az-stat-card az-stat-card--info">
+      <div class="az-stat-label">Tasks Scanned</div>
+      <div class="az-stat-value">{{ task_count }}</div>
+      <div class="az-stat-detail">{{ filters.per_task }} previewed run{% if filters.per_task != 1 %}s{% endif %} per task</div>
+    </article>
+
+    <article class="az-stat-card az-stat-card--warning">
+      <div class="az-stat-label">Exhausted</div>
+      <div class="az-stat-value">{{ exhausted_count }}</div>
+      <div class="az-stat-detail">Triggers with no more run times in preview</div>
+    </article>
+  </section>
+
+  <section class="az-panel">
+    <div class="az-panel-header">
+      <div>
+        <h2 class="az-panel-title">Preview Controls</h2>
+        <div class="az-panel-meta">Generated from scheduler.preview_task_runs() without mutating tasks</div>
+      </div>
+    </div>
+    <form class="az-filter-bar" method="get" action="{{ url_for('dashboard:timeline:index') }}">
+      <label class="az-field">
+        <span>Per Task</span>
+        <input class="az-input az-input--compact" type="number" name="per_task" min="1" max="10" value="{{ filters.per_task }}">
+      </label>
+      <label class="az-field">
+        <span>Limit</span>
+        <input class="az-input az-input--compact" type="number" name="limit" min="1" max="500" value="{{ filters.limit }}">
+      </label>
+      <button class="az-button az-button--primary" type="submit">Refresh</button>
+      <a class="az-button" href="{{ url_for('dashboard:timeline:index') }}">Reset</a>
+    </form>
+  </section>
+
+  <section class="az-panel">
+    <div class="az-panel-header">
+      <div>
+        <h2 class="az-panel-title">Upcoming Run Times</h2>
+        <div class="az-panel-meta">Sorted across all tasks by due time</div>
+      </div>
+      <a href="{{ url_for('dashboard:tasks:index') }}" class="az-button">View Tasks</a>
+    </div>
+
+    <div class="az-table-wrap">
+      <table class="az-table">
+        <thead>
+          <tr>
+            <th>Run Time</th>
+            <th>Task</th>
+            <th>Trigger</th>
+            <th>Store / Executor</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if not rows %}
+            <tr>
+              <td colspan="5">
+                <div class="az-empty">
+                  <strong>No upcoming run times.</strong>
+                </div>
+              </td>
+            </tr>
+          {% else %}
+            {% for row in rows %}
+              <tr>
+                <td class="az-mono">{{ row.run_time_label }}</td>
+                <td>
+                  <div class="az-mono">{{ row.task_id }}</div>
+                  <div><strong>{{ row.task_name }}</strong></div>
+                  <div class="az-muted">{{ row.callable_reference or '-' }}</div>
+                </td>
+                <td>
+                  <span class="az-badge az-badge--neutral">{{ row.trigger }}</span>
+                  <div class="az-muted">{{ row.trigger_description }}</div>
+                </td>
+                <td>
+                  <div class="az-mono">{{ row.store }}</div>
+                  <div class="az-muted">{{ row.executor }}</div>
+                </td>
+                <td>
+                  {% if row.state == "scheduled" %}
+                    <span class="az-badge az-badge--success">Scheduled</span>
+                  {% elif row.state == "pending" %}
+                    <span class="az-badge az-badge--info">Pending</span>
+                  {% else %}
+                    <span class="az-badge az-badge--warning">Paused</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}
