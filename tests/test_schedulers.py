@@ -784,6 +784,38 @@ class TestBaseScheduler:
         assert snapshot.pending_task_count == 0
         assert snapshot.submitted_task_count == 2
 
+    def test_preview_task_runs_does_not_mutate_task(self, freeze_time):
+        scheduler = DummyScheduler(executors={"default": DebugExecutor()})
+        scheduler.start(paused=True)
+        task = scheduler.add_task(
+            lambda: None,
+            "interval",
+            seconds=30,
+            id="preview",
+            name="Preview",
+            start_at=freeze_time.current + timedelta(minutes=1),
+        )
+        original_next_run_time = task.next_run_time
+
+        preview = scheduler.preview_task_runs("preview", count=3, now=freeze_time.current)
+
+        assert preview is not None
+        assert preview.task.id == "preview"
+        assert preview.requested_count == 3
+        assert preview.run_times == (
+            original_next_run_time,
+            original_next_run_time + timedelta(seconds=30),
+            original_next_run_time + timedelta(seconds=60),
+        )
+        assert preview.exhausted is False
+        assert task.next_run_time == original_next_run_time
+
+    def test_preview_task_runs_validates_count(self):
+        scheduler = DummyScheduler()
+
+        with pytest.raises(ValueError, match="count must be between 1 and 50"):
+            scheduler.preview_task_runs("missing", count=0)
+
     @pytest.mark.parametrize("scheduler_started", [True, False], ids=["running", "stopped"])
     @pytest.mark.parametrize("store", [None, "other"], ids=["all stores", "specific store"])
     def test_get_tasks(self, scheduler, scheduler_started, store):

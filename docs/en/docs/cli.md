@@ -134,6 +134,27 @@ JSON output includes:
 - `paused_task_count`
 - `pending_task_count`
 
+### Preview upcoming run times
+
+```bash
+asyncz preview <task-id> --count 5 --store durable=sqlite:///scheduler.db
+asyncz preview <task-id> --json --count 5 --store durable=sqlite:///scheduler.db
+```
+
+The `preview` command asks the scheduler to calculate upcoming run times with
+the task's real trigger. It does not update the task or advance its stored
+`next_run_time`.
+
+JSON output includes:
+
+- `task`
+- `timezone`
+- `generated_at`
+- `requested_count`
+- `returned_count`
+- `exhausted`
+- `run_times`
+
 ### Run, pause, resume, and remove
 
 ```bash

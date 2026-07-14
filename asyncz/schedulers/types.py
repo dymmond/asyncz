@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from asyncz.executors.types import ExecutorType
     from asyncz.schedulers.inspection import SchedulerInfo
     from asyncz.stores.types import StoreType
-    from asyncz.tasks.inspection import TaskInfo
+    from asyncz.tasks.inspection import TaskInfo, TaskRunPreview
     from asyncz.tasks.types import TaskType
     from asyncz.triggers.types import TriggerType
 
@@ -318,6 +318,19 @@ class SchedulerType(ABC):
 
         This is the scheduler-native query surface used by the CLI, dashboard,
         and any custom operational tooling built on top of Asyncz.
+        """
+
+    @abstractmethod
+    def preview_task_runs(
+        self,
+        task_id: str,
+        store: Optional[str] = None,
+        *,
+        count: int = 5,
+        now: datetime | None = None,
+    ) -> Union[TaskRunPreview, None]:
+        """
+        Return upcoming run times for a task without mutating scheduler state.
         """
 
     @abstractmethod

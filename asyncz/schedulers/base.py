@@ -52,11 +52,11 @@ from asyncz.schedulers.inspection import SchedulerInfo
 from asyncz.schedulers.types import LoggersType, SchedulerType
 from asyncz.stores.memory import MemoryStore
 from asyncz.stores.types import StoreType
-from asyncz.tasks.inspection import TaskInfo
+from asyncz.tasks.inspection import TaskInfo, TaskRunPreview
 from asyncz.tasks.types import TaskType
 from asyncz.triggers.types import TriggerType
 from asyncz.typing import Undefined, undefined
-from asyncz.utils import maybe_ref, timedelta_seconds, to_timezone_with_fallback
+from asyncz.utils import maybe_ref, timedelta_seconds, to_datetime, to_timezone_with_fallback
 
 if TYPE_CHECKING:
     from asyncz.protocols import LockProtectedProtocol
@@ -975,6 +975,64 @@ class BaseScheduler(SchedulerType):
             ) from exc
 
         return sorted(infos, key=key, reverse=descending)
+
+    def preview_task_runs(
+        self,
+        task_id: str,
+        store: Optional[str] = None,
+        *,
+        count: int = 5,
+        now: datetime | None = None,
+    ) -> Union[TaskRunPreview, None]:
+        """
+        Return upcoming run times for a task without mutating scheduler state.
+
+        Previewing is deliberately bounded because trigger calculations can be
+        expensive for complex cron expressions or combination triggers.
+        """
+
+        if not 1 <= count <= 50:
+            raise ValueError("count must be between 1 and 50.")
+
+        task = self.get_task(task_id, store)
+        if task is None:
+            return None
+
+        preview_now = to_datetime(now or datetime.now(self.timezone), self.timezone, "now")
+        assert preview_now is not None
+        trigger = task.trigger
+        if trigger is None:
+            return TaskRunPreview(
+                task=task.snapshot(),
+                timezone=str(self.timezone),
+                generated_at=preview_now,
+                requested_count=count,
+                run_times=(),
+                exhausted=True,
+            )
+
+        run_times: list[datetime] = []
+        next_run_time = task.next_run_time or trigger.get_next_trigger_time(
+            self.timezone, None, preview_now
+        )
+        exhausted = next_run_time is None
+
+        while next_run_time is not None and len(run_times) < count:
+            run_times.append(next_run_time)
+            previous_time = next_run_time
+            next_run_time = trigger.get_next_trigger_time(
+                self.timezone, previous_time, previous_time
+            )
+            exhausted = next_run_time is None
+
+        return TaskRunPreview(
+            task=task.snapshot(),
+            timezone=str(self.timezone),
+            generated_at=preview_now,
+            requested_count=count,
+            run_times=tuple(run_times),
+            exhausted=exhausted,
+        )
 
     def get_scheduler_info(self) -> SchedulerInfo:
         """

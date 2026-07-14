@@ -16,6 +16,8 @@
   template references, and recorded checksum integrity.
 - Added scheduler-level status inspection through `scheduler.get_scheduler_info()`
   and the `asyncz status` CLI command.
+- Added scheduler-backed trigger previews through `scheduler.preview_task_runs()`
+  and the `asyncz preview` CLI command.
 
 ## 0.15.0
 

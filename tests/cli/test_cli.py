@@ -62,6 +62,26 @@ def _status_json(client: SayerTestClient, store: str):
     return json.loads(m.group(1))
 
 
+def _preview_json(client: SayerTestClient, job_id: str, store: str, count: int = 3):
+    r = client.invoke(["preview", job_id, "--json", "--count", str(count), "--store", store])
+    assert r.exit_code == 0, r.stderr
+
+    if isinstance(r.return_value, dict):
+        return r.return_value
+
+    out = (r.stdout or "").strip() or (r.stderr or "").strip()
+    if out.startswith("ℹ"):
+        out = out.lstrip("ℹ️ ").lstrip()
+
+    m = re.search(r"(\{.*\})", out, re.S)
+    assert m, f"Expected JSON in output, got: {out!r}"
+    return json.loads(m.group(1))
+
+
+def _as_datetime(value):
+    return value if isinstance(value, datetime) else datetime.fromisoformat(str(value))
+
+
 def test_add_and_list_with_sqlite_store(client: SayerTestClient, sqlite_url: str):
     # add a job with an interval trigger
     r = client.invoke(
@@ -121,6 +141,36 @@ def test_status_json_reports_scheduler_snapshot(client: SayerTestClient, sqlite_
     assert payload["pending_task_count"] == 0
     assert payload["stores"] == ["default", "durable"]
     assert payload["executors"] == ["default"]
+
+
+def test_preview_json_reports_upcoming_run_times(client: SayerTestClient, sqlite_url: str):
+    r = client.invoke(
+        [
+            "add",
+            "tests.fixtures:noop",
+            "--name",
+            "preview-noop",
+            "--interval",
+            "5s",
+            "--store",
+            f"durable={sqlite_url}",
+        ]
+    )
+    assert r.exit_code == 0, r.stderr
+    job_id = re.search(r"Added job\s+(\S+)", r.stdout).group(1)
+
+    payload = _preview_json(client, job_id, f"durable={sqlite_url}", count=3)
+    run_times = [_as_datetime(value) for value in payload["run_times"]]
+
+    assert payload["task"]["id"] == job_id
+    assert payload["task"]["name"] == "preview-noop"
+    assert payload["task"]["trigger"] == "IntervalTrigger"
+    assert payload["task"]["store"] == "durable"
+    assert payload["requested_count"] == 3
+    assert payload["returned_count"] == 3
+    assert len(run_times) == 3
+    assert run_times[1] - run_times[0] == timedelta(seconds=5)
+    assert run_times[2] - run_times[1] == timedelta(seconds=5)
 
 
 def test_add_run_pause_resume_remove_flow(client: SayerTestClient, sqlite_url: str):
