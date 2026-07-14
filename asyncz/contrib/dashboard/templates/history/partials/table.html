@@ -4,6 +4,7 @@
       <th style="width: 160px">Submitted</th>
       <th>Task</th>
       <th style="width: 120px">Source</th>
+      <th style="width: 170px">Scheduler ID</th>
       <th style="width: 132px">Status</th>
       <th style="width: 112px">Duration</th>
       <th style="width: 132px; text-align: right">Actions</th>
@@ -12,7 +13,7 @@
   <tbody>
     {% if rows|length == 0 %}
       <tr>
-        <td colspan="6">
+        <td colspan="7">
           <div class="az-empty">
             <strong>No runs match the current filters.</strong>
           </div>
@@ -42,6 +43,7 @@
               <span class="az-badge az-badge--warning">{{ r.source_label }}</span>
             {% endif %}
           </td>
+          <td class="az-mono">{{ r.scheduler_identity or "-" }}</td>
           <td>
             {% if r.status == "succeeded" %}
               <span class="az-badge az-badge--success">{{ r.status_label }}</span>

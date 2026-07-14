@@ -5,6 +5,7 @@
       <th style="width: 92px">Level</th>
       <th style="width: 160px">Task ID</th>
       <th style="width: 150px">Run ID</th>
+      <th style="width: 170px">Scheduler ID</th>
       <th style="width: 190px">Logger</th>
       <th>Message</th>
     </tr>
@@ -12,7 +13,7 @@
   <tbody>
     {% if rows|length == 0 %}
       <tr>
-        <td colspan="6">
+        <td colspan="7">
           <div class="az-empty">
             <strong>No logs match the current filters.</strong>
           </div>
@@ -35,6 +36,7 @@
           </td>
           <td class="az-mono">{{ r.task_id or "-" }}</td>
           <td class="az-mono">{% if r.extra and r.extra.get("run_id") %}{{ r.extra.get("run_id") }}{% else %}-{% endif %}</td>
+          <td class="az-mono">{% if r.extra and r.extra.get("scheduler_identity") %}{{ r.extra.get("scheduler_identity") }}{% else %}-{% endif %}</td>
           <td class="az-mono">{{ r.logger }}</td>
           <td>{{ r.message }}</td>
         </tr>

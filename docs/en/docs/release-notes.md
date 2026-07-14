@@ -50,6 +50,8 @@
 - Added `asyncz add --id` for stable task identifiers chosen by operators.
 - Added dashboard run history backed by scheduler submission and execution
   events, including source tracking for manual and scheduled runs.
+- Added scheduler identity to run history records, run detail pages, and
+  lifecycle log metadata.
 - Added run detail pages that correlate lifecycle logs and task logs for
   a specific run id.
 - Added dashboard log filtering by `run_id` and structured log extras.

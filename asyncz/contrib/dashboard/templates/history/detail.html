@@ -43,6 +43,10 @@
             <strong>{% if record.duration_ms is not none %}{{ record.duration_ms }} ms{% else %}-{% endif %}</strong>
           </div>
           <div class="az-kv">
+            <span>Scheduler ID</span>
+            <strong class="az-mono">{{ record.scheduler_identity or "-" }}</strong>
+          </div>
+          <div class="az-kv">
             <span>Store / Executor</span>
             <strong>{{ record.store or "-" }} / {{ record.executor or "-" }}</strong>
           </div>

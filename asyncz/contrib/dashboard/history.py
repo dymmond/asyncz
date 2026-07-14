@@ -32,6 +32,7 @@ class RunRecord:
     task_name: str | None = None
     callable_reference: str | None = None
     executor: str | None = None
+    scheduler_identity: str | None = None
     source: str = "unknown"
     status: str = "running"
     submitted_at: datetime | None = None
@@ -123,6 +124,7 @@ class MemoryRunHistoryStorage:
                         record.task_id,
                         record.task_name,
                         record.callable_reference,
+                        record.scheduler_identity,
                         record.status,
                         record.source,
                         record.run_id,
@@ -257,6 +259,7 @@ class MemoryRunHistoryStorage:
         normalized_run_time = _normalize_run_time(scheduled_run_time)
         key = _run_key(task_id, store, normalized_run_time)
         metadata = _task_metadata(scheduler, task_id, store)
+        scheduler_identity = _scheduler_identity(scheduler)
 
         with self._lock:
             run_id = self._key_index.get(key)
@@ -268,6 +271,7 @@ class MemoryRunHistoryStorage:
                     task_id=task_id,
                     store=store,
                     scheduled_run_time=normalized_run_time,
+                    scheduler_identity=scheduler_identity,
                     created_at=now,
                     updated_at=now,
                     **metadata,
@@ -280,6 +284,8 @@ class MemoryRunHistoryStorage:
                 for field, value in metadata.items():
                     if value and not getattr(record, field):
                         setattr(record, field, value)
+                if scheduler_identity and not record.scheduler_identity:
+                    record.scheduler_identity = scheduler_identity
             return record
 
     def _trim(self) -> None:
@@ -434,6 +440,16 @@ def _task_metadata(scheduler: Any, task_id: str, store: str | None) -> dict[str,
     }
 
 
+def _scheduler_identity(scheduler: Any) -> str | None:
+    try:
+        info = scheduler.get_scheduler_info()
+        identity = getattr(info, "identity", None)
+    except Exception:
+        identity = getattr(scheduler, "identity", None)
+    identity = str(identity or "").strip()
+    return identity or None
+
+
 def _safe_repr(value: Any, limit: int = 500) -> str:
     try:
         rendered = repr(value)
@@ -461,6 +477,7 @@ def _append_run_log(
                 "run_id": record.run_id,
                 "status": record.status,
                 "source": record.source,
+                "scheduler_identity": record.scheduler_identity,
                 "scheduled_run_time": (
                     record.scheduled_run_time.isoformat()
                     if isinstance(record.scheduled_run_time, datetime)

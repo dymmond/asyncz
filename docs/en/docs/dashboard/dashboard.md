@@ -268,6 +268,7 @@ Each run record captures:
 - task id and task name
 - callable reference
 - store and executor alias
+- scheduler identity for the process that recorded the run
 - source (`manual`, `scheduled`, or `unknown`)
 - status (`running`, `succeeded`, `failed`, `missed`, or `max_instances`)
 - submitted and finished timestamps
@@ -282,6 +283,9 @@ fills in the source.
 ## Run Logs
 
 Run history lifecycle events write structured log records with a `run_id`.
+Lifecycle log records also include the scheduler identity stored on the run
+record, so a run detail page can show both the logs and the scheduler process
+that recorded them.
 The run detail page shows:
 
 - direct lifecycle logs for that run id

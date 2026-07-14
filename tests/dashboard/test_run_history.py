@@ -86,7 +86,9 @@ def test_manual_run_records_history_and_correlated_logs(
     assert record is not None
     assert record.status == "succeeded"
     assert record.source == "manual"
+    assert record.scheduler_identity == scheduler.identity
     assert record.finished_at is not None
+    assert history_storage.query(q=scheduler.identity) == [record]
 
     task_page = client.get(f"{DASH_PREFIX}/tasks/")
     assert task_page.status_code == 200
@@ -98,16 +100,20 @@ def test_manual_run_records_history_and_correlated_logs(
     assert "Manual History" in history.text
     assert "Succeeded" in history.text
     assert "Manual" in history.text
+    assert scheduler.identity in history.text
     assert "Inspect Logs" in history.text
 
     detail = client.get(f"{DASH_PREFIX}/history/{record.run_id}")
     assert detail.status_code == 200
     assert record.run_id in detail.text
+    assert "Scheduler ID" in detail.text
+    assert scheduler.identity in detail.text
     assert "Task run succeeded" in detail.text
 
     logs = client.get(f"{DASH_PREFIX}/logs/partials/table?run_id={record.run_id}")
     assert logs.status_code == 200
     assert record.run_id in logs.text
+    assert scheduler.identity in logs.text
     assert "Task run succeeded" in logs.text
 
 

@@ -47,6 +47,7 @@ def serialize(task: Any, last_run: RunRecord | None = None) -> dict[str, Any]:
             "status_label": last_run.status_label,
             "source": last_run.source,
             "source_label": last_run.source_label,
+            "scheduler_identity": last_run.scheduler_identity,
             "submitted_at": (last_run.submitted_at.isoformat() if last_run.submitted_at else None),
             "finished_at": last_run.finished_at.isoformat() if last_run.finished_at else None,
             "duration_ms": last_run.duration_ms,
