@@ -58,18 +58,43 @@ does not own the running scheduler. The worker can be another process, host, or
 Docker container; it only needs to expose the Asyncz remote control app on a
 private service URL.
 
+This is the intended shape for deployments where the same codebase is started in
+two modes:
+
+| Process | Scheduler | Purpose |
+| --- | --- | --- |
+| App | Disabled | Serves the product app and `AsynczAdmin`. |
+| Worker | Enabled | Starts `AsyncIOScheduler` and executes tasks. |
+
+Keep the scheduler construction in shared code so both processes agree on
+stores, executors, task defaults, and task imports:
+
+```python
+# myapp/scheduler.py
+from asyncz.schedulers.asyncio import AsyncIOScheduler
+
+
+def build_scheduler() -> AsyncIOScheduler:
+    return AsyncIOScheduler(
+        identity="asyncz-worker",
+        stores={"default": {"type": "memory"}},
+    )
+```
+
 Mount the control app in the worker that starts the scheduler:
 
 ```python
+# myapp/worker.py
 import os
 
 from lilya.apps import Lilya
 from lilya.routing import Include
 
 from asyncz.contrib.dashboard import create_remote_scheduler_app
-from asyncz.schedulers.asyncio import AsyncIOScheduler
 
-scheduler = AsyncIOScheduler()
+from .scheduler import build_scheduler
+
+scheduler = build_scheduler()
 
 worker_app = Lilya(
     routes=[
@@ -90,6 +115,7 @@ Pass a `RemoteSchedulerClient` to `AsynczAdmin` in the app that serves the
 dashboard:
 
 ```python
+# myapp/app.py
 import os
 
 from lilya.apps import Lilya
@@ -107,9 +133,32 @@ admin = AsynczAdmin(scheduler=remote_scheduler)
 admin.include_in(app)
 ```
 
+In Docker Compose, the app can point at the worker service name:
+
+```yaml
+services:
+  app:
+    image: myapp
+    command: uvicorn myapp.app:app --host 0.0.0.0 --port 8000
+    environment:
+      ASYNCZ_REMOTE_URL: http://worker:8001/asyncz-remote
+      ASYNCZ_REMOTE_TOKEN: ${ASYNCZ_REMOTE_TOKEN}
+
+  worker:
+    image: myapp
+    command: uvicorn myapp.worker:worker_app --host 0.0.0.0 --port 8001
+    environment:
+      ASYNCZ_REMOTE_TOKEN: ${ASYNCZ_REMOTE_TOKEN}
+```
+
 With this setup, task inspection, create, edit, run, pause, resume, remove, and
 timeline preview requests are forwarded to the worker. The app process does not
 need to start or hold a scheduler instance.
+
+The dashboard task creation form sends the callable path as text, for example
+`myapp.tasks:send_invoice`. The worker imports that callable from its own
+runtime. That means the worker image must contain the same application code and
+dependencies as the app image.
 
 Keep the remote control endpoint private. The token is a small shared secret for
 Asyncz-level protection, not a replacement for network isolation, service auth,
@@ -123,6 +172,11 @@ Run history, event history, and logs are recorded where their storage and
 listeners run. In a split deployment, use shared dashboard storage or forward
 worker logs if the app-side dashboard needs to display worker-local execution
 history.
+
+The remote client is not a distributed scheduler and does not elect workers. It
+is a dashboard control plane for the scheduler process that owns task state. If
+you run more than one scheduler worker, point the dashboard at the worker or
+internal service that is responsible for the task store you want to manage.
 
 ## Mounting in other ASGI frameworks
 
