@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from asyncz.enums import TaskScheduleState
 
@@ -42,6 +43,8 @@ class TaskInfo(BaseModel):
     pending: bool
     paused: bool
     submitted: bool
+    args: tuple[Any, ...] = ()
+    kwargs: dict[str, Any] = Field(default_factory=dict)
 
 
 class TaskRunPreview(BaseModel):

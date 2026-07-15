@@ -58,12 +58,13 @@ def create_dashboard_app(
     resolved_log_storage = get_log_storage(storage=log_storage)
     get_audit_storage(storage=audit_storage)
     install_task_log_handler(storage=resolved_log_storage)
-    install_run_history_listener(
-        scheduler,
-        storage=run_history_storage,
-        log_storage=resolved_log_storage,
-    )
-    install_scheduler_event_listener(scheduler)
+    if hasattr(scheduler, "add_listener") and hasattr(scheduler, "remove_listener"):
+        install_run_history_listener(
+            scheduler,
+            storage=run_history_storage,
+            log_storage=resolved_log_storage,
+        )
+        install_scheduler_event_listener(scheduler)
 
     # Ensure stdlib logs on the namespaced logger bubble up to our handler.
     # Our TaskLogHandler is installed by install_task_log_handler() on a parent logger.

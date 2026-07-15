@@ -15,7 +15,7 @@ from asyncz.contrib.dashboard.audit import record_audit_event
 from asyncz.contrib.dashboard.controllers._helpers import (
     build_task_dashboard_context,
     parse_ids_from_request_form,
-    parse_trigger,
+    parse_trigger_config,
     render_table,
 )
 from asyncz.contrib.dashboard.controllers.logs import get_log_storage
@@ -417,8 +417,12 @@ class TaskCreateController(DashboardMixin, Controller):
 
         # Import callable and parse trigger
         try:
-            func: Callable[..., Any] = import_callable(callable_path)
-            trigger: Any = parse_trigger(trigger_type, trigger_value)
+            func: Callable[..., Any] | str
+            if getattr(self.scheduler, "is_remote", False):
+                func = callable_path
+            else:
+                func = import_callable(callable_path)
+            trigger_alias, trigger_args = parse_trigger_config(trigger_type, trigger_value)
         except Exception as e:
             message = str(e)
             add_message(request, "error", f"{message}")
@@ -435,11 +439,12 @@ class TaskCreateController(DashboardMixin, Controller):
         # Add task to the scheduler
         task = self.scheduler.add_task(
             func,
-            trigger=trigger,
+            trigger=trigger_alias,
             args=args,
             kwargs=kwargs,
             name=name,
             store=store_alias,
+            **trigger_args,
         )
         _audit_task_action(
             "create",
