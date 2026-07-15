@@ -1,5 +1,22 @@
 # Release Notes
 
+## 0.17.1
+
+### Added
+
+- Remote dashboard control for deployments where the app serves `AsynczAdmin`
+  and a separate worker process or container owns the running scheduler.
+- Worker-side `create_remote_scheduler_app(...)` and app-side
+  `RemoteSchedulerClient(...)` for task inspection, creation, editing, run,
+  pause, resume, remove, and timeline preview actions over a private HTTP
+  boundary.
+
+### Compatibility
+
+- Existing in-process dashboard setups keep working unchanged.
+- The remote endpoint is intended for private service networks and should be
+  protected with the shared token plus deployment-level access controls.
+
 ## 0.17.0
 
 ### Highlights

@@ -167,6 +167,8 @@ class TaskType(TaskDefaultsType, ABC):
             trigger_description=str(trigger) if trigger is not None else None,
             executor=self.executor,
             store_alias=self.store_alias,
+            args=tuple(self.args),
+            kwargs=dict(self.kwargs),
             schedule_state=self.schedule_state,
             next_run_time=self.next_run_time,
             coalesce=self.coalesce,

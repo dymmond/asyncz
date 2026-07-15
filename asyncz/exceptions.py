@@ -76,9 +76,19 @@ class ConflictIdError(KeyError):
 
 
 class MaximumInstancesError(AsynczException):
+    """
+    Raised when a task exceeds its configured concurrency limit.
+
+    The task identifier and configured maximum are stored for remote
+    control clients that need to preserve this exception across a process
+    boundary.
+    """
+
     detail = "The task by the id of {id} reached its maximum number of instances {total}."
 
     def __init__(self, _id: str, total: int) -> None:
+        self.task_id = _id
+        self.total = total
         detail = self.detail.format(id=_id, total=total)
         super().__init__(detail=detail)
 

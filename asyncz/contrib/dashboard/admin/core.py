@@ -54,7 +54,7 @@ class AsynczAdmin:
         enable_forward_middleware: bool = False,
         trusted_forwarded_hosts: Iterable[str] = ("127.0.0.1", "::1", "localhost"),
         url_prefix: str | None = None,
-        scheduler: AsyncIOScheduler | None = None,
+        scheduler: Any | None = None,
         include_session: bool = True,
         include_cors: bool = True,
         login_path: str = "/login",
@@ -83,9 +83,7 @@ class AsynczAdmin:
         # Resolve defaults
         self.config = monkay.settings.dashboard_config
         self.url_prefix: str = (url_prefix or self.config.dashboard_url_prefix).rstrip("/")
-        self.scheduler: AsyncIOScheduler = scheduler or AsyncIOScheduler(
-            stores={"default": {"type": "memory"}}
-        )
+        self.scheduler: Any = scheduler or AsyncIOScheduler(stores={"default": {"type": "memory"}})
 
         assert self.url_prefix.startswith("/"), "The dashboard url prefix must start with /."
 

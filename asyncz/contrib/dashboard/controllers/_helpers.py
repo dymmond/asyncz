@@ -77,6 +77,60 @@ def serialize(task: Any, last_run: RunRecord | None = None) -> dict[str, Any]:
     }
 
 
+def parse_trigger_config(
+    trigger_type: str, trigger_value: str | None = None
+) -> tuple[str, dict[str, Any]]:
+    """
+    Convert a dashboard trigger form value into scheduler trigger arguments.
+
+    The returned alias and keyword arguments are JSON-friendly enough to cross a
+    remote scheduler boundary while still being accepted directly by local
+    scheduler trigger construction.
+    """
+
+    tt: str = (trigger_type or "").strip().lower()
+    tv: str = (trigger_value or "").strip()
+
+    if tt == "interval":
+        try:
+            if tv.endswith("s"):
+                return "interval", {"seconds": int(tv[:-1])}
+            if tv.endswith("m"):
+                return "interval", {"minutes": int(tv[:-1])}
+            if tv.endswith("h"):
+                return "interval", {"hours": int(tv[:-1])}
+            return "interval", {"seconds": int(tv)}
+        except ValueError:
+            raise ValueError(
+                f"Invalid interval value: {tv}. Must be like '10s' or '300'."
+            ) from None
+
+    if tt == "cron":
+        parts: list[str] = tv.split()
+        if len(parts) != 5:
+            raise ValueError("cron must have 5 fields: '*/5 * * * *'")
+        return "cron", {
+            "minute": parts[0],
+            "hour": parts[1],
+            "day": parts[2],
+            "month": parts[3],
+            "day_of_week": parts[4],
+        }
+
+    if tt == "date":
+        if "T" in tv and " " in tv:
+            head, tail = tv.rsplit(" ", 1)
+            if len(tail) == 5 and tail[2] == ":" and tail.replace(":", "").isdigit():
+                tv = f"{head}+{tail}"
+        try:
+            dt_obj: datetime = datetime.fromisoformat(tv)
+        except Exception as e:
+            raise ValueError(f"Invalid ISO datetime: {tv}") from e
+        return "date", {"run_at": dt_obj}
+
+    raise ValueError(f"Unsupported trigger type: {trigger_type}")
+
+
 def parse_trigger(trigger_type: str, trigger_value: str | None = None) -> Any:
     """
     Parses a simplified trigger specification (type + value) into an instantiated
@@ -97,44 +151,13 @@ def parse_trigger(trigger_type: str, trigger_value: str | None = None) -> Any:
     Raises:
         ValueError: If the trigger type is unsupported, the value format is invalid, or the cron fields are incorrect.
     """
-    tt: str = (trigger_type or "").strip().lower()
-    tv: str = (trigger_value or "").strip()
-
-    if tt == "interval":
-        # IntervalTrigger logic: Supports s, m, h suffix
-        try:
-            if tv.endswith("s"):
-                return IntervalTrigger(seconds=int(tv[:-1]))
-            if tv.endswith("m"):
-                return IntervalTrigger(minutes=int(tv[:-1]))
-            if tv.endswith("h"):
-                return IntervalTrigger(hours=int(tv[:-1]))
-            # Fallback: treat plain number as seconds
-            return IntervalTrigger(seconds=int(tv))
-        except ValueError:
-            raise ValueError(
-                f"Invalid interval value: {tv}. Must be like '10s' or '300'."
-            ) from None
-
-    if tt == "cron":
-        # CronTrigger logic: Expects standard 5-field string
-        parts: list[str] = tv.split()
-        if len(parts) != 5:
-            raise ValueError("cron must have 5 fields: '*/5 * * * *'")
-        return CronTrigger.from_crontab(tv)
-
-    if tt == "date":
-        # DateTrigger logic: Expects ISO 8601 datetime string
-        if "T" in tv and " " in tv:
-            head, tail = tv.rsplit(" ", 1)
-            if len(tail) == 5 and tail[2] == ":" and tail.replace(":", "").isdigit():
-                tv = f"{head}+{tail}"
-        try:
-            dt_obj: datetime = datetime.fromisoformat(tv)
-        except Exception as e:
-            raise ValueError(f"Invalid ISO datetime: {tv}") from e
-        return DateTrigger(run_at=dt_obj)
-
+    trigger_alias, trigger_args = parse_trigger_config(trigger_type, trigger_value)
+    if trigger_alias == "interval":
+        return IntervalTrigger(**trigger_args)
+    if trigger_alias == "cron":
+        return CronTrigger(**trigger_args)
+    if trigger_alias == "date":
+        return DateTrigger(**trigger_args)
     raise ValueError(f"Unsupported trigger type: {trigger_type}")
 
 
