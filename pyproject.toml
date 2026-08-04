@@ -81,7 +81,7 @@ testing = [
     "pytest-cov >=2.12.0,<8.0.0",
     "pytest-asyncio >=1.0,<2.0.0",
     "redis>=4.4.0,<9.0.0",
-    "ty==0.0.59",
+    "ty==0.0.65",
     "ravyn>=0.3.7",
     "starlette",
     "lilya[standard]==0.27.0",
