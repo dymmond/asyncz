@@ -84,7 +84,7 @@ testing = [
     "ty==0.0.65",
     "ravyn>=0.3.7",
     "starlette",
-    "lilya[standard]==0.27.0",
+    "lilya[standard]==0.29.0",
     "sqlalchemy",
     "httpx",
     "pytz>=2022.6",
@@ -103,7 +103,7 @@ docs = [
     "typing_extensions>=3.10.0",
 ]
 
-dashboard = ["lilya[standard]==0.27.0"]
+dashboard = ["lilya[standard]==0.29.0"]
 
 [tool.hatch.envs.default.scripts]
 clean_pyc = "find . -type f -name \"*.pyc\" -delete"
