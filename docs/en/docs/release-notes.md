@@ -1,5 +1,11 @@
 # Release Notes
 
+## 0.17.2
+
+## Changed
+
+- Remove hard pinned dependency of Lilya
+
 ## 0.17.1
 
 ### Added
