@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from .monkay import create_monkay
 from .schedulers import AsyncIOScheduler as Asyncz
 
-__version__ = "0.17.1"
+__version__ = "0.17.2"
 
 if TYPE_CHECKING:
     from .conf import settings
