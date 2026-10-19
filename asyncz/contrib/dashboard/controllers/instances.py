@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from lilya.requests import Request
@@ -46,7 +46,7 @@ def build_instances_context(scheduler: AsyncIOScheduler) -> dict[str, Any]:
     ]
 
     return {
-        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "scope": "process-local",
         "instances": rows,
         "instance_count": len(rows),

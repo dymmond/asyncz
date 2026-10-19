@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from lilya.apps import Lilya
@@ -65,7 +65,7 @@ def client(
 
 
 def _future_run_at() -> datetime:
-    return datetime.now(timezone.utc) + timedelta(days=1)
+    return datetime.now(UTC) + timedelta(days=1)
 
 
 def test_manual_run_records_history_and_correlated_logs(
@@ -157,7 +157,7 @@ def test_run_history_surfaces_coalesced_run_count(
     history_storage: MemoryRunHistoryStorage,
     log_storage: MemoryLogStorage,
 ) -> None:
-    run_time = datetime.now(timezone.utc)
+    run_time = datetime.now(UTC)
     event = TaskSubmissionEvent(
         code=TASK_SUBMITTED,
         task_id="coalesced-history",

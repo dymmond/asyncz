@@ -6,7 +6,7 @@ import threading
 import weakref
 from collections import deque
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from asyncz.contrib.dashboard.logs.storage import LogStorage
@@ -402,7 +402,7 @@ def _status_from_execution_code(code: int) -> str:
 
 
 def _utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _normalize_run_time(value: Any) -> datetime | str | None:
@@ -410,8 +410,8 @@ def _normalize_run_time(value: Any) -> datetime | str | None:
         return None
     if isinstance(value, datetime):
         if value.tzinfo is None:
-            return value.replace(tzinfo=timezone.utc)
-        return value.astimezone(timezone.utc)
+            return value.replace(tzinfo=UTC)
+        return value.astimezone(UTC)
     return str(value)
 
 

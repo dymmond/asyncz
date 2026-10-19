@@ -6,7 +6,7 @@ import threading
 import weakref
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from asyncz.events.base import (
@@ -199,7 +199,7 @@ def install_scheduler_event_listener(
 
 
 def _event_record(event: SchedulerEvent, *, scheduler: Any) -> SchedulerEventRecord:
-    observed_at = datetime.now(timezone.utc)
+    observed_at = datetime.now(UTC)
     name = EVENT_NAMES.get(event.code, f"event.{event.code}")
     category = _event_category(event, name)
     task_id = getattr(event, "task_id", None) if isinstance(event, TaskEvent) else None

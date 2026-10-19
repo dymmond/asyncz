@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Mapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from lilya.requests import Request
@@ -50,7 +50,7 @@ def build_runtime_context(scheduler: AsyncIOScheduler) -> dict[str, Any]:
     executor_counts = Counter(info.executor or "default" for info in task_infos)
 
     return {
-        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "scheduler_running": scheduler_info.running,
         "scheduler_state": scheduler_info.state_label,
         "scheduler_state_code": int(scheduler_info.state),

@@ -1,6 +1,6 @@
 """Performance benchmarks for asyncz core components."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -28,12 +28,12 @@ def test_to_timezone_from_string():
 
 @pytest.mark.benchmark
 def test_to_datetime_from_string():
-    to_datetime("2025-06-15 10:30:00+00:00", timezone.utc, "run_at")
+    to_datetime("2025-06-15 10:30:00+00:00", UTC, "run_at")
 
 
 @pytest.mark.benchmark
 def test_datetime_to_utc_timestamp():
-    dt = datetime(2025, 6, 15, 10, 30, 0, tzinfo=timezone.utc)
+    dt = datetime(2025, 6, 15, 10, 30, 0, tzinfo=UTC)
     datetime_to_utc_timestamp(dt)
 
 
@@ -50,7 +50,7 @@ def test_timedelta_seconds():
 
 @pytest.mark.benchmark
 def test_datetime_ceil():
-    dt = datetime(2025, 6, 15, 10, 30, 0, 500000, tzinfo=timezone.utc)
+    dt = datetime(2025, 6, 15, 10, 30, 0, 500000, tzinfo=UTC)
     datetime_ceil(dt)
 
 
@@ -96,43 +96,41 @@ def test_create_date_trigger():
 @pytest.mark.benchmark
 def test_cron_trigger_next_fire_time():
     trigger = CronTrigger(hour=8, minute=30, second=0, timezone="UTC")
-    now = datetime(2025, 6, 15, 7, 0, 0, tzinfo=timezone.utc)
-    trigger.get_next_trigger_time(timezone.utc, None, now=now)
+    now = datetime(2025, 6, 15, 7, 0, 0, tzinfo=UTC)
+    trigger.get_next_trigger_time(UTC, None, now=now)
 
 
 @pytest.mark.benchmark
 def test_cron_trigger_next_fire_time_with_previous():
     trigger = CronTrigger(hour="*/2", minute=0, second=0, timezone="UTC")
-    now = datetime(2025, 6, 15, 10, 0, 0, tzinfo=timezone.utc)
-    previous = datetime(2025, 6, 15, 8, 0, 0, tzinfo=timezone.utc)
-    trigger.get_next_trigger_time(timezone.utc, previous, now=now)
+    now = datetime(2025, 6, 15, 10, 0, 0, tzinfo=UTC)
+    previous = datetime(2025, 6, 15, 8, 0, 0, tzinfo=UTC)
+    trigger.get_next_trigger_time(UTC, previous, now=now)
 
 
 @pytest.mark.benchmark
 def test_crontab_trigger_next_fire_time():
     trigger = CronTrigger.from_crontab("*/15 9-17 * * 1-5", timezone="UTC")
-    now = datetime(2025, 6, 16, 9, 0, 0, tzinfo=timezone.utc)  # Monday
-    trigger.get_next_trigger_time(timezone.utc, None, now=now)
+    now = datetime(2025, 6, 16, 9, 0, 0, tzinfo=UTC)  # Monday
+    trigger.get_next_trigger_time(UTC, None, now=now)
 
 
 @pytest.mark.benchmark
 def test_interval_trigger_next_fire_time():
     trigger = IntervalTrigger(hours=1, minutes=30, timezone="UTC")
-    now = datetime(2025, 6, 15, 10, 0, 0, tzinfo=timezone.utc)
-    trigger.get_next_trigger_time(timezone.utc, None, now=now)
+    now = datetime(2025, 6, 15, 10, 0, 0, tzinfo=UTC)
+    trigger.get_next_trigger_time(UTC, None, now=now)
 
 
 @pytest.mark.benchmark
 def test_interval_trigger_next_fire_time_with_previous():
     trigger = IntervalTrigger(minutes=15, timezone="UTC")
-    now = datetime(2025, 6, 15, 10, 30, 0, tzinfo=timezone.utc)
-    previous = datetime(2025, 6, 15, 10, 15, 0, tzinfo=timezone.utc)
-    trigger.get_next_trigger_time(timezone.utc, previous, now=now)
+    now = datetime(2025, 6, 15, 10, 30, 0, tzinfo=UTC)
+    previous = datetime(2025, 6, 15, 10, 15, 0, tzinfo=UTC)
+    trigger.get_next_trigger_time(UTC, previous, now=now)
 
 
 @pytest.mark.benchmark
 def test_date_trigger_next_fire_time():
-    trigger = DateTrigger(
-        run_at=datetime(2025, 12, 31, 23, 59, 59, tzinfo=timezone.utc), timezone="UTC"
-    )
-    trigger.get_next_trigger_time(timezone.utc, None, now=datetime.now(timezone.utc))
+    trigger = DateTrigger(run_at=datetime(2025, 12, 31, 23, 59, 59, tzinfo=UTC), timezone="UTC")
+    trigger.get_next_trigger_time(UTC, None, now=datetime.now(UTC))

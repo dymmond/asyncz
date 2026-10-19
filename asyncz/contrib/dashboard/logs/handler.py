@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, Optional
 
 from asyncz.contrib.dashboard.controllers.logs import get_log_storage
@@ -62,7 +62,7 @@ class TaskLogHandler(logging.Handler):
             task_id = _extract_task_id(record)
             self.storage.append(
                 {
-                    "ts": datetime.fromtimestamp(record.created, timezone.utc),
+                    "ts": datetime.fromtimestamp(record.created, UTC),
                     "level": record.levelname,
                     "task_id": task_id,
                     "logger": record.name,

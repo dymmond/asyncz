@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated, Any
 
 from sayer import Option, command, info
@@ -66,7 +66,7 @@ def _timeline_payload(
 
     return {
         "timezone": scheduler_info.timezone,
-        "generated_at": datetime.now(timezone.utc),
+        "generated_at": datetime.now(UTC),
         "requested_per_task": per_task,
         "limit": limit,
         "task_count": len(task_infos),

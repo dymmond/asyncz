@@ -4,7 +4,7 @@ import threading
 import uuid
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 
@@ -17,7 +17,7 @@ class AuditRecord:
     target_id: str | None = None
     message: str | None = None
     actor: str = "dashboard"
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     details: dict[str, Any] = field(default_factory=dict)
 
     @property

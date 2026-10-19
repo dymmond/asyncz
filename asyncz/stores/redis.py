@@ -1,7 +1,6 @@
 import pickle
 from collections.abc import Iterable
-from datetime import datetime
-from datetime import timezone as tz
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Optional, cast
 
 from asyncz.exceptions import AsynczException, ConflictIdError, TaskLookupError
@@ -103,7 +102,7 @@ class RedisStore(BaseStore):
     def get_all_tasks(self) -> list["TaskType"]:
         states: list[tuple[str, Any]] = self.redis.hgetall(self.tasks_key)  # type: ignore
         tasks = self.rebuild_tasks(states.items())
-        paused_sort_key = datetime(9999, 12, 31, tzinfo=tz.utc)
+        paused_sort_key = datetime(9999, 12, 31, tzinfo=UTC)
         return sorted(tasks, key=lambda task: task.next_run_time or paused_sort_key)
 
     def add_task(self, task: "TaskType") -> None:
