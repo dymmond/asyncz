@@ -1,6 +1,6 @@
 import json
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -818,7 +818,7 @@ def test_pause_sets_next_run_time_null_and_resume_sets_future(
     assert nxt2 is not None
 
     # Should be in the future (a tiny tolerance for clock drift)
-    assert datetime.fromisoformat(nxt2) > datetime.now(timezone.utc) - timedelta(seconds=1)
+    assert datetime.fromisoformat(nxt2) > datetime.now(UTC) - timedelta(seconds=1)
 
 
 def test_remove_actually_deletes(client: SayerTestClient, sqlite_url: str):

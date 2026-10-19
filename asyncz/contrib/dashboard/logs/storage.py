@@ -4,7 +4,7 @@ import threading
 from collections import deque
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 
@@ -119,9 +119,9 @@ class MemoryLogStorage(LogStorage):
         # Coerce timestamp
         ts: datetime | Any = entry.get("ts")
         if not isinstance(ts, datetime):
-            ts = datetime.now(timezone.utc)
+            ts = datetime.now(UTC)
         elif ts.tzinfo is None:
-            ts = ts.replace(tzinfo=timezone.utc)
+            ts = ts.replace(tzinfo=UTC)
 
         # Coerce required string fields
         level: str = str(entry.get("level", "INFO"))

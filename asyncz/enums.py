@@ -1,4 +1,4 @@
-from enum import Enum, IntEnum
+from enum import IntEnum, StrEnum
 
 
 class SchedulerState(IntEnum):
@@ -7,12 +7,12 @@ class SchedulerState(IntEnum):
     STATE_PAUSED = 2
 
 
-class PluginInstance(str, Enum):
+class PluginInstance(StrEnum):
     EXECUTOR = "executor"
     STORE = "store"
 
 
-class TaskScheduleState(str, Enum):
+class TaskScheduleState(StrEnum):
     """
     Stable task lifecycle labels used for task inspection APIs and UI surfaces.
 

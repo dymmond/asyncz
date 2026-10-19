@@ -262,11 +262,7 @@ class CompanyShape(Shape):
         when Asyncz asks for a compact representation.
         """
 
-        data = {
-            key: item
-            for key, item in vars(value).items()
-            if not key.startswith("_")
-        }
+        data = {key: item for key, item in vars(value).items() if not key.startswith("_")}
         if exclude_none:
             return {key: item for key, item in data.items() if item is not None}
         return data

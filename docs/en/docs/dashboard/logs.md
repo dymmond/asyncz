@@ -51,8 +51,7 @@ from asyncz.contrib.dashboard.logs.storage import LogEntry
 
 
 class LogStorage:
-    def append(self, entry: LogEntry) -> None:
-        ...
+    def append(self, entry: LogEntry) -> None: ...
 
     def query(
         self,
@@ -64,8 +63,7 @@ class LogStorage:
         since: datetime | None = None,
         until: datetime | None = None,
         limit: int = 200,
-    ) -> Iterable[LogEntry]:
-        ...
+    ) -> Iterable[LogEntry]: ...
 ```
 
 The built-in default is `MemoryLogStorage`.

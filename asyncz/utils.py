@@ -1,7 +1,7 @@
 import inspect
 import re
 from collections.abc import Callable
-from datetime import date, datetime, time, timedelta, tzinfo
+from datetime import UTC, date, datetime, time, timedelta, tzinfo
 from datetime import timezone as dttz
 from functools import partial
 from typing import Any, Optional, Union, cast, overload
@@ -16,7 +16,7 @@ try:
 except ImportError:
 
     def get_localzone() -> tzinfo:
-        return dttz.utc
+        return UTC
 
 
 try:
@@ -141,7 +141,7 @@ def to_datetime(
         tzname = values.pop("timezone")
 
         if tzname == "Z":
-            tz = dttz.utc
+            tz = UTC
         elif tzname:
             hours, minutes = (int(x) for x in tzname[1:].split(":"))
             sign = 1 if tzname[0] == "+" else -1
@@ -201,7 +201,7 @@ def utc_timestamp_to_datetime(timestamp: Union[int, float, None]) -> Optional[da
     Converts the given timestamp to a datetime instance.
     """
     if timestamp is not None:
-        return datetime.fromtimestamp(timestamp, dttz.utc)
+        return datetime.fromtimestamp(timestamp, UTC)
     return None
 
 

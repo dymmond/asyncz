@@ -2,8 +2,7 @@ import logging
 import sys
 import traceback
 from collections.abc import Callable
-from datetime import datetime, timedelta
-from datetime import timezone as tz
+from datetime import UTC, datetime, timedelta
 from threading import RLock
 from traceback import format_tb
 from typing import TYPE_CHECKING, Any, cast
@@ -112,7 +111,7 @@ def run_task(
     for run_time in run_times:
         mistrigger_grace_time = task.mistrigger_grace_time
         if mistrigger_grace_time is not None:
-            difference = datetime.now(tz.utc) - run_time
+            difference = datetime.now(UTC) - run_time
             grace_time = timedelta(seconds=mistrigger_grace_time)
             if difference > grace_time:
                 events.append(
@@ -174,7 +173,7 @@ async def run_coroutine_task(
     for run_time in run_times:
         mistrigger_grace_time = task.mistrigger_grace_time
         if mistrigger_grace_time is not None:
-            difference = datetime.now(tz.utc) - run_time
+            difference = datetime.now(UTC) - run_time
             grace_time = timedelta(seconds=mistrigger_grace_time)
             if difference > grace_time:
                 events.append(
