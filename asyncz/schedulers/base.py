@@ -1664,6 +1664,7 @@ class BaseScheduler(SchedulerType):
 
         # check for other processing thread
         with self.store_processing_lock.protected(blocking=False) as blocking_success:
+            # blocking succeeded
             if blocking_success:
                 # threading lock
                 with self.store_lock:
@@ -1672,9 +1673,9 @@ class BaseScheduler(SchedulerType):
                             now, next_wakeup_time, store_alias, store, events
                         )
             else:
+                # otherwise set a retry time
                 retry_wakeup_time = now + timedelta(seconds=self.store_retry_interval)
-                if not next_wakeup_time or next_wakeup_time > retry_wakeup_time:
-                    next_wakeup_time = retry_wakeup_time
+                next_wakeup_time = retry_wakeup_time
 
         for event in events:
             self.dispatch_event(event)

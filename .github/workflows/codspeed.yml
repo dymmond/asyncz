@@ -27,9 +27,9 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -e ".[testing]"
-          pip install pytest-codspeed==4.3.0
+          pip install pytest-codspeed==5.0.3
       - name: Run benchmarks
-        uses: CodSpeedHQ/action@v5.0.1
+        uses: CodSpeedHQ/action@v5.2.1
         with:
           mode: simulation
           run: pytest tests/test_benchmarks.py --codspeed
