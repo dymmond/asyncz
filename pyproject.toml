@@ -86,7 +86,7 @@ testing = [
     "starlette",
     "lilya[standard]>=0.27.0",
     "sqlalchemy",
-    "httpx",
+    "httpx2",
     "pytz>=2022.6",
     "freezegun",
     "ipdb"
